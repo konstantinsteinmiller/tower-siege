@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import ShapeTile from '@/components/game/ShapeTile.vue'
 import { shapeDef, shapeCost, shapeBlockTypes, shapeHasRoof, shapeBounds } from '@/game/shapes'
 import { blockDef } from '@/game/blocks'
-import { isMobileLandscape, windowWidth } from '@/use/useUser'
+import { windowHeight, windowWidth } from '@/use/useUser'
 
 /**
  * The build hand (reference images 1 / 3).
@@ -82,10 +82,12 @@ onUnmounted(() => {
 const tileSize = computed(() => {
   // A 44 px floor is the tap-target minimum; below that the tile stops being
   // reliably hittable and horizontal scrolling is the lesser evil.
-  const viewportCap = Math.min(64, windowWidth.value * 0.125)
-  if (isMobileLandscape.value || trackW.value <= 0) {
-    return Math.round(Math.max(44, viewportCap))
-  }
+  //
+  // The height term is what lets the tray live in the bottom bar on a landscape
+  // phone: there the short axis is the scarce one, and a hand sized off the
+  // width alone would eat a third of it.
+  const viewportCap = Math.min(64, windowWidth.value * 0.125, windowHeight.value * 0.13)
+  if (trackW.value <= 0) return Math.round(Math.max(44, viewportCap))
   const gaps = 3 * 10 + 8
   const perSlot = (trackW.value - gaps) / props.offers.length
   return Math.round(Math.max(44, Math.min(viewportCap, perSlot)))
@@ -185,7 +187,7 @@ const infoEntry = computed(() => {
 </script>
 
 <template lang="pug">
-  div.build-tray(:class="{ 'is-rail': isMobileLandscape }")
+  div.build-tray
     //- ── Info box ────────────────────────────────────────────────────────
     Transition(name="info")
       div.build-tray__info(v-if="infoEntry")
@@ -290,14 +292,6 @@ const infoEntry = computed(() => {
 
   &::-webkit-scrollbar
     display: none
-
-// Landscape phone: become a vertical rail so the tray never eats the short axis.
-.build-tray.is-rail .build-tray__scroll
-  flex-direction: column
-  align-items: center
-  overflow-x: hidden
-  overflow-y: auto
-  max-height: 100%
 
 .build-tray__slot
   position: relative

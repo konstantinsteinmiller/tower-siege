@@ -1663,16 +1663,23 @@ onUnmounted(() => {
 
 // ─── Landscape phone ────────────────────────────────────────────────────────
 //
-// Vertical space is the scarce resource. The tray moves to a right-hand rail
-// and the meta row hugs the bottom-left, leaving the middle band clear for the
-// tower.
+// Vertical space is the scarce resource, but the hand STAYS in the bottom bar.
+//
+// It used to fly out to a right-hand rail here, on the theory that a vertical
+// strip costs no height. Two things were wrong with that. The rail's media
+// query is not gated on touch while the component's rail LAYOUT is (it keys off
+// `isMobileLandscape`, which needs a mobile UA), so any short desktop or portal
+// embed got the absolute positioning without the vertical stacking — a
+// horizontal tray floating in the middle of the battlefield. And a control that
+// changes corner depending on the viewport is one the player has to hunt for.
+//
+// It is compact here instead: the tile cap follows the short axis (see
+// `BuildTray.tileSize`) so a full hand still costs a thin strip of height.
 @media (orientation: landscape) and (max-height: 30rem)
-  .scene__tray
-    position: absolute
-    right: calc(0.35rem + env(safe-area-inset-right, 0px))
-    top: 50%
-    translate: 0 -50%
-    max-height: 62vh
+  // Every millimetre of the short axis the bar gives back is battlefield.
+  .scene__bottom
+    padding-bottom: calc(0.2rem + env(safe-area-inset-bottom, 0px))
+    gap: 0.2rem
 
   .scene__right
     flex-direction: row

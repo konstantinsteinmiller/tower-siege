@@ -195,7 +195,41 @@ const buy = (): void => {
 }
 
 const nodeLabel = (id: string): string => t(`tech.names.${id}`)
-const nodeDesc = (id: string): string => t(`tech.descriptions.${id}`)
+
+/**
+ * What one rank of a node is worth, read from the node itself.
+ *
+ * The descriptions used to carry this number as prose, and every one of them
+ * had drifted away from the data by a rebalance or two — the Stone Stockpile
+ * advertised +18 while the tree granted +14. Feeding the real figure through
+ * `{n}` means the copy cannot lie again, in any language.
+ */
+const perRank = (id: string): { n: number; pct: boolean } | null => {
+  const e = TECH_BY_ID[id]?.effect as { pct?: number; add?: number } | undefined
+  if (!e) return null
+  if (e.pct !== undefined) return { n: e.pct, pct: true }
+  if (e.add !== undefined) return { n: e.add, pct: false }
+  return null
+}
+
+const nodeDesc = (id: string): string => {
+  const per = perRank(id)
+  return t(`tech.descriptions.${id}`, per ? { n: per.n } : {})
+}
+
+/**
+ * The running total the player has actually bought.
+ *
+ * Without it a repeatable node reads as inert: the description says "per rank"
+ * and never changes, so rank 5 looks exactly like rank 1 and the coins feel
+ * spent on nothing.
+ */
+const nodeTotal = (id: string, level: number): string | null => {
+  const per = perRank(id)
+  if (!per || level <= 0) return null
+  const total = Math.round(per.n * level * 100) / 100
+  return per.pct ? `+${total}%` : `+${total}`
+}
 </script>
 
 <template lang="pug">
@@ -250,6 +284,10 @@ const nodeDesc = (id: string): string => t(`tech.descriptions.${id}`)
           span.tech__detail-rank(v-if="!selectedDetail.capped") {{ t('tech.rankOpen', { n: selectedDetail.level }) }}
           span.tech__detail-rank(v-else-if="selectedDetail.level > 0") {{ t('tech.owned') }}
         p.tech__detail-desc {{ nodeDesc(selectedDetail.id) }}
+        //- What the ranks already bought add up to, so buying another one is
+        //- visibly worth something.
+        p.tech__detail-total(v-if="nodeTotal(selectedDetail.id, selectedDetail.level)")
+          | {{ t('tech.atRank', { r: selectedDetail.level, n: nodeTotal(selectedDetail.id, selectedDetail.level) }) }}
 
         div.tech__detail-foot
           span.tech__detail-status(v-if="selectedDetail.state === 'maxed'") {{ t('tech.maxed') }}
@@ -420,6 +458,13 @@ const nodeDesc = (id: string): string => t(`tech.descriptions.${id}`)
   color: #9fb6de
   font-weight: 900
   font-size: clamp(0.55rem, 2.4vw, 0.75rem)
+
+.tech__detail-total
+  margin: 0.15rem 0 0
+  color: #ffd93c
+  font-weight: 900
+  font-size: clamp(0.58rem, 2.5vw, 0.76rem)
+  text-shadow: 2px 2px 0 #000
 
 .tech__detail-desc
   margin: 0
