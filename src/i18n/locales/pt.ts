@@ -27,7 +27,7 @@ export default {
 
   'blocks': {
     'sell': 'Vender',
-    'roofNote': 'Com telhado: nada pode ser construído em cima.',
+    'roofNote': 'Com telhado: PV em dobro e defesa tripla vinda de cima. Precisa de céu livre.',
     'enhancedNote': 'Reforçado — mais PV e mais dano.',
     'enhancedHand': 'Mão reforçada',
     'reroll': 'Trocar esta peça',
@@ -104,10 +104,9 @@ export default {
     'towerFell': 'A torre caiu!',
     'reachedWave': 'Você sobreviveu até a onda {n}',
     'newRecord': 'Novo recorde!',
-    'defeated': 'Derrotados',
-    'reward': 'Recompensa',
     'upgrade': 'Melhorar!',
     'defendAgain': 'Defender de novo',
+    'continueRun': 'Reconstruir e continuar',
     'double': 'Dobrar moedas',
     'firstRunDouble': '2× — primeiro cerco de hoje!',
     'tripleWave': '3× moedas — {n}',

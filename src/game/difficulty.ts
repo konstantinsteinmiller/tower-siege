@@ -66,7 +66,17 @@ export const towerPower = (s: TowerStrength): number => {
  */
 export const expectedPower = (wave: number): number => {
   const w = Math.max(1, wave)
-  return 120 * Math.pow(w, 1.22) + 90
+  // Calibrated against what a player who simply spends their income actually
+  // fields. At 120·w^1.22 + 90 the reference tower measured BELOW expectation
+  // from wave 6 onward, so `adaptiveFactor` pinned to its 0.75 floor and handed
+  // out a permanent 25% discount — the system that is supposed to price a wave
+  // against the tower standing in front of it was, in practice, switched off.
+  // Fitted to the tower a player who simply spends their income actually
+  // fields: ~620 power at wave 1 (the 120-wood starting build), ~1600 by wave
+  // 10, ~3600 by wave 20. The large constant term matters most — with a small
+  // one, the STARTING tower already measured 4x "expected" and wave 1 opened at
+  // the 2.6 ceiling, which is the opposite of a teaching wave.
+  return 22 * Math.pow(w, 1.65) + 600
 }
 
 /** Difficulty multiplier bounds. Wide enough to matter, narrow enough that a
@@ -94,7 +104,10 @@ export const FLAWLESS_STREAK_LENGTH = 2
 /** How much each qualifying streak adds. */
 export const FLAWLESS_STEP = 0.2
 /** Ceiling on the compounding streak bonus. */
-export const MAX_STREAK_MUL = 3
+// Capped lower than it was: the streak bonus now compounds with an adaptive
+// term that actually works, and 3.0 on top of that put the wave budget far
+// beyond anything the player's income could answer.
+export const MAX_STREAK_MUL = 2.2
 
 /**
  * Track waves cleared without losing a single block.

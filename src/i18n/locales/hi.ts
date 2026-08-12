@@ -27,7 +27,7 @@ export default {
 
   'blocks': {
     'sell': 'बेचें',
-    'roofNote': 'छत वाला — इसके ऊपर कुछ नहीं बनाया जा सकता।',
+    'roofNote': 'छत वाला — दोगुना HP, ऊपर से तिगुना बचाव। ऊपर जगह खाली चाहिए।',
     'enhancedNote': 'प्रबलित — ज़्यादा HP और ज़्यादा नुक़सान।',
     'enhancedHand': 'प्रबलित हाथ',
     'reroll': 'यह टुकड़ा बदलें',
@@ -104,10 +104,9 @@ export default {
     'towerFell': 'टावर गिर गया!',
     'reachedWave': 'आप लहर {n} तक टिके',
     'newRecord': 'नया रिकॉर्ड!',
-    'defeated': 'पराजित',
-    'reward': 'इनाम',
     'upgrade': 'अपग्रेड!',
     'defendAgain': 'फिर से बचाव करें',
+    'continueRun': 'फिर से बनाएँ और जारी रखें',
     'double': 'सिक्के दोगुने',
     'firstRunDouble': '2× — आज की पहली घेराबंदी!',
     'tripleWave': '3× सिक्के — {n}',

@@ -8,10 +8,22 @@ import useBattlePass from '@/use/useBattlePass'
 // ─── Daily mission triplet ──────────────────────────────────────────────────
 //
 // Three rotating goals, regenerated each local day, that give a reason to open
-// the game daily beyond the login chest. Progress is fed by `recordRun()` at
-// the end of every siege; completing a mission pays coins + a chunk of
+// the game daily beyond the login chest. Completing one pays coins + a chunk of
 // battle-pass XP. State persists in the single `tower_state` blob under
 // `MISSIONS_KEY` as `{ day, missions }`, so it round-trips through cloud save.
+//
+// PROGRESS IS CREDITED IN DELTAS, and that is the whole design of `recordRun`.
+//
+// It used to be called exactly once, when the Gate fell, with the run's totals.
+// That made the panel a liar: a player forty kills into a siege opened it —
+// which is precisely when they would — and saw 0/120, because nothing had
+// finished yet. With runs now lasting many minutes, "your dailies update when
+// you die" is indistinguishable from "the dailies are broken".
+//
+// So `recordRun` takes the run's CUMULATIVE totals and credits only what has
+// not been credited yet. That makes it idempotent and safe to call as often as
+// the caller likes — every wave clear, whenever the panel opens, and at the end
+// of the run — without any risk of counting the same kill twice.
 
 export type MissionType = 'coins' | 'waves' | 'kills' | 'blocks'
 
@@ -96,6 +108,20 @@ const loadState = (): MissionState => {
 
 const state: Ref<MissionState> = ref(loadState())
 
+/**
+ * The run totals already credited to today's missions.
+ *
+ * Module-level rather than per-composable-call: `useMissions()` is invoked from
+ * several components, and a per-instance baseline would let each of them credit
+ * the same kills again.
+ */
+let credited = { coins: 0, kills: 0, blocks: 0 }
+
+/** Re-baseline the delta tracker. Call when a fresh run starts. */
+export const beginMissionRun = (): void => {
+  credited = { coins: 0, kills: 0, blocks: 0 }
+}
+
 const refresh = (): void => {
   const next = loadState()
   // Only replace when the day rolled over or the blob changed identity, so we
@@ -126,7 +152,13 @@ const useMissions = () => {
 
   const missions = computed(() => state.value.missions)
 
-  /** Feed one finished siege into the daily missions. */
+  /**
+   * Feed the CURRENT run's cumulative totals into the daily missions.
+   *
+   * Safe to call at any cadence — only the increment since the last call is
+   * credited. `waves` is a best-single-run goal and therefore a `max`, which is
+   * naturally idempotent already.
+   */
   const recordRun = (run: MissionRun): void => {
     ensureToday()
     // Coerce every input to a finite, non-negative number. A stale field
@@ -136,15 +168,29 @@ const useMissions = () => {
     const coins = Math.max(0, Number(run.coins) || 0)
     const kills = Math.max(0, Number(run.kills) || 0)
     const blocks = Math.max(0, Number(run.blocks) || 0)
+
+    // A counter going backwards means a new run began without anyone telling
+    // us — a fresh start, or a resumed snapshot. Re-baseline rather than
+    // crediting a negative delta or, worse, silently crediting nothing for the
+    // rest of the day.
+    if (coins < credited.coins || kills < credited.kills || blocks < credited.blocks) {
+      credited = { coins: 0, kills: 0, blocks: 0 }
+    }
+
+    const dCoins = coins - credited.coins
+    const dKills = kills - credited.kills
+    const dBlocks = blocks - credited.blocks
+    credited = { coins, kills, blocks }
+
     let changed = false
     for (const m of state.value.missions) {
       if (m.claimed) continue
       // Self-heal any already-corrupt progress before accumulating.
       const cur = Number.isFinite(m.progress) ? m.progress : 0
       const before = cur
-      if (m.type === 'coins') m.progress = cur + coins
-      else if (m.type === 'kills') m.progress = cur + kills
-      else if (m.type === 'blocks') m.progress = cur + blocks
+      if (m.type === 'coins') m.progress = cur + dCoins
+      else if (m.type === 'kills') m.progress = cur + dKills
+      else if (m.type === 'blocks') m.progress = cur + dBlocks
       else if (m.type === 'waves') m.progress = Math.max(cur, waves)
       if (m.progress !== before) changed = true
     }

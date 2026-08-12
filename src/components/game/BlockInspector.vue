@@ -60,7 +60,9 @@ const stats = computed(() => {
   return rows
 })
 
-const refund = computed(() => (props.block ? sellRefund(props.block.typeId) : { wood: 0, stone: 0 }))
+const refund = computed(() =>
+  props.block ? sellRefund(props.block.typeId) : { wood: 0, stone: 0, coins: 0 }
+)
 </script>
 
 <template lang="pug">
@@ -98,6 +100,8 @@ const refund = computed(() => (props.block ? sellRefund(props.block.typeId) : { 
             i.inspector__dot(v-if="refund.wood > 0" class="is-wood")
             span(v-if="refund.stone > 0") +{{ refund.stone }}
             i.inspector__dot(v-if="refund.stone > 0" class="is-stone")
+            span(v-if="refund.coins > 0") +{{ refund.coins }}
+            i.inspector__dot(v-if="refund.coins > 0" class="is-gold")
 </template>
 
 <style scoped lang="sass">
@@ -196,11 +200,14 @@ const refund = computed(() => (props.block ? sellRefund(props.block.typeId) : { 
     font-size: clamp(0.55rem, 2.5vw, 0.75rem)
     text-align: right
 
+// Wraps: a three-resource refund (the Mint and the Bombard both return wood,
+// stone AND gold) alongside a long localised verb can outrun the panel width.
 .inspector__sell
   display: flex
+  flex-wrap: wrap
   align-items: center
   justify-content: center
-  gap: 0.4em
+  gap: 0.2em 0.4em
   min-height: 1.9rem
   margin-top: 0.1rem
   padding: 0.2rem 0.5rem
@@ -234,6 +241,8 @@ const refund = computed(() => (props.block ? sellRefund(props.block.typeId) : { 
     background-color: #a9682f
   &.is-stone
     background-color: #cbd3dd
+  &.is-gold
+    background-color: #ffd93c
 
 .inspector-enter-active, .inspector-leave-active
   transition: opacity 160ms ease-out, translate 160ms ease-out

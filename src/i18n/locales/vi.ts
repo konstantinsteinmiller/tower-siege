@@ -27,7 +27,7 @@ export default {
 
   'blocks': {
     'sell': 'Bán',
-    'roofNote': 'Có mái — không thể xây gì lên trên.',
+    'roofNote': 'Có mái — gấp đôi HP, phòng thủ gấp ba trước đòn từ trên. Cần trống phía trên.',
     'enhancedNote': 'Gia cố — nhiều HP và sát thương hơn.',
     'enhancedHand': 'Bộ khối gia cố',
     'reroll': 'Đổi mảnh này',
@@ -104,10 +104,9 @@ export default {
     'towerFell': 'Tháp đã sụp đổ!',
     'reachedWave': 'Bạn trụ được đến đợt {n}',
     'newRecord': 'Kỷ lục mới!',
-    'defeated': 'Đã tiêu diệt',
-    'reward': 'Phần thưởng',
     'upgrade': 'Nâng cấp!',
     'defendAgain': 'Phòng thủ lại',
+    'continueRun': 'Xây lại & tiếp tục',
     'double': 'Nhân đôi xu',
     'firstRunDouble': '2× — cuộc vây hãm đầu tiên hôm nay!',
     'tripleWave': '3× vàng — {n}',

@@ -1,6 +1,12 @@
 import { blockDef, GATE_ID } from '@/game/blocks'
 import { enemyDef } from '@/game/enemies'
 import { themedPalette, spriteFor, withAlpha, mixHex, type Palette } from '@/game/art'
+import { isBossWave } from '@/game/waves'
+import {
+  monsterFrame, monsterFaces, pickMonster, primeMonsterSprites, allMonsterIds,
+  SPRITE_FOOT, SPRITE_HEIGHT
+} from '@/game/monsterSprites'
+import { blob, fillShape, ink, noise2, shrink } from '@/game/inkArt'
 import { SHAPE_BY_ID } from '@/game/shapes'
 import { ALLY_DEFS } from '@/game/allies'
 import { GRASS_DEPTH, SEA_LEVEL } from '@/game/world'
@@ -1051,6 +1057,37 @@ const drawEnemy = (target: CanvasRenderingContext2D, e: Enemy, t: number): void 
       drawHpBar(target, cx, cy - s * 0.9, s * 0.68, Math.max(2, s * 0.075), e.hp / e.maxHp)
     }
     return
+  }
+
+  // ── Monster designs ──
+  // A baked design replaces the whole procedural body: silhouette, walk cycle
+  // and contact shadow all come from the strip, so none of the generic torso /
+  // legs / head / prop work below runs for it. Anything not yet baked falls
+  // through to that older body rather than popping in and out of existence.
+  const monsterId = pickMonster(def.monster, e.uid)
+  if (monsterId) {
+    // `e.phase` is the game's own walk clock — one leg cycle every 2π/2.4 of
+    // it — so driving the strip from it keeps a fast unit's feet moving fast
+    // without the strip needing to know anything about speed.
+    const frame = monsterFrame(monsterId, e.phase * 2.4 / (Math.PI * 2))
+    if (frame) {
+      // Designs drawn facing left need one more flip: the battlefield authors
+      // everything facing right and mirrors by travel direction.
+      if (monsterFaces(monsterId) === 'left') ctx.scale(-1, 1)
+      const k = (s * 1.3) / SPRITE_HEIGHT
+      const w = frame.width * k
+      const h = frame.height * k
+      // Line the strip up by the FEET, not by its centre: the designs differ in
+      // how much headroom they use, and centring them would leave the tall ones
+      // hovering and the wide ones sunk.
+      ctx.drawImage(frame, -w * 0.5, s * 0.5 - SPRITE_FOOT * k, w, h)
+      ctx.restore()
+      stamp()
+      if (e.hp < e.maxHp && e.dying <= 0) {
+        drawHpBar(target, cx, cy - s * 0.82, s * 0.68, Math.max(2, s * 0.075), e.hp / e.maxHp, def.boss)
+      }
+      return
+    }
   }
 
   // Contact shadow grounds the character on the battlefield.
@@ -2127,16 +2164,75 @@ let bgCanvas: HTMLCanvasElement | null = null
 let bgCtx: CanvasRenderingContext2D | null = null
 let bgKey = ''
 
-/** Sky mood cycles with the wave tier, so deep runs LOOK deep. */
+/** Sunrise to sunset — the sun's whole visible arc. */
+export const DAY_ARC_MS = 90_000
+
+/** A full sunrise → sunset → midnight → sunrise turn: the day plus its night. */
+export const DAY_CYCLE_MS = DAY_ARC_MS * 2
+
+let skyEpoch = 0
+
+/**
+ * Position in the day, read from the WALL CLOCK rather than accumulated frame
+ * deltas.
+ *
+ * Ninety seconds has to mean ninety seconds. The render loop clamps its delta
+ * to 120 ms so a stall cannot blow up the simulation, which means summing those
+ * deltas loses real time on every dropped frame — a backgrounded tab drops to
+ * roughly one frame a second and the sun crawls at an eighth speed. Reading the
+ * clock is immune to all of it, and to the 2x battle speed as well: the sun
+ * should not sprint because the fight did.
+ */
+const skyNow = (): number => {
+  if (skyEpoch === 0) skyEpoch = performance.now()
+  return performance.now() - skyEpoch
+}
+
+/**
+ * Position in the day, 0..1.
+ *
+ * 0 = sunrise, 0.25 = noon, 0.5 = sunset, 0.75 = midnight. The sun's arc, the
+ * moon's arc and the sky gradient are all driven from this one number, which is
+ * what keeps them agreeing: a sunset sky with the sun still overhead is the
+ * kind of mismatch that reads as broken even when nobody can say why.
+ */
+export const dayPhase = (): number => (skyNow() % DAY_CYCLE_MS) / DAY_CYCLE_MS
+
+/**
+ * Sky keyframes around the cycle. Interpolated, not switched.
+ *
+ * The sky used to step between five fixed moods every five waves, which meant
+ * it never MOVED — it cut. Blending between keys means every wave looks a
+ * little different from the last, which is most of what makes a backdrop feel
+ * alive rather than painted.
+ */
+const SKY_KEYS: Array<[number, string, string, string]> = [
+  [0.00, '#2f3a6e', '#8a6f92', '#e0956a'], // sunrise
+  [0.14, '#6db4e6', '#b6dcef', '#ecdcc4'], // morning
+  [0.28, '#78c0ea', '#bfe2f4', '#e9d6c0'], // midday
+  [0.42, '#4a5a90', '#95739e', '#e8965f'], // sunset
+  [0.55, '#1d2652', '#3c4780', '#6d5c8e'], // dusk
+  [0.78, '#111830', '#26315a', '#454578'], // midnight
+  [1.00, '#2f3a6e', '#8a6f92', '#e0956a']  // back to sunrise
+]
+
+/** Sky gradient right now, blended between keyframes. */
 const skyFor = (w: number): [string, string, string] => {
-  const tier = Math.floor(Math.max(0, w) / 5) % 5
-  switch (tier) {
-    case 0: return ['#7fc4ea', '#bfe0f2', '#e9d6c0'] // clear day
-    case 1: return ['#5f93c8', '#a8bfd8', '#f0c9a0'] // afternoon
-    case 2: return ['#3f4f86', '#8a6f9e', '#e6976a'] // dusk
-    case 3: return ['#131a33', '#2a3560', '#4a4a80'] // night
-    default: return ['#2a0e18', '#5a1a24', '#a33a30'] // blood moon
+  const t = dayPhase()
+  let i = 0
+  while (i < SKY_KEYS.length - 2 && t > SKY_KEYS[i + 1]![0]) i++
+  const a = SKY_KEYS[i]!
+  const b = SKY_KEYS[i + 1]!
+  const k = (t - a[0]) / Math.max(1e-6, b[0] - a[0])
+  const blend: [string, string, string] = [
+    mixHex(a[1], b[1], k), mixHex(a[2], b[2], k), mixHex(a[3], b[3], k)
+  ]
+  // A boss night still turns the sky over — the escalation the old tiers were
+  // reaching for, kept as an EVENT rather than as a permanent step.
+  if (isBossWave(w) && t > 0.5) {
+    return [mixHex(blend[0], '#2a0e18', 0.7), mixHex(blend[1], '#5a1a24', 0.7), mixHex(blend[2], '#a33a30', 0.7)]
   }
+  return blend
 }
 
 /** Deterministic 0..1 hash — used for ridge lines and tree placement so the
@@ -2154,33 +2250,37 @@ const hash = (n: number): number => {
  * it is baked into the cached background canvas, so the cost is paid once per
  * camera move rather than once per frame.
  */
-const drawCelestial = (
-  c: CanvasRenderingContext2D,
-  w: number,
-  h: number,
-  groundY: number,
-  waveNo: number
-): void => {
-  const tier = Math.floor(Math.max(0, waveNo) / 5) % 5
-  const isNight = tier >= 3
-  const x = w * 0.74
-  const y = Math.min(Math.max(groundY, h * 0.5) * 0.34, h * 0.28)
-  const r = Math.max(10, Math.min(w, h) * 0.055)
+/**
+ * Sun and moon are baked once and blitted.
+ *
+ * Everything about a body except WHERE it is — halo, ray fan, disc, limb
+ * detail — is fixed, and this now runs on every frame rather than once per
+ * cached background. Redrawing sixteen gradients a frame to move a sprite
+ * across the sky is work for nothing; the only pass that genuinely depends on
+ * position is the wide atmospheric bloom, and that is a single fill.
+ */
+const bodySprites = new Map<string, HTMLCanvasElement>()
+
+const celestialSprite = (isNight: boolean, r: number, tier: number): HTMLCanvasElement => {
+  // Rays reach ~4.3r, so the sprite has to be a good deal wider than the disc.
+  const reach = Math.ceil(r * 4.6)
+  const size = reach * 2
+  const key = `${isNight ? 'moon' : 'sun'}|${Math.round(r)}|${tier}`
+  const hit = bodySprites.get(key)
+  if (hit) return hit
+
+  const cv = document.createElement('canvas')
+  cv.width = size
+  cv.height = size
+  const c = cv.getContext('2d')!
+  const x = reach
+  const y = reach
 
   const core = isNight ? '#f4f1ff' : '#fffdf0'
   const body = isNight ? '#d9dcf0' : '#ffe27a'
   const glow = isNight ? '210,220,255' : '255,214,120'
-  const bloomTint = tier === 4 ? '255,150,120' : glow
 
-  // 1 · Wide atmospheric bloom.
-  const bloom = c.createRadialGradient(x, y, r * 0.4, x, y, Math.min(w, h) * 0.5)
-  bloom.addColorStop(0, `rgba(${bloomTint},0.34)`)
-  bloom.addColorStop(0.22, `rgba(${bloomTint},0.12)`)
-  bloom.addColorStop(1, `rgba(${bloomTint},0)`)
-  c.fillStyle = bloom
-  c.fillRect(0, 0, w, Math.max(0, groundY))
-
-  // 2 · Tight halo that gives the disc a definite edge to sit inside.
+  // 1 · Tight halo that gives the disc a definite edge to sit inside.
   const halo = c.createRadialGradient(x, y, r * 0.85, x, y, r * 3.1)
   halo.addColorStop(0, `rgba(${glow},0.5)`)
   halo.addColorStop(1, `rgba(${glow},0)`)
@@ -2189,7 +2289,7 @@ const drawCelestial = (
   c.arc(x, y, r * 3.1, 0, Math.PI * 2)
   c.fill()
 
-  // 3 · Ray fan. Uneven lengths from the hash so it never looks like a clock
+  // 2 · Ray fan. Uneven lengths from the hash so it never looks like a clock
   //     face; skipped at night, where a moon has no rays.
   if (!isNight) {
     c.save()
@@ -2213,7 +2313,7 @@ const drawCelestial = (
     c.restore()
   }
 
-  // 4 · The disc itself, hot in the middle and cooling towards the limb.
+  // 3 · The disc itself, hot in the middle and cooling towards the limb.
   const disc = c.createRadialGradient(x - r * 0.25, y - r * 0.3, r * 0.05, x, y, r)
   disc.addColorStop(0, core)
   disc.addColorStop(0.55, body)
@@ -2223,7 +2323,7 @@ const drawCelestial = (
   c.arc(x, y, r, 0, Math.PI * 2)
   c.fill()
 
-  // 5 · Surface detail. Craters for a moon, a faint darker limb for a sun.
+  // 4 · Surface detail. Craters for a moon, a faint bright limb for a sun.
   if (isNight) {
     c.fillStyle = 'rgba(120,128,164,0.35)'
     for (let i = 0; i < 5; i++) {
@@ -2241,6 +2341,53 @@ const drawCelestial = (
     c.arc(x, y, r * 0.97, Math.PI * 0.9, Math.PI * 1.9)
     c.stroke()
   }
+
+  // Only a handful of variants ever exist (two bodies x a few sizes), but a
+  // resize sweep could mint one per pixel width if this were unbounded.
+  if (bodySprites.size > 12) bodySprites.clear()
+  bodySprites.set(key, cv)
+  return cv
+}
+
+const drawCelestial = (
+  c: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  groundY: number,
+  waveNo: number,
+  isNight: boolean,
+  /** This body's own phase: 0 = rising, 0.25 = highest, 0.5 = setting. */
+  bodyPhase: number
+): void => {
+  const tier = Math.floor(Math.max(0, waveNo) / 5) % 5
+  // Below the horizon for the other half of its cycle — the hills are drawn
+  // after this, so a body sitting low is occluded by them and rises out of the
+  // ridgeline rather than fading in over it.
+  if (bodyPhase >= 0.5) return
+
+  const r = Math.max(10, Math.min(w, h) * 0.055)
+  // Arc east to west. `sin` gives the ease at both horizons for free, so the
+  // body lingers at sunrise and sunset and sweeps through noon.
+  const t = bodyPhase / 0.5
+  const x = w * (0.08 + 0.84 * t)
+  const base = Math.max(groundY, h * 0.55) + r * 0.55
+  const y = base - (base - h * 0.1) * Math.sin(Math.PI * t)
+
+  const glow = isNight ? '210,220,255' : '255,214,120'
+  const bloomTint = tier === 4 ? '255,150,120' : glow
+
+  // The one pass that has to follow the body: a wide wash of light across the
+  // whole sky, which is what makes a low sun feel like it is IN the scene
+  // rather than pasted over it.
+  const bloom = c.createRadialGradient(x, y, r * 0.4, x, y, Math.min(w, h) * 0.5)
+  bloom.addColorStop(0, `rgba(${bloomTint},0.34)`)
+  bloom.addColorStop(0.22, `rgba(${bloomTint},0.12)`)
+  bloom.addColorStop(1, `rgba(${bloomTint},0)`)
+  c.fillStyle = bloom
+  c.fillRect(0, 0, w, Math.max(0, groundY))
+
+  const sprite = celestialSprite(isNight, r, tier)
+  c.drawImage(sprite, x - sprite.width / 2, y - sprite.height / 2)
 }
 
 /**
@@ -2340,11 +2487,36 @@ const drawBroadleaf = (
   }
 }
 
+/**
+ * Sky gradient and the two bodies, painted fresh every frame.
+ *
+ * Cheap by design: two linear/radial gradient fills plus whichever body is
+ * above the horizon. Everything expensive about the backdrop — ridges, tree
+ * line, water — stays in the cached layer that goes on top of this.
+ */
+const drawSky = (c: CanvasRenderingContext2D, w: number, h: number): void => {
+  const [top, mid, low] = skyFor(wave.value)
+  const groundY = worldToScreenY(0)
+
+  const sky = c.createLinearGradient(0, 0, 0, Math.max(groundY, h * 0.7))
+  sky.addColorStop(0, top)
+  sky.addColorStop(0.62, mid)
+  sky.addColorStop(1, low)
+  c.fillStyle = sky
+  c.fillRect(0, 0, w, Math.max(0, groundY))
+
+  // Both bodies, half a cycle apart, so dusk actually shows the sun going down
+  // on one side while the moon comes up on the other.
+  const phase = dayPhase()
+  drawCelestial(c, w, h, groundY, wave.value, true, (phase + 0.5) % 1)
+  drawCelestial(c, w, h, groundY, wave.value, false, phase)
+}
+
 const renderBackground = (w: number, h: number, dpr: number): void => {
   const zoom = getZoom()
   const rect = viewRect()
   // Quantise the key: re-render only on a meaningful camera move.
-  const key = `${w}x${h}|${Math.round(rect.l * 4)}|${Math.round(rect.b * 4)}|${Math.round(zoom)}|${Math.floor(wave.value / 5)}|${quality.value}`
+  const key = `${w}x${h}|${Math.round(rect.l * 4)}|${Math.round(rect.b * 4)}|${Math.round(zoom)}|${wave.value}|${Math.round(dayPhase() * 40)}|${quality.value}`
   if (key === bgKey && bgCanvas) return
   bgKey = key
 
@@ -2360,19 +2532,13 @@ const renderBackground = (w: number, h: number, dpr: number): void => {
   c.setTransform(dpr, 0, 0, dpr, 0, 0)
   c.clearRect(0, 0, w, h)
 
-  const [top, mid, low] = skyFor(wave.value)
+  // The sky and the two bodies are NOT drawn here — they change every frame and
+  // this canvas is cached across many. They are painted live underneath it (see
+  // `drawSky`), and the sky band of this canvas is simply left transparent for
+  // them to show through. The scenery on top is opaque, so it composites
+  // exactly as it did when it was one layer.
+  const [, mid] = skyFor(wave.value)
   const groundY = worldToScreenY(0)
-
-  // ── Sky ──
-  const sky = c.createLinearGradient(0, 0, 0, Math.max(groundY, h * 0.7))
-  sky.addColorStop(0, top)
-  sky.addColorStop(0.62, mid)
-  sky.addColorStop(1, low)
-  c.fillStyle = sky
-  c.fillRect(0, 0, w, Math.max(0, groundY))
-
-  // ── Celestial body ──
-  drawCelestial(c, w, h, groundY, wave.value)
 
   // ── Mountain ridges (two ranges, different parallax + tone) ──
   //
@@ -2489,6 +2655,11 @@ const renderBackground = (w: number, h: number, dpr: number): void => {
   // Aerial haze over the whole scenery band. A wash of sky colour is what makes
   // distance read as distance; without it the background competes with the
   // tower for attention no matter how well the trees are drawn.
+  //
+  // Baked at the CACHE's sky colour and refreshed whenever that drifts far
+  // enough to notice (see the key below). Following it per frame would mean
+  // re-rendering the ridges and every tree with it, for a wash that runs at 8
+  // to 30 percent alpha.
   const haze = c.createLinearGradient(0, groundY - h * 0.3, 0, groundY)
   haze.addColorStop(0, withAlpha(mid, 0.3))
   haze.addColorStop(1, withAlpha(mid, 0.08))
@@ -2645,6 +2816,118 @@ const renderBackground = (w: number, h: number, dpr: number): void => {
  * sound. Keeping this translation in ONE place means the sim never has to know
  * how loud or how sparkly anything is.
  */
+/**
+ * Particles shed by a body when it is struck.
+ *
+ * Small, and deliberately not gratuitous: a couple of droplets sold as the
+ * right SUBSTANCE does more than a shower of red. What matters is that a
+ * skeleton throws bone chips, a slime throws slime, and a ghost throws nothing
+ * at all — the same red spray on every enemy is the sort of detail nobody
+ * articulates and everybody registers as cheap.
+ *
+ * `dir` is the side to spray toward (away from whatever landed the hit); 0
+ * sprays both ways. `amount` only nudges the count, so a big hit reads bigger
+ * without a chip-damage tick producing a fountain.
+ */
+const emitGore = (
+  gore: string, x: number, y: number, dir: number, amount: number, density: number
+): void => {
+  if (gore === 'none') return
+  const heavy = Math.min(1.8, 0.7 + amount / 40)
+  const n = Math.round(4 * heavy * density)
+  if (n <= 0) return
+  /** Away from the hit, or both ways when the direction is unknown. */
+  const side = (): number => (dir === 0 ? (Math.random() < 0.5 ? -1 : 1) : dir)
+
+  switch (gore) {
+    case 'bone':
+      for (let i = 0; i < n; i++) {
+        emit({
+          x, y, vx: side() * (0.6 + Math.random() * 2.6), vy: -0.4 - Math.random() * 2.2,
+          life: 420, size: 0.055 + Math.random() * 0.05, color: [232, 220, 192],
+          gravity: 11, drag: 1.2, shape: 1, rot: Math.random() * 6.28, vrot: (Math.random() - 0.5) * 14
+        })
+      }
+      emit({ x, y, life: 240, size: 0.2, color: [206, 194, 170], alpha: 0.45, drag: 2 })
+      break
+
+    case 'ooze':
+      for (let i = 0; i < n; i++) {
+        emit({
+          x, y, vx: side() * (0.5 + Math.random() * 2), vy: -0.3 - Math.random() * 1.6,
+          life: 560, size: 0.08 + Math.random() * 0.07, color: [126, 206, 92],
+          gravity: 7, drag: 0.8
+        })
+      }
+      break
+
+    case 'sap':
+      for (let i = 0; i < n; i++) {
+        emit({
+          x, y, vx: side() * (0.5 + Math.random() * 2), vy: -0.4 - Math.random() * 1.8,
+          life: 500, size: 0.06 + Math.random() * 0.05,
+          color: i % 3 === 0 ? [110, 154, 66] : [186, 132, 54], gravity: 9, drag: 1
+        })
+      }
+      break
+
+    case 'ember':
+      for (let i = 0; i < n + 2; i++) {
+        emit({
+          x, y, vx: side() * (0.8 + Math.random() * 2.4), vy: -1 - Math.random() * 2.2,
+          life: 480, size: 0.05 + Math.random() * 0.04, color: [255, 176, 72],
+          additive: true, gravity: -1.4, drag: 2, shape: 2
+        })
+      }
+      break
+
+    case 'spectral':
+      for (let i = 0; i < n; i++) {
+        emit({
+          x, y, vx: side() * (0.4 + Math.random() * 1.2), vy: -0.8 - Math.random() * 1.4,
+          life: 620, size: 0.09 + Math.random() * 0.07, color: [172, 240, 232],
+          additive: true, alpha: 0.6, drag: 1.6
+        })
+      }
+      break
+
+    case 'metal':
+      for (let i = 0; i < n; i++) {
+        emit({
+          x, y, vx: side() * (1.4 + Math.random() * 4), vy: -0.6 - Math.random() * 2.6,
+          life: 260, size: 0.045, color: [255, 232, 170], additive: true, shape: 2,
+          gravity: 10, drag: 3
+        })
+      }
+      for (let i = 0; i < Math.round(n * 0.5); i++) {
+        emit({
+          x, y, vx: side() * (0.6 + Math.random() * 1.8), vy: -0.4 - Math.random() * 1.6,
+          life: 420, size: 0.06, color: [128, 132, 140], gravity: 12, drag: 1.2, shape: 1,
+          rot: Math.random() * 6.28, vrot: (Math.random() - 0.5) * 12
+        })
+      }
+      break
+
+    default:
+      // Blood.
+      for (let i = 0; i < n; i++) {
+        emit({
+          x, y, vx: side() * (0.7 + Math.random() * 2.8), vy: -0.5 - Math.random() * 2.4,
+          life: 400, size: 0.05 + Math.random() * 0.055, color: [172, 34, 42],
+          gravity: 12, drag: 1.1
+        })
+      }
+      // A little fine mist, so the spray has a soft edge rather than reading as
+      // a handful of discrete dots.
+      for (let i = 0; i < Math.round(n * 0.6); i++) {
+        emit({
+          x, y, vx: side() * (0.3 + Math.random() * 1.4), vy: -0.3 - Math.random() * 1.2,
+          life: 300, size: 0.09, color: [138, 26, 34], alpha: 0.4, drag: 2.4
+        })
+      }
+  }
+}
+
 const consumeFx = (ev: FxEvent): void => {
   const q = quality.value
   const density = q === 'high' ? 1 : q === 'medium' ? 0.6 : 0.32
@@ -2713,8 +2996,10 @@ const consumeFx = (ev: FxEvent): void => {
     }
     case 'explosion': {
       const r = ev.radius
-      // Core flash.
-      emit({ x: ev.x, y: ev.y, life: 130, size: r * 1.5, color: [255, 250, 220], alpha: 0.95, additive: true })
+      spawnBlast(ev.x, ev.y, Math.min(1.3, r * 0.7), 'shell', 0, { life: 480, radial: true })
+      // A soft additive bloom UNDER the drawn fireball. Kept small: it is there
+      // to make the drawing glow, not to be the effect.
+      emit({ x: ev.x, y: ev.y, life: 130, size: r * 0.5, color: [255, 250, 220], alpha: 0.45, additive: true })
       for (let i = 0; i < Math.round(26 * density); i++) {
         const a = Math.random() * Math.PI * 2
         const sp = (1 + Math.random() * 6) * r * 0.5
@@ -2740,14 +3025,111 @@ const consumeFx = (ev: FxEvent): void => {
       break
     }
     case 'impact': {
-      const col: [number, number, number] = ev.kindOf === 'frost' ? [150, 235, 255] : [255, 210, 140]
-      for (let i = 0; i < Math.round(8 * density); i++) {
-        const a = Math.random() * Math.PI * 2
-        emit({
-          x: ev.x, y: ev.y,
-          vx: Math.cos(a) * 3.4, vy: Math.sin(a) * 3.4,
-          life: 240, size: 0.1, color: col, additive: true, shape: 2, drag: 3
-        })
+      // Every round used to land as the same eight-dot radial puff, in one of
+      // two colours. A weapon's hit is the only feedback the player gets that
+      // it did anything, so each one now lands differently — and along the
+      // round's own line of travel, because a radial burst reads as a decal
+      // stamped on the scene rather than as something arriving.
+      const a0 = ev.angle
+      /** A cone of debris thrown FORWARD along the round's path. */
+      const spray = (
+        n: number, speed: number, spread: number, life: number, size: number,
+        color: [number, number, number],
+        o: { additive?: boolean; shape?: 0 | 1 | 2 | 3; gravity?: number; drag?: number } = {}
+      ): void => {
+        for (let i = 0; i < Math.round(n * density); i++) {
+          const a = a0 + (Math.random() - 0.5) * spread
+          const sp = speed * (0.55 + Math.random() * 0.9)
+          emit({
+            x: ev.x, y: ev.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+            life: life * (0.7 + Math.random() * 0.6), size: size * (0.7 + Math.random() * 0.7),
+            color, additive: o.additive, shape: o.shape ?? 2,
+            gravity: o.gravity ?? 0, drag: o.drag ?? 3,
+            rot: Math.random() * 6.28, vrot: (Math.random() - 0.5) * 10
+          })
+        }
+      }
+      /** A thin ring perpendicular to the impact — the concussion tell. */
+      const ring = (n: number, speed: number, life: number, size: number, color: [number, number, number], additive = false): void => {
+        for (let i = 0; i < Math.round(n * density); i++) {
+          const a = a0 + Math.PI / 2 + (i % 2 ? 0 : Math.PI) + (Math.random() - 0.5) * 0.9
+          emit({
+            x: ev.x, y: ev.y, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed,
+            life, size, color, additive, drag: 4
+          })
+        }
+      }
+
+      spawnBlast(ev.x, ev.y, BLAST_R[ev.kindOf] ?? 0.45, ev.kindOf, a0,
+        { life: ev.kindOf === 'bolt' ? 260 : 340 })
+
+      switch (ev.kindOf) {
+        case 'bolt':
+          // Archer: fast, small, and over instantly. A hard white pin-flash and
+          // a tight spark cone — no smoke, nothing that lingers, because an
+          // arrow that leaves a cloud reads as artillery.
+          emit({ x: ev.x, y: ev.y, life: 80, size: 0.18, color: [255, 248, 220], additive: true, alpha: 0.7 })
+          spray(6, 4.2, 1.1, 170, 0.07, [255, 226, 168], { additive: true, drag: 5 })
+          spray(3, 2.2, 2.4, 260, 0.05, [190, 160, 120], { gravity: 7, shape: 1, drag: 2 })
+          break
+
+        case 'ball': {
+          // Cannon: a blunt, dusty concussion. The perpendicular ring is what
+          // sells weight — debris going sideways means something stopped hard.
+          emit({ x: ev.x, y: ev.y, life: 110, size: 0.2, color: [255, 224, 170], additive: true, alpha: 0.32 })
+          ring(6, 3.2, 300, 0.16, [150, 138, 122])
+          spray(8, 4.6, 1.0, 340, 0.11, [186, 168, 146], { gravity: 9, shape: 1, drag: 2 })
+          spray(5, 1.6, 2.0, 520, 0.2, [120, 112, 104], { gravity: -0.8, shape: 0, drag: 1.6 })
+          triggerShake('small')
+          break
+        }
+
+        case 'shell': {
+          // Bombard: the heaviest single round in the tower. Bright core, real
+          // embers, rising smoke, and a scorch left behind.
+          emit({ x: ev.x, y: ev.y, life: 140, size: 0.3, color: [255, 214, 130], additive: true, alpha: 0.4 })
+          emit({ x: ev.x, y: ev.y, life: 220, size: 0.22, color: [255, 140, 50], additive: true, alpha: 0.42 })
+          ring(8, 4.4, 340, 0.2, [255, 176, 90], true)
+          spray(10, 5.4, 1.3, 480, 0.1, [255, 190, 90], { additive: true, drag: 2.4 })
+          spray(7, 2.0, 2.4, 700, 0.26, [104, 96, 90], { gravity: -1.1, shape: 0, drag: 1.4 })
+          if (q !== 'low') emitDecal(ev.x, ev.y, 0.5, 0.4)
+          triggerShake('strong')
+          break
+        }
+
+        case 'zap': {
+          // Tesla: no debris at all. Electricity does not throw chips of the
+          // thing it hits — it flashes, and it forks.
+          emit({ x: ev.x, y: ev.y, life: 90, size: 0.3, color: [235, 250, 255], additive: true, alpha: 0.7 })
+          for (let i = 0; i < Math.round(9 * density); i++) {
+            const a = Math.random() * Math.PI * 2
+            const sp = 5.5 + Math.random() * 4
+            emit({
+              x: ev.x, y: ev.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+              life: 130 + Math.random() * 90, size: 0.05, color: [150, 220, 255],
+              additive: true, shape: 2, drag: 9
+            })
+          }
+          break
+        }
+
+        case 'frost': {
+          // Frost: slow, crystalline, and it hangs. The lingering mist is the
+          // point — this is the weapon whose effect outlasts its hit.
+          emit({ x: ev.x, y: ev.y, life: 260, size: 0.34, color: [206, 244, 255], additive: true, alpha: 0.5 })
+          spray(7, 3.0, 2.6, 480, 0.09, [176, 234, 255], { shape: 1, drag: 4, gravity: 3 })
+          for (let i = 0; i < Math.round(5 * density); i++) {
+            const a = Math.random() * Math.PI * 2
+            emit({
+              x: ev.x, y: ev.y, vx: Math.cos(a) * 0.8, vy: Math.sin(a) * 0.8 - 0.4,
+              life: 900, size: 0.24, color: [214, 240, 255], alpha: 0.5, drag: 1.2
+            })
+          }
+          break
+        }
+
+        default:
+          spray(7, 3.6, 1.6, 260, 0.1, [255, 210, 140], { additive: true, drag: 3 })
       }
       playFx(ev.kindOf === 'frost' ? 'frost' : 'impact')
       break
@@ -2798,13 +3180,9 @@ const consumeFx = (ev: FxEvent): void => {
           color: '#ffe08a', size: 0.34, crit: ev.amount >= 25
         })
       }
-      for (let i = 0; i < Math.round(4 * density); i++) {
-        emit({
-          x: ev.x, y: ev.y,
-          vx: (Math.random() - 0.5) * 3, vy: Math.random() * 2.5,
-          life: 280, size: 0.08, color: [200, 60, 70], gravity: 8, drag: 1.5
-        })
-      }
+      // What comes out depends on what was hit. Every enemy used to shed the
+      // same red droplets, skeletons included.
+      emitGore(ev.gore, ev.x, ev.y, ev.dir, ev.amount, density)
       break
     }
     case 'enemyDie': {
@@ -2837,7 +3215,36 @@ const consumeFx = (ev: FxEvent): void => {
       break
     }
     case 'enemyAttack': {
-      if (!ev.ranged) {
+      if (ev.ranged) {
+        // A ranged attacker used to deal its damage with NO visual at all —
+        // just a sound. The slinger stood off at four cells lobbing invisible
+        // rocks, which reads as a broken enemy that has stopped attacking.
+        //
+        // Solve for the launch velocity that puts a ballistic round on the
+        // target in `T`, so the round actually arrives where the damage did.
+        const T = 0.34
+        const G = 12
+        const vx = (ev.tx - ev.x) / T
+        const vy = (ev.ty - ev.y) / T - 0.5 * G * T
+        emit({
+          x: ev.x, y: ev.y - 0.15, vx, vy, gravity: G,
+          life: T * 1000, size: 0.17, color: [138, 126, 112], shape: 1,
+          rot: Math.random() * 6.28, vrot: 9
+        })
+        // A puff at the throw, and grit where it lands.
+        for (let i = 0; i < Math.round(3 * density); i++) {
+          emit({
+            x: ev.x, y: ev.y, vx: (Math.random() - 0.5) * 1.6, vy: -Math.random() * 1.2,
+            life: 320, size: 0.11, color: [140, 130, 118], alpha: 0.6, drag: 2
+          })
+        }
+        for (let i = 0; i < Math.round(4 * density); i++) {
+          emit({
+            x: ev.tx, y: ev.ty, vx: (Math.random() - 0.5) * 2.6, vy: -Math.random() * 1.8,
+            life: 300, size: 0.08, color: [196, 180, 158], gravity: 9, drag: 2
+          })
+        }
+      } else {
         for (let i = 0; i < Math.round(5 * density); i++) {
           emit({
             x: ev.tx, y: ev.ty,
@@ -2846,6 +3253,8 @@ const consumeFx = (ev: FxEvent): void => {
             rot: Math.random() * 6.28, vrot: (Math.random() - 0.5) * 8
           })
         }
+        // The attacker sheds a little of itself on a melee swing too.
+        emitGore(ev.gore, ev.x, ev.y, 0, 4, density * 0.5)
       }
       playFx(ev.ranged ? 'throw' : 'hit')
       break
@@ -3170,25 +3579,217 @@ const drawLightning = (ctx: CanvasRenderingContext2D, bolt: Bolt): void => {
 
 // ─── Projectiles ────────────────────────────────────────────────────────────
 
+// ─── Impact blasts ───────────────────────────────────────────────────────────
+
+/**
+ * A hit is DRAWN, not only sprayed.
+ *
+ * Particles give a hit its energy but never its shape: a cone of additive dots
+ * reads much the same whether a bolt landed or a shell did, and it shares no
+ * language at all with the monsters it lands on, which are cel-shaded under
+ * broken ink. A blast is the drawn half of the hit — a lumpy fireball in three
+ * flat tones, a hand-drawn shock ring, a few hard shards and inked smoke — with
+ * the particle system left to do embers and debris on top of it.
+ */
+interface BlastPalette {
+  /** Hot centre. */
+  core: string
+  /** The body of the fireball — the tone that identifies the weapon. */
+  mid: string
+  /** Shadow side and the shock ring. */
+  deep: string
+  ink: string
+  smoke: string
+}
+
+interface Blast {
+  x: number
+  y: number
+  /** Peak radius, world units. */
+  r: number
+  life: number
+  maxLife: number
+  seed: number
+  /** Screen-space heading the shards are thrown along. */
+  angle: number
+  /** No line of travel to throw along — shards go all the way round instead. */
+  radial: boolean
+  pal: BlastPalette
+  /** Suppresses the hot core, for hits that should not read as fire. */
+  cold: boolean
+}
+
+const BLAST_PALETTES: Record<string, BlastPalette> = {
+  bolt: { core: '#fffbe8', mid: '#ffd977', deep: '#e08a2a', ink: '#3a2410', smoke: '#8a7a68' },
+  ball: { core: '#fff3d2', mid: '#ffb44a', deep: '#c85a1e', ink: '#33190f', smoke: '#7d7166' },
+  shell: { core: '#fffdf2', mid: '#ffc24a', deep: '#d4441f', ink: '#2e150e', smoke: '#6e655e' },
+  zap: { core: '#ffffff', mid: '#c8f2ff', deep: '#3f9fdc', ink: '#12283a', smoke: '#7f97a8' },
+  frost: { core: '#ffffff', mid: '#dcf7ff', deep: '#5cc0e4', ink: '#123244', smoke: '#93b6c4' }
+}
+
+/** Peak radius per weapon, world units. Range matters more than the values. */
+const BLAST_R: Record<string, number> = {
+  bolt: 0.32, ball: 0.5, shell: 0.62, zap: 0.42, frost: 0.44
+}
+
+const blasts: Blast[] = []
+let blastSeq = 0
+
+const spawnBlast = (
+  x: number, y: number, r: number, kind: string, angle: number,
+  o: { life?: number; radial?: boolean } = {}
+): void => {
+  const q = quality.value
+  if (q === 'low' && blasts.length >= 3) return
+  // A hard cap. Overlapping blasts add nothing legible and each one is real
+  // path work; the oldest goes, so the newest hit is always among those drawn.
+  if (blasts.length >= (q === 'high' ? 14 : 8)) blasts.shift()
+  const life = o.life ?? 340
+  blastSeq = (blastSeq + 1) % 997
+  blasts.push({
+    x, y, r,
+    life, maxLife: life,
+    seed: blastSeq * 7.13,
+    // World angles run y-up, the canvas runs y-down.
+    angle: -angle,
+    radial: o.radial ?? false,
+    pal: BLAST_PALETTES[kind] ?? BLAST_PALETTES.ball!,
+    cold: kind === 'frost' || kind === 'zap'
+  })
+}
+
+/** Snaps out and settles — a detonation is not a linear tween. */
+const blastEase = (u: number): number => 1 - Math.pow(1 - Math.min(1, Math.max(0, u)), 3)
+
+const drawBlast = (ctx: CanvasRenderingContext2D, b: Blast): void => {
+  const u = 1 - b.life / b.maxLife
+  const R = b.r * getZoom()
+  if (R < 3) return
+
+  // Redrawn in three HOLDS rather than tweened continuously. Limited animation
+  // is what a hand-drawn effect actually does, and the small jump in the
+  // contour between holds is exactly what a smoothly scaled sprite can't have.
+  const hold = Math.min(2, Math.floor(u * 3))
+  const seed = b.seed + hold * 17.3
+
+  ctx.save()
+  ctx.translate(worldToScreenX(b.x), worldToScreenY(b.y))
+
+  // ── Shock ring ──
+  // Wide, broken, and gone before the smoke arrives.
+  const ringA = 1 - u * 1.7
+  if (ringA > 0.03) {
+    const rr = R * (0.55 + blastEase(u * 2.2) * 1.2)
+    ctx.globalAlpha = ringA * 0.85
+    ink(ctx, blob(0, 0, rr, rr * 0.8, seed + 3, 0.16, 2.4, 34), {
+      width: Math.max(1.2, R * 0.11 * (1 - u * 0.7)),
+      color: b.pal.deep,
+      breakUp: 0.5,
+      seed: seed + 11
+    })
+  }
+
+  // ── Shards ──
+  // The only hard edges in the whole effect: the fireball and the smoke are all
+  // curves, so the sharpness that says "impact" has to come from somewhere.
+  const shardA = 1 - u * 2.2
+  if (shardA > 0.03) {
+    ctx.globalAlpha = shardA
+    ctx.fillStyle = b.pal.mid
+    const n = 5
+    for (let i = 0; i < n; i++) {
+      const off = b.radial
+        ? (i / n) * Math.PI * 2
+        : (i / (n - 1) - 0.5) * 2.2
+      const a = b.angle + off + noise2(i * 1.7, seed, seed) * 0.34
+      const len = R * (1.1 + noise2(i * 2.3, seed + 5, seed) * 1.0) * (0.75 + blastEase(u * 1.6) * 0.7)
+      const base = R * 0.3
+      const w = R * 0.15
+      ctx.beginPath()
+      ctx.moveTo(Math.cos(a) * len, Math.sin(a) * len)
+      ctx.lineTo(Math.cos(a) * base + Math.cos(a + 1.5708) * w, Math.sin(a) * base + Math.sin(a + 1.5708) * w)
+      ctx.lineTo(Math.cos(a) * base - Math.cos(a + 1.5708) * w, Math.sin(a) * base - Math.sin(a + 1.5708) * w)
+      ctx.closePath()
+      ctx.fill()
+    }
+  }
+
+  // ── Fireball ──
+  // Three flat tones and an inked contour. The moment a gradient goes in here
+  // it stops matching the monsters, which is the whole point of drawing it.
+  const bodyA = u < 0.5 ? 1 : Math.max(0, 1 - (u - 0.5) / 0.38)
+  if (bodyA > 0.03) {
+    const br = R * (0.5 + blastEase(u * 1.9) * 0.62)
+    const body = blob(0, 0, br, br * 0.9, seed, 0.24, 2.7, 40)
+    ctx.globalAlpha = bodyA
+    fillShape(ctx, body, b.pal.deep)
+    fillShape(ctx, shrink(body, 0.74, -br * 0.16, -br * 0.2), b.pal.mid)
+    fillShape(ctx, shrink(body, b.cold ? 0.36 : 0.31, -br * 0.3, -br * 0.36), b.pal.core)
+    ink(ctx, body, { width: br * 0.17, color: b.pal.ink, breakUp: 0.28, seed: seed + 2 })
+  }
+
+  // ── Smoke ──
+  // Lobes that push outward and lift, each its own inked silhouette so the
+  // cloud reads as drawn shapes rather than as a soft mass. Seeded off the
+  // blast rather than the hold, so it DRIFTS while the fireball pops.
+  const smokeA = Math.min(1, Math.max(0, (u - 0.22) / 0.22)) * Math.max(0, 1 - Math.max(0, u - 0.6) / 0.4) * 0.7
+  if (smokeA > 0.04 && quality.value !== 'low') {
+    const n = quality.value === 'high' ? 4 : 3
+    ctx.globalAlpha = smokeA
+    const lit = mixHex(b.pal.smoke, '#ffffff', 0.34)
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + b.seed * 0.7
+      const d = R * (0.45 + u * 0.95)
+      const pr = R * (0.3 + noise2(i * 3.1, b.seed, b.seed) * 0.24) * (0.7 + u * 0.7)
+      const px = Math.cos(a) * d
+      const py = Math.sin(a) * d * 0.7 - u * R * 0.7
+      const puff = blob(px, py, pr, pr * 0.86, b.seed + i * 5, 0.2, 2.4, 24)
+      fillShape(ctx, puff, b.pal.smoke)
+      fillShape(ctx, shrink(puff, 0.6, px - pr * 0.3, py - pr * 0.34), lit)
+      ink(ctx, puff, { width: pr * 0.17, color: b.pal.ink, breakUp: 0.5, seed: b.seed + i })
+    }
+  }
+
+  ctx.restore()
+}
+
 const drawProjectile = (ctx: CanvasRenderingContext2D, p: Projectile): void => {
   const zoom = getZoom()
   const x = worldToScreenX(p.x)
   const y = worldToScreenY(p.y)
 
-  // Trail.
+  // Trail. Two characters, because a trail is half of what identifies a shot
+  // at speed: a thin bright streak for the small fast rounds, and a puff of
+  // powder smoke that widens and thins with age for anything with mass. A
+  // cannonball wearing the archer's hard bright line is most of why the two
+  // weapons looked alike in flight.
   if (p.trail.length >= 4) {
-    ctx.globalCompositeOperation = 'lighter'
-    ctx.strokeStyle = p.kind === 'frost' ? 'rgba(150,235,255,0.5)'
-      : p.kind === 'shell' ? 'rgba(180,180,180,0.4)' : 'rgba(255,190,110,0.45)'
-    ctx.lineWidth = Math.max(1, zoom * 0.06)
-    ctx.lineCap = 'round'
-    ctx.beginPath()
-    ctx.moveTo(worldToScreenX(p.trail[0]!), worldToScreenY(p.trail[1]!))
-    for (let i = 2; i < p.trail.length; i += 2) {
-      ctx.lineTo(worldToScreenX(p.trail[i]!), worldToScreenY(p.trail[i + 1]!))
+    if (p.kind === 'ball' || p.kind === 'shell' || p.kind === 'bomb') {
+      const n = p.trail.length / 2
+      ctx.lineCap = 'round'
+      for (let i = 0; i + 1 < n; i++) {
+        // 0 at the oldest sample, 1 at the round itself.
+        const a = n > 1 ? i / (n - 1) : 1
+        ctx.strokeStyle = `rgba(132,126,118,${0.04 + 0.2 * a})`
+        ctx.lineWidth = Math.max(1, zoom * (0.15 - 0.09 * a))
+        ctx.beginPath()
+        ctx.moveTo(worldToScreenX(p.trail[i * 2]!), worldToScreenY(p.trail[i * 2 + 1]!))
+        ctx.lineTo(worldToScreenX(p.trail[i * 2 + 2]!), worldToScreenY(p.trail[i * 2 + 3]!))
+        ctx.stroke()
+      }
+    } else {
+      ctx.globalCompositeOperation = 'lighter'
+      ctx.strokeStyle = p.kind === 'frost' ? 'rgba(150,235,255,0.5)' : 'rgba(255,190,110,0.45)'
+      ctx.lineWidth = Math.max(1, zoom * 0.06)
+      ctx.lineCap = 'round'
+      ctx.beginPath()
+      ctx.moveTo(worldToScreenX(p.trail[0]!), worldToScreenY(p.trail[1]!))
+      for (let i = 2; i < p.trail.length; i += 2) {
+        ctx.lineTo(worldToScreenX(p.trail[i]!), worldToScreenY(p.trail[i + 1]!))
+      }
+      ctx.stroke()
+      ctx.globalCompositeOperation = 'source-over'
     }
-    ctx.stroke()
-    ctx.globalCompositeOperation = 'source-over'
   }
 
   switch (p.kind) {
@@ -3209,7 +3810,39 @@ const drawProjectile = (ctx: CanvasRenderingContext2D, p: Projectile): void => {
       ctx.restore()
       break
     }
-    case 'ball':
+    case 'ball': {
+      // Cannonball: a solid iron round shot, deliberately circular and NOT
+      // aligned to its velocity. It used to share the bomber's finned casing,
+      // which — elongated along its own heading — read as a second, fatter
+      // arrow. Roundness is the entire silhouette cue for a cannon.
+      const r = zoom * 0.105
+
+      // Muzzle heat still clinging to the shot. A glow rather than a streak,
+      // so it never draws a line across the sky.
+      ctx.globalCompositeOperation = 'lighter'
+      const heat = ctx.createRadialGradient(x, y, 0, x, y, r * 2.2)
+      heat.addColorStop(0, 'rgba(255,168,78,0.3)')
+      heat.addColorStop(1, 'rgba(255,120,40,0)')
+      ctx.fillStyle = heat
+      ctx.beginPath(); ctx.arc(x, y, r * 2.2, 0, Math.PI * 2); ctx.fill()
+      ctx.globalCompositeOperation = 'source-over'
+
+      // Iron, lit from the upper left like everything else in the scene.
+      const iron = ctx.createRadialGradient(x - r * 0.4, y - r * 0.45, r * 0.05, x, y, r * 1.05)
+      iron.addColorStop(0, '#767d86')
+      iron.addColorStop(0.5, '#3a3f46')
+      iron.addColorStop(1, '#0e1013')
+      ctx.fillStyle = iron
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill()
+
+      // A specular pip and a cool bounce on the lower limb: two dots are all it
+      // takes to stop a filled circle reading as a flat disc.
+      ctx.fillStyle = 'rgba(255,255,255,0.55)'
+      ctx.beginPath(); ctx.arc(x - r * 0.38, y - r * 0.42, r * 0.22, 0, Math.PI * 2); ctx.fill()
+      ctx.fillStyle = 'rgba(150,172,196,0.28)'
+      ctx.beginPath(); ctx.arc(x + r * 0.22, y + r * 0.48, r * 0.3, 0, Math.PI * 2); ctx.fill()
+      break
+    }
     case 'bomb': {
       // A finned iron bomb that points along its own velocity — the rotation is
       // what sells the fall, and it is the player's cue to look up.
@@ -3570,6 +4203,8 @@ let lastFrame = 0
  * Draw one frame. `dtMs` is the real elapsed time; the caller has already
  * stepped the simulation.
  */
+let monstersPrimed = false
+
 export const drawScene = (
   ctx: CanvasRenderingContext2D,
   w: number,
@@ -3578,6 +4213,13 @@ export const drawScene = (
   dpr: number
 ): void => {
   const t = nowMs()
+  // Monster strips bake in idle time. Priming the whole cast up front is safe:
+  // the build phase gives it orders of magnitude more idle than the ~620 ms of
+  // work involved, and anything still unbaked draws its older body.
+  if (!monstersPrimed) {
+    monstersPrimed = true
+    primeMonsterSprites(allMonsterIds())
+  }
   tintDpr = dpr
   sampleFrame(dtMs)
   updateCamera(dtMs)
@@ -3591,11 +4233,16 @@ export const drawScene = (
     lightningBolts[i]!.life -= dtMs
     if (lightningBolts[i]!.life <= 0) lightningBolts.splice(i, 1)
   }
+  for (let i = blasts.length - 1; i >= 0; i--) {
+    blasts[i]!.life -= dtMs
+    if (blasts[i]!.life <= 0) blasts.splice(i, 1)
+  }
   if (screenFlash > 0) screenFlash = Math.max(0, screenFlash - dtMs / 260)
 
   ctx.clearRect(0, 0, w, h)
 
   // 1–4. Cached background.
+  drawSky(ctx, w, h)
   renderBackground(w, h, dpr)
   if (bgCanvas) ctx.drawImage(bgCanvas, 0, 0, w, h)
 
@@ -3658,6 +4305,9 @@ export const drawScene = (
   // 8. Projectiles.
   for (const p of getProjectiles()) drawProjectile(ctx, p)
   for (const bolt of lightningBolts) drawLightning(ctx, bolt)
+
+  // 8b. Drawn impact blasts — over the monster that was hit, under the embers.
+  for (const b of blasts) drawBlast(ctx, b)
 
   // 9. Particles.
   drawParticles(ctx, worldToScreenX, worldToScreenY, zoom)

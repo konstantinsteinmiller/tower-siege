@@ -9,13 +9,26 @@ import IconCoin from '@/components/icons/IconCoin.vue'
 import useMissions from '@/use/useMissions'
 import useSounds from '@/use/useSound'
 
-const emit = defineEmits<{ (e: 'coins-awarded', sourceEl: HTMLElement): void }>()
+const emit = defineEmits<{
+  (e: 'coins-awarded', sourceEl: HTMLElement): void
+  /** Fired just before the panel is shown, so the owner can flush live
+   *  progress into the dailies — otherwise the numbers are as stale as the
+   *  last wave clear. */
+  (e: 'opened'): void
+}>()
 
 const { t } = useI18n()
 const { playSound } = useSounds()
 const { missions, claim, claimableMissionCount } = useMissions()
 
 const isOpen = ref(false)
+
+const open = (): void => {
+  // Ask for a refresh BEFORE showing, so the first frame the player sees is
+  // already correct rather than visibly ticking up a moment later.
+  emit('opened')
+  isOpen.value = true
+}
 const rootEl = ref<HTMLElement | null>(null)
 
 interface MissionView {
@@ -65,7 +78,7 @@ const onClaim = (index: number): void => {
     tone="blue"
     :attention="claimableMissionCount > 0"
     :aria-label="t('missions.title')"
-    @click="isOpen = true"
+    @click="open"
   )
     //- Checklist / clipboard glyph for the missions board.
     svg(viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white")

@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { prependBaseUrl } from '@/utils/function'
 import { isRewardGated, canOfferReward, adInFlight } from '@/use/useAdGate'
+import IconCoin from '@/components/icons/IconCoin.vue'
 
 /**
  * A button for a perk that MAY be paid for with a rewarded video.
@@ -11,6 +12,13 @@ import { isRewardGated, canOfferReward, adInFlight } from '@/use/useAdGate'
  * most complained-about pattern in portal QA. On ungated builds (dev, non-CG
  * portals, CG pre-release) the perk is free and the icon is dropped, because
  * showing a video badge for something that never plays a video is a lie.
+ *
+ * `coinCost` gives an ungated build something to charge instead of nothing.
+ * A perk that is free and unlimited off-portal is not the same perk — it stops
+ * being a decision — so where a price makes sense the button shows a coin and
+ * an amount in place of the video badge, and disables itself when the player
+ * cannot pay. On a gated build the video is the price and `coinCost` is
+ * ignored, so the two never stack.
  */
 
 interface Props {
@@ -20,13 +28,19 @@ interface Props {
   isDisabled?: boolean
   /** Force-hide the movie badge even on a gated build (for a free retry, say). */
   free?: boolean
+  /** Price in run coins on UNGATED builds only. Omit for "free off-portal". */
+  coinCost?: number
+  /** The player's current run coins, for the affordability state. */
+  coins?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
   tone: 'gold',
   size: 'md',
   isDisabled: false,
-  free: false
+  free: false,
+  coinCost: 0,
+  coins: 0
 })
 
 defineEmits(['click'])
@@ -36,10 +50,15 @@ const movieSrc = prependBaseUrl('images/icons/movie_128x96.webp')
 /** Show the badge only when tapping this really will play a video. */
 const showMovie = computed(() => isRewardGated && !props.free)
 
+/** A coin price applies only where there is no video to charge instead. */
+const showCoin = computed(() => !isRewardGated && !props.free && props.coinCost > 0)
+
+const tooPoor = computed(() => showCoin.value && props.coins < props.coinCost)
+
 /** A gated build with no ad ready cannot honour the perk, so the button is
  *  disabled rather than failing after the tap. */
 const disabled = computed(() =>
-  props.isDisabled || adInFlight.value || (!props.free && !canOfferReward.value)
+  props.isDisabled || adInFlight.value || tooPoor.value || (!props.free && !canOfferReward.value)
 )
 </script>
 
@@ -58,11 +77,24 @@ const disabled = computed(() =>
         alt=""
         draggable="false"
       )
+      IconCoin.f-reward-button__coin(v-else-if="showCoin")
       span.f-reward-button__label
         slot {{ label }}
+      span.f-reward-button__price(v-if="showCoin") {{ coinCost }}
 </template>
 
 <style scoped lang="sass">
+.f-reward-button__coin
+  width: 1.05em
+  height: 1.05em
+  flex-shrink: 0
+
+.f-reward-button__price
+  font-weight: 900
+  color: #ffe066
+  font-variant-numeric: tabular-nums
+  text-shadow: 2px 2px 0 #000
+
 .f-reward-button
   position: relative
   display: inline-flex

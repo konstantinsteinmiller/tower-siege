@@ -27,7 +27,7 @@ export default {
 
   'blocks': {
     'sell': 'Verkaufen',
-    'roofNote': 'Überdacht – darauf kann nichts mehr gebaut werden.',
+    'roofNote': 'Überdacht – doppelte TP, dreifache Abwehr von oben. Braucht freien Himmel.',
     'enhancedNote': 'Verstärkt – mehr TP und mehr Schaden.',
     'enhancedHand': 'Verstärkte Hand',
     'reroll': 'Teil tauschen',
@@ -104,10 +104,9 @@ export default {
     'towerFell': 'Der Turm ist gefallen!',
     'reachedWave': 'Du hast Welle {n} überstanden',
     'newRecord': 'Neuer Rekord!',
-    'defeated': 'Besiegt',
-    'reward': 'Belohnung',
     'upgrade': 'Verbessern!',
     'defendAgain': 'Erneut verteidigen',
+    'continueRun': 'Wiederaufbauen & weiter',
     'double': 'Münzen verdoppeln',
     'firstRunDouble': '2× – erste Belagerung heute!',
     'tripleWave': '3× Münzen – {n}',

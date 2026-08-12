@@ -28,6 +28,8 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+import { isRewardGated } from '@/use/useAdGate'
+
 const emit = defineEmits<{ (e: 'triple'): void }>()
 const { t } = useI18n()
 
@@ -47,9 +49,17 @@ const visible = ref(false)
 const claimedWave = ref(-1)
 let hideTimer: ReturnType<typeof setTimeout> | null = null
 
-/** The triple is only offered on a wave that actually paid something. */
+/**
+ * The triple is only offered on a wave that actually paid something — and only
+ * where there is a video to pay for it.
+ *
+ * Off-portal the reward would simply be free, and a button that triples the
+ * payout for nothing is not an offer, it is a "make the game easier" toggle
+ * sitting in the middle of the screen after every wave.
+ */
 const canTriple = computed(() =>
-  !!props.reward
+  isRewardGated
+  && !!props.reward
   && props.reward.coins > 0
   && claimedWave.value !== props.reward.wave
   && canOfferReward.value
@@ -91,7 +101,7 @@ const tallyRows = computed(() => {
     div.wave-toast(v-if="visible && reward" :class="{ 'is-interactive': canTriple }")
       span.wave-toast__shadow(aria-hidden="true")
       div.wave-toast__body
-        div.wave-toast__title
+        div.wave-toast__title.text-white
           | {{ t('result.waveCleared', { n: reward.wave }) }}
           span.text-white.wave-toast__bonus(v-if="reward.bonusPct > 0") +{{ reward.bonusPct }}%
 
@@ -161,8 +171,8 @@ const tallyRows = computed(() => {
   text-shadow: 2px 2px 0 #000
 
 .wave-toast__bonus
-  color: #10331a
-  background-color: #7ce09a
+  color: rgb(255, 255, 255)
+  background-color: #4fc56e
   border-radius: 999px
   padding: 0 0.4em
   font-size: 0.72em

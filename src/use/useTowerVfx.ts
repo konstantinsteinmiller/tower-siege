@@ -22,12 +22,12 @@ export type FxEvent =
   | { kind: 'blockHit'; x: number; y: number; amount: number }
   | { kind: 'shatter'; x: number; y: number; palette: string }
   | { kind: 'explosion'; x: number; y: number; radius: number }
-  | { kind: 'impact'; x: number; y: number; kindOf: string }
+  | { kind: 'impact'; x: number; y: number; kindOf: string; angle: number }
   | { kind: 'muzzle'; x: number; y: number; angle: number; palette: string }
   | { kind: 'lightning'; x: number; y: number; points: number[] }
-  | { kind: 'enemyHit'; x: number; y: number; amount: number }
+  | { kind: 'enemyHit'; x: number; y: number; amount: number; gore: string; dir: number }
   | { kind: 'enemyDie'; x: number; y: number; palette: string; coins: number; boss: boolean }
-  | { kind: 'enemyAttack'; x: number; y: number; tx: number; ty: number; ranged: boolean }
+  | { kind: 'enemyAttack'; x: number; y: number; tx: number; ty: number; ranged: boolean; gore: string }
   | { kind: 'collapse'; x: number; y: number; count: number }
   | { kind: 'waveStart'; x: number; y: number; wave: number; boss: boolean }
   | { kind: 'waveClear'; x: number; y: number; wave: number }

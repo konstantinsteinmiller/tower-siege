@@ -195,11 +195,16 @@ describe('renderer survives a full siege', () => {
     game.startRun()
     game.wood.value = 5000
     game.stone.value = 5000
+    // The Tesla, Mortar and Frost blocks are bought partly with run gold, which
+    // starts a run at 0. Without stocking it the three placements below fail
+    // silently and this test still passes — while drawing none of the lightning
+    // or mortar art it exists to cover. Hence the assertions.
+    game.runCoins.value = 5000
     game.placeBlock('stone', -1, 0)
     game.placeBlock('stone', 1, 0)
-    game.placeBlock('tesla', 0, 1)
-    game.placeBlock('mortar', 1, 1)
-    game.placeBlock('frost', -1, 1)
+    expect(game.placeBlock('tesla', 0, 1)).toBe(true)
+    expect(game.placeBlock('mortar', 1, 1)).toBe(true)
+    expect(game.placeBlock('frost', -1, 1)).toBe(true)
 
     // Jump to wave 9 so the very next call is the wave-10 boss.
     game.wave.value = 9
@@ -225,10 +230,12 @@ describe('renderer survives a full siege', () => {
     game.startRun()
     game.wood.value = 9000
     game.stone.value = 9000
+    game.runCoins.value = 9000
     for (const c of [-3, -2, -1, 1, 2, 3]) game.placeBlock('stone', c, 0)
     game.placeBlock('archer', 0, 1)
     game.placeBlock('cannon', 1, 1)
-    game.placeBlock('tesla', -1, 1)
+    // Gold-costed, so it needs the stocked balance above to land at all.
+    expect(game.placeBlock('tesla', -1, 1)).toBe(true)
 
     game.wave.value = 22
     game.callWave()

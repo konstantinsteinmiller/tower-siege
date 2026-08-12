@@ -27,7 +27,7 @@ export default {
 
   'blocks': {
     'sell': 'Sotish',
-    'roofNote': 'Tomli — ustiga hech narsa qurib bo‘lmaydi.',
+    'roofNote': 'Tomli — HP ikki barobar, yuqoridan himoya uch barobar. Tepasi bo‘sh bo‘lishi kerak.',
     'enhancedNote': 'Kuchaytirilgan — ko‘proq HP va zarar.',
     'enhancedHand': 'Kuchaytirilgan qo‘l',
     'reroll': 'Bu bo‘lakni almashtirish',
@@ -104,10 +104,9 @@ export default {
     'towerFell': 'Minora quladi!',
     'reachedWave': 'Siz {n}-to‘lqingacha bardosh berdingiz',
     'newRecord': 'Yangi rekord!',
-    'defeated': 'Yengilganlar',
-    'reward': 'Mukofot',
     'upgrade': 'Yaxshilash!',
     'defendAgain': 'Yana himoya qilish',
+    'continueRun': 'Qayta qurib davom etish',
     'double': 'Tangalarni ikkilantirish',
     'firstRunDouble': '2× — bugungi birinchi qamal!',
     'tripleWave': '3× tanga — {n}',

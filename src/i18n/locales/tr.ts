@@ -27,7 +27,7 @@ export default {
 
   'blocks': {
     'sell': 'Sat',
-    'roofNote': 'Çatılı — üstüne hiçbir şey inşa edilemez.',
+    'roofNote': 'Çatılı — iki kat CP, yukarıdan gelen hasara üç kat savunma. Üstü boş olmalı.',
     'enhancedNote': 'Takviyeli — daha fazla CP ve hasar.',
     'enhancedHand': 'Takviyeli el',
     'reroll': 'Bu parçayı değiştir',
@@ -104,10 +104,9 @@ export default {
     'towerFell': 'Kule Yıkıldı!',
     'reachedWave': '{n}. dalgaya kadar dayandın',
     'newRecord': 'Yeni rekor!',
-    'defeated': 'Yenilenler',
-    'reward': 'Ödül',
     'upgrade': 'Geliştir!',
     'defendAgain': 'Tekrar savun',
+    'continueRun': 'Yeniden kur ve devam et',
     'double': 'Altınları ikiye katla',
     'firstRunDouble': '2× — bugünkü ilk kuşatma!',
     'tripleWave': '3× altın — {n}',

@@ -290,4 +290,20 @@ const offerDisabled = computed(() => adInFlight.value || !canOfferReward.value)
     box-shadow: 0 0 0 0 rgba(255, 210, 60, 0)
   50%
     box-shadow: 0 0 0 4px rgba(255, 210, 60, 0.55)
+
+// ─── Portrait phone ─────────────────────────────────────────────────────────
+//
+// It shares its row with the meta cluster and the tech-tree button, and it is
+// the widest thing in it. The floors above exist so the primary build-phase
+// action can never be crushed — but 5.5 rem plus 1.15 rem of side padding is
+// more than "not crushed" needs on a 390 px screen, and the slack was coming
+// out of the buttons next to it.
+@media (max-width: 30rem) and (orientation: portrait)
+  .call-wave__btn
+    min-width: 4.6rem
+
+  .call-wave__body
+    padding-inline: 0.45rem
+    padding-block: 0.24rem
+
 </style>

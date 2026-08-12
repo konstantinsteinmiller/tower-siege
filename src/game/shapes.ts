@@ -103,17 +103,19 @@ export const SHAPE_BY_ID: Record<string, ShapeDef> = Object.fromEntries(
 export const shapeDef = (id: string): ShapeDef => SHAPE_BY_ID[id] ?? SHAPE_DEFS[0]!
 
 /** Total build cost — the sum of every constituent block. */
-export const shapeCost = (id: string): { wood: number; stone: number } => {
+export const shapeCost = (id: string): { wood: number; stone: number; coins: number } => {
   const def = SHAPE_BY_ID[id]
-  if (!def) return { wood: 0, stone: 0 }
+  if (!def) return { wood: 0, stone: 0, coins: 0 }
   let wood = 0
   let stone = 0
+  let coins = 0
   for (const [, , typeId] of def.cells) {
     const b = blockDef(typeId)
     wood += b.cost.wood ?? 0
     stone += b.cost.stone ?? 0
+    coins += b.cost.coins ?? 0
   }
-  return { wood, stone }
+  return { wood, stone, coins }
 }
 
 /** Bounding box in cells — the tray uses it to scale the thumbnail. */

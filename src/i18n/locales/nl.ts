@@ -27,7 +27,7 @@ export default {
 
   'blocks': {
     'sell': 'Verkopen',
-    'roofNote': 'Overdekt — hier kan niets bovenop worden gebouwd.',
+    'roofNote': 'Overdekt — dubbele HP, drievoudige verdediging van bovenaf. Vereist vrije hemel.',
     'enhancedNote': 'Versterkt — meer HP en meer schade.',
     'enhancedHand': 'Versterkte hand',
     'reroll': 'Dit stuk ruilen',
@@ -104,10 +104,9 @@ export default {
     'towerFell': 'De toren is gevallen!',
     'reachedWave': 'Je overleefde tot golf {n}',
     'newRecord': 'Nieuw record!',
-    'defeated': 'Verslagen',
-    'reward': 'Beloning',
     'upgrade': 'Verbeteren!',
     'defendAgain': 'Opnieuw verdedigen',
+    'continueRun': 'Herbouwen & doorgaan',
     'double': 'Munten verdubbelen',
     'firstRunDouble': '2× — eerste beleg vandaag!',
     'tripleWave': '3× munten — {n}',

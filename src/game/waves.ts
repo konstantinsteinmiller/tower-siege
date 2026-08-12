@@ -40,7 +40,33 @@ export const isBossWave = (wave: number): boolean => wave > 0 && wave % 10 === 0
  *   w1 → 62    w3 → 164   w5 → 292   w10 → 707   w20 → 1755   w30 → 2976
  */
 export const waveBudget = (wave: number, difficulty = 1): number =>
-  Math.round((28 * Math.pow(Math.max(1, wave), 1.38) + 34) * difficulty)
+  Math.round((30 * Math.pow(Math.max(1, wave), 1.06) + 30) * difficulty)
+
+/**
+ * How much tougher one individual enemy is at `wave` than at wave 1.
+ *
+ * Enemy HP used to be a per-type constant scaled only by the player's chosen
+ * difficulty setting — so a grunt had 22 HP at wave 1 and 22 HP at wave 40,
+ * while the tower grew from two weapons to twenty upgraded ones. The director
+ * answered a strong tower by sending MORE enemies, never tougher ones, and
+ * since they arrive spread over a long window the tower simply picked them off
+ * one at a time at maximum range. Nothing ever reached a block; nothing was
+ * ever at stake.
+ *
+ * The count curve above was flattened hard (1.38 → 1.06) to pay for this: the
+ * same pressure delivered by fewer, tankier enemies instead of a longer queue
+ * of free kills.
+ *
+ * Tankier is the one that generates tension, because an enemy that survives the
+ * walk actually arrives. It is also the one the player can RECOVER from: block
+ * losses scale with how many things are biting at once, not with how much HP
+ * the wave contained, so the same difficulty delivered as 30 tough units costs
+ * far fewer blocks than as 60 weak ones — and rebuilding is capped by income.
+ * Simulated at exponent 1.16, waves 12-15 cost 14-17 blocks each against ~4
+ * rebuilt, and the run died to attrition every time from full health.
+ */
+export const enemyHpScale = (wave: number): number =>
+  1 + 0.135 * Math.max(0, wave - 2)
 
 /**
  * Hard ceiling on how long one wave may last, ms.
@@ -127,8 +153,12 @@ export const spawnInterval = (wave: number): number =>
   Math.max(150, Math.min(900, 900 - wave * 26))
 
 /** The cadence actually used, once the order count is known. */
-export const pacedInterval = (wave: number, orderCount: number): number => {
-  const base = spawnInterval(wave)
+export const pacedInterval = (wave: number, orderCount: number, difficulty = 1): number => {
+  // Compress the cadence as the wave gets heavier, so a harder wave arrives
+  // FASTER rather than merely lasting longer. Square root, not linear: the
+  // schedule still stretches somewhat with size, it just stops absorbing the
+  // entire difficulty increase.
+  const base = spawnInterval(wave) / Math.sqrt(Math.max(1, difficulty))
   if (orderCount <= 1) return base
   return Math.min(base, MAX_SPAWN_WINDOW_MS / (orderCount - 1))
 }
@@ -174,8 +204,16 @@ export const earlyCallBonus = (remainingMs: number): number =>
  */
 export const waveReward = (wave: number): { coins: number; wood: number; stone: number } => ({
   coins: 6 + wave * 3,
-  wood: 16 + wave * 2.6,
-  stone: 11 + wave * 2
+  // Trimmed ~8%, not the ~25% a naive reading of the surplus suggests.
+  //
+  // The old 3-6x "resource flood" was measured against a tower that never lost
+  // a block. Once waves actually bite, income stops being surplus and becomes
+  // the REPLACEMENT rate — and a deep cut turns the first bad wave into a death
+  // spiral, because a tower losing ten blocks a wave against two blocks of
+  // income can never come back. Simulated: at −25% the run died at wave 11
+  // every time, from full health, purely to compounding attrition.
+  wood: 15 + wave * 2.4,
+  stone: 10 + wave * 1.85
 })
 
 /**
@@ -220,7 +258,10 @@ export const planWave = (wave: number, difficulty = 1): WavePlan => {
       let totalWeight = 0
       const weights = affordable.map((d) => {
         const debut = wave - d.minWave <= 1 ? 2.2 : 1
-        const w = (30 / d.cost) * debut
+        // Between the old 30/cost (which bought nothing but chaff) and a flat
+        // roll (which flips the whole wave to heavies the moment they unlock,
+        // and produced a 0-lost -> 15-lost cliff at wave 12 in simulation).
+        const w = Math.pow(30 / d.cost, 0.7) * debut
         totalWeight += w
         return w
       })
@@ -272,7 +313,7 @@ export const planWave = (wave: number, difficulty = 1): WavePlan => {
     ;[orders[i], orders[j]] = [orders[j]!, orders[i]!]
   }
 
-  const interval = pacedInterval(wave, orders.length)
+  const interval = pacedInterval(wave, orders.length, difficulty)
   let t = 0
   let side: 1 | -1 = rng() < 0.5 ? 1 : -1
   for (const order of orders) {

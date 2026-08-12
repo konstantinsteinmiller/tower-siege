@@ -60,8 +60,13 @@ export interface UtilitySpec {
 export interface BlockDef {
   id: string
   kind: BlockKind
-  /** Build cost. A missing resource means "free of that resource". */
-  cost: { wood?: number; stone?: number }
+  /**
+    * Build cost. A missing resource means "free of that resource".
+    *
+    * `coins` is the RUN currency (kill drops), not the meta wallet. It is
+    * carried only by the tech-gated blocks — see the note in `blocks.ts`.
+    */
+  cost: { wood?: number; stone?: number; coins?: number }
   hp: number
   /** Flat damage reduction applied to every incoming hit (min 1 damage). */
   armor?: number
@@ -148,6 +153,14 @@ export interface EnemyDef {
   cost: number
   /** Earliest wave this enemy can appear in. */
   minWave: number
+  /**
+   * Which monster design draws this enemy.
+   *
+   * An array gives one type more than one body — the common ranks read as a
+   * crowd rather than as a row of clones — picked deterministically from the
+   * unit's uid so an individual never changes species mid-life.
+   */
+  monster?: string | string[]
   /** Suicide bomber: explodes on contact instead of attacking. */
   suicide?: { damage: number; radius: number }
   /** Fraction of incoming damage ignored when hit from the front. */

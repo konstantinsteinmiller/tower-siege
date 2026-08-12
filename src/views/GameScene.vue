@@ -10,7 +10,7 @@ import useTowerGame, {
   startRun, resumeRun, placeShape, sellBlock, canPlaceShapeAt,
   canAffordShape, callWave, toggleSpeed, step, runSummary, saveRunSnapshot,
   manualReroll, canManualReroll, dealEnhancedOffers, summonCavalry, cavalryCost,
-  halfWidthAt, speedBuffLeft, grantSpeedBuff
+  halfWidthAt, speedBuffLeft, grantSpeedBuff, graceAvailable, continueRun
 } from '@/use/useTowerGame'
 import {
   setViewport, snapToFit, screenToCell, panBy, zoomAt,
@@ -23,7 +23,7 @@ import { warmAudio } from '@/use/useTowerAudio'
 import { warmSpriteProbes } from '@/game/art'
 import useTowerProgress, { buildHalfWidth, bestWave } from '@/use/useTowerProgress'
 import useTowerEconomy from '@/use/useTowerEconomy'
-import useMissions from '@/use/useMissions'
+import useMissions, { beginMissionRun } from '@/use/useMissions'
 import useAchievements from '@/use/useAchievements'
 import useBattlePass from '@/use/useBattlePass'
 import { BUILDABLE_BLOCKS, GATE_ID } from '@/game/blocks'
@@ -42,7 +42,7 @@ import { isCrazyGamesFullRelease } from '@/use/useMatch'
 import { spawnCoinExplosion } from '@/use/useCoinExplosion'
 import { isInterstitialReady, showMidgameAd } from '@/use/useAds'
 import {
-  claimReward, canOfferReward, adInFlight,
+  claimReward, canOfferReward, adInFlight, isRewardGated,
   canShowInterstitial, markInterstitialShown
 } from '@/use/useAdGate'
 import { signalGameplayLoaded, syncGameplayLifecycle } from '@/use/useCrazyGames'
@@ -433,14 +433,6 @@ const coinBadgeEl = computed<HTMLElement | null>(() => coinBadgeRef.value?.rootE
 
 const todayKey = (): string => new Date().toISOString().slice(0, 10)
 
-/** Per-enemy kill tallies for the defeat screen (reference images 2 / 7). */
-const summaryTally = computed(() =>
-  Object.entries(summary.value.killsByType)
-    .filter(([, n]) => n > 0)
-    .sort((a, b) => b[1] - a[1])
-    .map(([id, n]) => ({ id, n, name: t(`enemies.names.${id}`) }))
-)
-
 const twoXAvailable = computed(() =>
   !twoXUsed.value && summary.value.coins > 0 && canOfferReward.value
 )
@@ -484,7 +476,12 @@ const presentDefeat = async (): Promise<void> => {
 
   // Feed the run into every meta system BEFORE the screen renders, so the
   // numbers the player sees already include this run.
-  const run = { waves: s.wavesCleared, kills: s.kills, coins: s.coins, height: s.height, blocks: s.blocksPlaced }
+  //
+  // The dailies have already been credited up to the last wave clear; this
+  // catches the partial wave the player died in. It is a delta credit, so the
+  // overlap costs nothing. Achievements are LIFETIME totals with a `runs`
+  // counter, so they must be fed exactly once — here, and nowhere else.
+  const run = { waves: s.wavesCleared, kills: s.kills, coins: s.coinsEarned, height: s.height, blocks: s.blocksPlaced }
   recordRun(run)
   recordAchievementRun(run)
   awardRunFinished()
@@ -540,6 +537,7 @@ const consumeFirstRunBonus = (): void => {
 
 /** Wipe the battlefield and start a fresh siege. */
 const startFreshRun = (): void => {
+  beginMissionRun()
   showResult.value = false
   selectedSlot.value = null
   inspected.value = null
@@ -602,6 +600,10 @@ const toastHeld = ref(false)
 watch(lastWaveReward, async (r) => {
   if (!r) return
   awardWaveCleared()
+  // Daily missions tick here, not only at the end of the run. A wave clear is
+  // the natural checkpoint: the player has just finished something, the numbers
+  // are settled, and it is the moment they are most likely to open the panel.
+  feedMissions()
   toastHeld.value = true
   await maybeShowInterstitial()
   toastHeld.value = false
@@ -780,6 +782,25 @@ const onCallWave = (): void => {
 }
 
 /**
+ * Push the live run totals into the daily missions.
+ *
+ * `recordRun` credits deltas, so calling this often is free and calling it
+ * twice for the same state is a no-op — which is what lets it run on a wave
+ * clear, on the panel opening, and at the end of the run without any of them
+ * having to know about the others.
+ */
+const feedMissions = (): void => {
+  const s = runSummary()
+  recordRun({
+    waves: s.wavesCleared,
+    kills: s.kills,
+    coins: s.coinsEarned,
+    height: s.height,
+    blocks: s.blocksPlaced
+  })
+}
+
+/**
  * Sell the block the inspector is open on.
  *
  * The inspector closes either way: after a sale the block is gone, and if the
@@ -841,11 +862,46 @@ const onBuySpeed = async (): Promise<void> => {
  * Offered during the build phase only — mid-battle it would be a "pay to undo
  * a bad wave" button, which is exactly the pattern portals reject.
  */
+/**
+ * What the hand costs where there is no video to charge for it.
+ *
+ * Off-portal `claimReward` grants immediately, which would leave the reinforced
+ * hand a free, unlimited button — and a free reroll into four better blocks is
+ * not a perk, it is the build phase solved. Run coins are the right price:
+ * the same currency the good blocks cost, so taking the hand is a real trade
+ * against a mortar rather than a tap.
+ */
+const ENHANCED_HAND_COINS = 20
+
 const onEnhancedHand = async (): Promise<void> => {
   if (adInFlight.value) return
+  if (!isRewardGated) {
+    if (runCoins.value < ENHANCED_HAND_COINS) return
+    runCoins.value -= ENHANCED_HAND_COINS
+  }
   await claimReward(() => {
     dealEnhancedOffers()
     selectedSlot.value = null
+    playSound('level-up', 0.07)
+  })
+}
+
+/**
+ * One grace continue per run: rebuild the tower exactly as it stood and go back
+ * into the build phase for the wave that beat them.
+ *
+ * Restores from the same snapshot the resume-after-reload path uses, so it is
+ * the real layout and the real resources rather than an approximation. The
+ * result screen is dismissed only if the restore actually succeeded.
+ */
+const onContinueRun = async (): Promise<void> => {
+  if (adInFlight.value || !graceAvailable.value) return
+  await claimReward(() => {
+    if (!continueRun()) return
+    showResult.value = false
+    selectedSlot.value = null
+    inspected.value = null
+    resetVfx()
     playSound('level-up', 0.07)
   })
 }
@@ -986,6 +1042,7 @@ const boot = async (): Promise<void> => {
       startRun()
       progress.recordRunStart()
     }
+    beginMissionRun()
     await nextTick()
     resize()
     snapToFit()
@@ -1139,9 +1196,9 @@ onUnmounted(() => {
             svg(viewBox="0 0 24 24" fill="currentColor")
               path(d="M12 4 a1 1 0 0 1 1 1 v1.6 a6 6 0 0 1 1.8 0.7 l1.1 -1.1 a1 1 0 0 1 1.4 1.4 l -1.1 1.1 a6 6 0 0 1 0.7 1.8 H18 a1 1 0 1 1 0 2 h-1.6 a6 6 0 0 1 -0.7 1.8 l1.1 1.1 a1 1 0 0 1 -1.4 1.4 l-1.1 -1.1 a6 6 0 0 1 -1.8 0.7 V18 a1 1 0 1 1 -2 0 v -1.6 a6 6 0 0 1 -1.8 -0.7 l-1.1 1.1 a1 1 0 0 1 -1.4 -1.4 l1.1 -1.1 a6 6 0 0 1 -0.7 -1.8 H6 a1 1 0 1 1 0 -2 h1.6 a6 6 0 0 1 0.7 -1.8 L7.2 7.6 a1 1 0 0 1 1.4 -1.4 l1.1 1.1 a6 6 0 0 1 1.8 -0.7 V5 a1 1 0 0 1 1 -1 Z M12 9 a3 3 0 1 0 0 6 a3 3 0 0 0 0 -6 Z")
           //DailyRewards(@coins-awarded="fireCoinExplosion")
-          MissionsModal(@coins-awarded="fireCoinExplosion")
+          MissionsModal(@opened="feedMissions" @coins-awarded="fireCoinExplosion")
           //AchievementsButton(@coins-awarded="fireCoinExplosion")
-          AdRewardButton(@coins-awarded="fireCoinExplosion")
+          //AdRewardButton(@coins-awarded="fireCoinExplosion")
           //BattlePass(@coins-awarded="fireCoinExplosion")
 
         //- Build tray.
@@ -1154,6 +1211,8 @@ onUnmounted(() => {
               tone="gold"
               size="sm"
               :label="t('blocks.enhancedHand')"
+              :coin-cost="ENHANCED_HAND_COINS"
+              :coins="runCoins"
               @click="onEnhancedHand"
             )
             button.scene__cavalry(
@@ -1178,6 +1237,7 @@ onUnmounted(() => {
             :enhanced="offerEnhanced"
             :wood="wood"
             :stone="stone"
+            :coins="runCoins"
             :reroll-ready="rerollReady"
             :reroll-seconds="rerollSeconds"
             @select="onSelectSlot"
@@ -1227,18 +1287,12 @@ onUnmounted(() => {
       div.result
         div.result__headline
           span.result__wave {{ t('result.reachedWave', { n: summary.wave }) }}
+
+        //- The record sits BESIDE the payout rather than on a line of its own.
+        //- `rewardCoinRef` stays wrapped tightly around the coin so the payout
+        //- explosion still originates on the coin and not on the whole row.
+        div.result__payout
           span.result__record(v-if="summary.wave >= bestWave && summary.wave > 0") {{ t('result.newRecord') }}
-
-        //- Defeated tally, per enemy type (reference images 2 / 7).
-        div.result__section(v-if="summaryTally.length > 0")
-          span.result__label {{ t('result.defeated') }}
-          div.result__tally
-            span.result__tally-item(v-for="row in summaryTally" :key="row.id")
-              span.result__tally-n {{ row.n }}×
-              span.result__tally-name {{ row.name }}
-
-        div.result__section
-          span.result__label {{ t('result.reward') }}
           div.result__coins(ref="rewardCoinRef")
             IconCoin(class="result__coin-icon")
             span.result__coin-value +{{ summary.coins }}
@@ -1249,6 +1303,16 @@ onUnmounted(() => {
           tone="gold"
           :label="firstRunBonusActive ? t('result.firstRunDouble') : t('result.double')"
           @click="onTwoX"
+        )
+
+        //- One grace continue per run. Offered ABOVE the restart CTAs so it
+        //- reads as the alternative to ending the run rather than a variant of
+        //- restarting it.
+        FRewardButton(
+          v-if="graceAvailable"
+          tone="green"
+          :label="t('result.continueRun')"
+          @click="onContinueRun"
         )
 
         //- The two CTAs from reference image 2.
@@ -1525,6 +1589,9 @@ onUnmounted(() => {
   .scene__meta
     max-width: none
     flex-wrap: nowrap
+    // Tighter than the desktop gap: with five controls sharing this row on a
+    // phone, the spacing between them is the cheapest width to give back.
+    gap: clamp(0.1rem, 0.7vw, 0.25rem)
     // The cluster is the one thing here that may scroll: every button in it
     // opens a modal the player can also reach later, unlike the offers.
     overflow-x: auto
@@ -1651,7 +1718,20 @@ onUnmounted(() => {
   font-size: clamp(1rem, 5vw, 1.9rem)
   text-shadow: 3px 3px 0 #000
 
+.result__payout
+  // `1fr auto 1fr`, so the coin stays centred on the SCREEN and the record
+  // hangs off its left rather than shoving it sideways. Same reasoning as the
+  // bottom bar's tray column.
+  display: grid
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr)
+  align-items: center
+  gap: clamp(0.35rem, 2vw, 0.8rem)
+  width: 100%
+
 .result__record
+  grid-column: 1
+  justify-self: end
+  text-align: right
   color: #ffd93c
   font-weight: 900
   text-transform: uppercase
@@ -1659,43 +1739,8 @@ onUnmounted(() => {
   text-shadow: 2px 2px 0 #000
   animation: spotlight-pulse 1.1s ease-in-out infinite
 
-.result__section
-  display: flex
-  flex-direction: column
-  align-items: center
-  gap: 0.2rem
-  width: 100%
-
-.result__label
-  color: #9fb6de
-  font-weight: 900
-  text-transform: uppercase
-  letter-spacing: 0.08em
-  font-size: clamp(0.55rem, 2.5vw, 0.75rem)
-
-.result__tally
-  display: flex
-  flex-wrap: wrap
-  align-items: center
-  justify-content: center
-  gap: 0.15rem clamp(0.4rem, 2.4vw, 0.9rem)
-
-.result__tally-item
-  display: inline-flex
-  align-items: baseline
-  gap: 0.25em
-
-.result__tally-n
-  color: #ffd93c
-  font-weight: 900
-  font-size: clamp(0.7rem, 3.2vw, 1rem)
-  text-shadow: 2px 2px 0 #000
-
-.result__tally-name
-  color: #cfdcf5
-  font-size: clamp(0.55rem, 2.5vw, 0.78rem)
-
 .result__coins
+  grid-column: 2
   display: flex
   align-items: center
   gap: 0.4rem
@@ -1727,6 +1772,24 @@ onUnmounted(() => {
   justify-content: center
   gap: clamp(0.35rem, 2vw, 0.75rem)
   width: 100%
+
+// Mobile landscape has ~390px of height to hold a headline, the payout and
+// four CTAs. Every size above is driven by `vw` — the LONG axis here — so the
+// defaults open up widest exactly where there is least room, and the bottom
+// row of buttons falls past the edge. Drive the same values off the short axis.
+@media (orientation: landscape) and (max-height: 500px)
+  .result
+    gap: 0.3rem
+
+  .result__wave
+    font-size: clamp(0.95rem, 4vh, 1.3rem)
+
+  .result__coin-icon
+    width: 1.5rem
+    height: 1.5rem
+
+  .result__coin-value
+    font-size: 1.5rem
 
 .fade-enter-active, .fade-leave-active
   transition: opacity 220ms ease

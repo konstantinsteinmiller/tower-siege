@@ -89,7 +89,7 @@ describe('build economy', () => {
     g.placeBlock('wood', 1, 0)
     const woodBefore = g.wood.value
     const refund = g.sellBlock(1, 0)
-    expect(refund).toEqual({ wood: 5, stone: 0 })
+    expect(refund).toEqual({ wood: 5, stone: 0, coins: 0 })
     expect(g.wood.value).toBe(woodBefore + 5)
     expect(g.getBlocks().has('1,0')).toBe(false)
   })

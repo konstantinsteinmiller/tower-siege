@@ -27,7 +27,7 @@ export default {
 
   'blocks': {
     'sell': 'Vendi',
-    'roofNote': 'Con tetto: non ci si può costruire sopra.',
+    'roofNote': 'Con tetto: PS doppi, difesa tripla da sopra. Richiede cielo libero.',
     'enhancedNote': 'Rinforzato: più PS e più danni.',
     'enhancedHand': 'Mano rinforzata',
     'reroll': 'Cambia questo pezzo',
@@ -104,10 +104,9 @@ export default {
     'towerFell': 'La torre è caduta!',
     'reachedWave': 'Sei sopravvissuto fino all’ondata {n}',
     'newRecord': 'Nuovo record!',
-    'defeated': 'Sconfitti',
-    'reward': 'Ricompensa',
     'upgrade': 'Potenzia!',
     'defendAgain': 'Difendi di nuovo',
+    'continueRun': 'Ricostruisci e continua',
     'double': 'Raddoppia le monete',
     'firstRunDouble': '2× — primo assedio di oggi!',
     'tripleWave': '3× monete: {n}',

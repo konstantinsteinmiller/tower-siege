@@ -2,6 +2,9 @@ import { createRouter, createWebHashHistory, type RouteRecordRaw } from 'vue-rou
 
 const routes: RouteRecordRaw[] = [
   { path: '/', name: 'main', component: () => import('@/views/GameScene.vue') },
+  // Design bench for the monster art direction. Lazy, so it costs a player who
+  // never visits it nothing.
+  { path: '/monsters', name: 'monsters', component: () => import('@/views/MonsterLab.vue') },
   { path: '/:pathMatch(.*)*', redirect: '/' }
 ]
 

@@ -27,7 +27,7 @@ export default {
 
   'blocks': {
     'sell': 'Jual',
-    'roofNote': 'Beratap — tidak ada yang bisa dibangun di atasnya.',
+    'roofNote': 'Beratap — HP dua kali lipat, pertahanan tiga kali lipat dari atas. Butuh langit terbuka.',
     'enhancedNote': 'Diperkuat — HP dan damage lebih besar.',
     'enhancedHand': 'Set diperkuat',
     'reroll': 'Tukar bagian ini',
@@ -104,10 +104,9 @@ export default {
     'towerFell': 'Menara runtuh!',
     'reachedWave': 'Kamu bertahan sampai gelombang {n}',
     'newRecord': 'Rekor baru!',
-    'defeated': 'Dikalahkan',
-    'reward': 'Hadiah',
     'upgrade': 'Tingkatkan!',
     'defendAgain': 'Bertahan lagi',
+    'continueRun': 'Bangun ulang & lanjut',
     'double': 'Gandakan koin',
     'firstRunDouble': '2× — pengepungan pertama hari ini!',
     'tripleWave': '3× koin — {n}',

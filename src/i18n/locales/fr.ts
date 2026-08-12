@@ -27,7 +27,7 @@ export default {
 
   'blocks': {
     'sell': 'Vendre',
-    'roofNote': 'Toituré — impossible de bâtir dessus.',
+    'roofNote': 'Toituré — PV doublés, défense triplée par le haut. Nécessite un ciel dégagé.',
     'enhancedNote': 'Renforcé — plus de PV et plus de dégâts.',
     'enhancedHand': 'Main renforcée',
     'reroll': 'Changer cette pièce',
@@ -104,10 +104,9 @@ export default {
     'towerFell': 'La tour est tombée !',
     'reachedWave': 'Vous avez tenu jusqu’à la vague {n}',
     'newRecord': 'Nouveau record !',
-    'defeated': 'Vaincus',
-    'reward': 'Récompense',
     'upgrade': 'Améliorer !',
     'defendAgain': 'Défendre à nouveau',
+    'continueRun': 'Reconstruire et continuer',
     'double': 'Doubler les pièces',
     'firstRunDouble': '2× — premier siège du jour !',
     'tripleWave': '3× pièces — {n}',

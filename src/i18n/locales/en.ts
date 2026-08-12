@@ -54,7 +54,7 @@ export default {
   // ─── Blocks ───────────────────────────────────────────────────────────────
   'blocks': {
     'sell': 'Sell',
-    'roofNote': 'Roofed — nothing can be built on top of it.',
+    'roofNote': 'Roofed — double HP, triple defence from above. Needs clear sky.',
     'enhancedNote': 'Reinforced — extra HP and extra damage.',
     'enhancedHand': 'Reinforced hand',
     'reroll': 'Swap this piece',
@@ -162,10 +162,9 @@ export default {
     'towerFell': 'The Tower Fell!',
     'reachedWave': 'You survived to wave {n}',
     'newRecord': 'New record!',
-    'defeated': 'Defeated',
-    'reward': 'Reward',
     'upgrade': 'Upgrade!',
     'defendAgain': 'Defend again',
+    'continueRun': 'Rebuild & continue',
     'double': 'Double coins',
     'firstRunDouble': '2× — first siege today!',
     'tripleWave': '3× coins — {n}',

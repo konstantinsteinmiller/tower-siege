@@ -82,11 +82,12 @@ describe('shape catalogue integrity', () => {
 describe('shape maths', () => {
   it('costs the sum of its blocks', () => {
     // wO is four wood crates at 10 each.
-    expect(shapeCost('wO')).toEqual({ wood: 40, stone: 0 })
+    expect(shapeCost('wO')).toEqual({ wood: 40, stone: 0, coins: 0 })
     // cannonMount is two wood (20) plus a cannon (25 wood / 10 stone).
-    expect(shapeCost('cannonMount')).toEqual({ wood: 45, stone: 10 })
-    // mortarPit is two stone (32) plus a mortar (30 stone).
-    expect(shapeCost('mortarPit')).toEqual({ wood: 0, stone: 62 })
+    expect(shapeCost('cannonMount')).toEqual({ wood: 45, stone: 10, coins: 0 })
+    // mortarPit is two stone (32) plus a mortar (30 stone / 22 gold) — the
+    // tech-gated pieces are the only ones that reach into the run's gold.
+    expect(shapeCost('mortarPit')).toEqual({ wood: 0, stone: 62, coins: 22 })
   })
 
   it('reports the bounding box', () => {

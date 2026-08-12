@@ -27,7 +27,7 @@ export default {
 
   'blocks': {
     'sell': '売却',
-    'roofNote': '屋根付き — この上には建てられません。',
+    'roofNote': '屋根付き — HP2倍、上からの攻撃に防御3倍。上に空きが必要。',
     'enhancedNote': '強化済み — HPもダメージも上乗せ。',
     'enhancedHand': '強化ブロック',
     'reroll': 'このピースを交換',
@@ -104,10 +104,9 @@ export default {
     'towerFell': 'タワーが崩れた！',
     'reachedWave': 'ウェーブ {n} まで耐えました',
     'newRecord': '新記録！',
-    'defeated': '撃破',
-    'reward': '報酬',
     'upgrade': '強化！',
     'defendAgain': 'もう一度防衛',
+    'continueRun': '再建して続行',
     'double': 'コイン2倍',
     'firstRunDouble': '2× — 本日最初の包囲戦！',
     'tripleWave': 'コイン3倍 — {n}',

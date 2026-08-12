@@ -177,10 +177,19 @@ onUnmounted(() => {
   // crash into the tail folds.
   padding: 0 18%
 
+// Landscape phone: 30% smaller than the compact treatment above (62vw/340px
+// → 43vw/238px). The banner is decoration and the short axis is the scarce
+// one — at 340px wide it stood 116px tall, nearly a third of a 390px-high
+// viewport spent on a title, and the CTAs below it fell off the bottom.
+//
+// `.is-compact` is always on in mobile landscape and is a compound selector,
+// so it outranks a bare `.ribbon-wrap` here however far down the file it sits.
+// This has to match the compound form too or it loses silently.
 @media (orientation: landscape) and (max-height: 500px)
-  .ribbon-wrap
-    width: 50vw
-    max-width: 400px
+  .ribbon-wrap,
+  .ribbon-wrap.is-compact
+    width: 43vw
+    max-width: 238px
 
 // Short but not landscape-mobile (e.g. CG iframe in landscape with the
 // portal chrome bar visible — ~700–860 px viewport). The default desktop

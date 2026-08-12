@@ -3,13 +3,16 @@ import {
   BLOCK_DEFS, blockDef, GATE_ID, sellRefund, ENHANCED_HP_MUL, ENHANCED_DAMAGE_MUL
 } from '@/game/blocks'
 import { ENEMY_DEFS, enemyDef } from '@/game/enemies'
+import { monsterGore } from '@/game/monsters'
+import { pickMonster } from '@/game/monsterSprites'
 import { ALLY_DEFS, allyDef, CAVALRY_SQUAD } from '@/game/allies'
 import {
   OFFER_SLOTS, shapeDef, shapeCost, rollOffer, rollOffers, SHAPE_BY_ID
 } from '@/game/shapes'
 import { SEA_SWIM_Y, SEA_STRIKE_Y } from '@/game/world'
 import {
-  planWave, buildTimeMs, earlyCallBonus, waveReward, isBossWave, SPAWN_FLUSH_AT_MS
+  planWave, buildTimeMs, earlyCallBonus, waveReward, isBossWave, SPAWN_FLUSH_AT_MS,
+  enemyHpScale
 } from '@/game/waves'
 import {
   FlawlessTracker, adaptiveFactor, towerPower, type TowerStrength
@@ -129,6 +132,17 @@ export const wave = ref(0)
 export const wood = ref(0)
 export const stone = ref(0)
 export const runCoins = ref(0)
+
+/**
+ * Coins EARNED this run, never decremented.
+ *
+ * `runCoins` is a spendable balance now that blocks cost gold, and a balance
+ * that can fall is the wrong thing to feed progression: `useMissions` credits
+ * deltas and treats a counter going backwards as the start of a new run, so
+ * every purchase would re-baseline and then re-credit the remaining balance
+ * against the daily coin mission. Achievements accumulate the same figure.
+ */
+export const runCoinsEarned = ref(0)
 export const kills = ref(0)
 export const killsByType: Ref<KillTally> = ref({})
 export const enemiesLeft = ref(0)
@@ -182,7 +196,7 @@ export const measureTower = (): TowerStrength => {
   let height = 0
 
   for (const b of blocks.values()) {
-    hp += b.hp + armorFor(b.typeId) * 6
+    hp += b.hp + armorFor(b) * 6
     if (b.r + 1 > height) height = b.r + 1
     const w = blockDef(b.typeId).weapon
     if (!w) continue
@@ -226,15 +240,39 @@ const blockAt = (c: number, r: number): Block | undefined => blocks.get(key(c, r
 
 /** Effective max HP for a block type, after tech. The Gate gets its own
  *  multiplier on top so investing in it is a distinct, legible choice. */
-const maxHpFor = (typeId: string, enhanced = false): number => {
+/** A gable is structure, not decoration: a roofed block is twice the block. */
+const ROOF_HP_MUL = 2
+
+/**
+ * Damage divisor for hits that land on the roof itself.
+ *
+ * Expressed as a divisor rather than as triple flat armour on purpose. Armour
+ * here is SUBTRACTED, and the wooden roofed shapes carry none at all — tripling
+ * zero would have given the player a roof that does nothing against the one
+ * thing a roof is for, which is bombers.
+ */
+const ROOF_TOP_DEFENSE_DIV = 3
+
+/**
+ * Is this hit coming down on top of the block?
+ *
+ * A cell spans `r` to `r + 1`. Anything originating at or above its top face
+ * is over it; a grunt swinging at the wall stands at the block's own height or
+ * below and gets none of the roof's protection.
+ */
+const isTopSide = (b: Block, fromY: number | undefined): boolean =>
+  fromY !== undefined && fromY >= b.r + 0.85
+
+const maxHpFor = (typeId: string, enhanced = false, roof = false): number => {
   const def = blockDef(typeId)
   let base = def.hp * blockHpMul.value
   if (typeId === GATE_ID) base *= gateHpMul.value
   if (enhanced) base *= ENHANCED_HP_MUL
+  if (roof) base *= ROOF_HP_MUL
   return Math.round(base)
 }
 
-const armorFor = (typeId: string): number => (blockDef(typeId).armor ?? 0) + mArmor
+const armorFor = (b: Block): number => (blockDef(b.typeId).armor ?? 0) + mArmor
 
 /** Bounds of the standing tower — drives camera auto-fit and the run summary. */
 export const towerBounds = (): { minC: number; maxC: number; maxR: number } => {
@@ -320,15 +358,21 @@ export const canPlaceShapeAt = (shapeId: string, c: number, r: number): boolean 
 
   const own = new Set<string>()
   for (const [dx, dy] of def.cells) own.add(key(c + dx, r + dy))
+  const roofs = new Set(def.roofs ?? [])
 
   let supported = false
-  for (const [dx, dy] of def.cells) {
+  for (let i = 0; i < def.cells.length; i++) {
+    const [dx, dy] = def.cells[i]!
     const cc = c + dx
     const rr = r + dy
     if (rr < 0) return false
     if (Math.abs(cc) > halfWidthAt(rr)) return false
     if (blocks.has(key(cc, rr))) return false
     if (rr > 0 && blockAt(cc, rr - 1)?.roof) return false
+    // A gable needs open sky above it. The seal already stops anything being
+    // built ON a roof; without this the same illegal stack could be made from
+    // underneath, tucking a pitched roof inside the block above it.
+    if (roofs.has(i) && (blocks.has(key(cc, rr + 1)) || own.has(key(cc, rr + 1)))) return false
 
     if (rr === 0) { supported = true; continue }
     // Neighbours that belong to the shape itself don't count as support.
@@ -342,7 +386,7 @@ export const canPlaceShapeAt = (shapeId: string, c: number, r: number): boolean 
 /** Can the player pay for `shapeId` right now? */
 export const canAffordShape = (shapeId: string): boolean => {
   const cost = shapeCost(shapeId)
-  return wood.value >= cost.wood && stone.value >= cost.stone
+  return wood.value >= cost.wood && stone.value >= cost.stone && runCoins.value >= cost.coins
 }
 
 /**
@@ -359,6 +403,7 @@ export const placeShape = (slotIndex: number, c: number, r: number): boolean => 
   const cost = shapeCost(shapeId)
   wood.value -= cost.wood
   stone.value -= cost.stone
+  runCoins.value -= cost.coins
 
   const enhanced = offerEnhanced.value[slotIndex] === true
   const roofs = new Set(def.roofs ?? [])
@@ -438,7 +483,9 @@ watch(unlockedKey, () => {
 
 export const canAfford = (typeId: string): boolean => {
   const cost = blockDef(typeId).cost
-  return wood.value >= (cost.wood ?? 0) && stone.value >= (cost.stone ?? 0)
+  return wood.value >= (cost.wood ?? 0)
+    && stone.value >= (cost.stone ?? 0)
+    && runCoins.value >= (cost.coins ?? 0)
 }
 
 /** Attempt to place `typeId` at `(c, r)`. Returns false (and changes nothing)
@@ -448,7 +495,7 @@ export const canAfford = (typeId: string): boolean => {
 const spawnBlock = (
   typeId: string, c: number, r: number, roof = false, hp?: number, enhanced = false
 ): Block => {
-  const maxHp = maxHpFor(typeId, enhanced)
+  const maxHp = maxHpFor(typeId, enhanced, roof)
   const block: Block = {
     uid: uidCounter++,
     c, r,
@@ -477,6 +524,7 @@ export const placeBlock = (typeId: string, c: number, r: number): boolean => {
   const def = blockDef(typeId)
   wood.value -= def.cost.wood ?? 0
   stone.value -= def.cost.stone ?? 0
+  runCoins.value -= def.cost.coins ?? 0
   spawnBlock(typeId, c, r)
   blocksPlacedThisRun++
   syncTowerStats()
@@ -486,12 +534,13 @@ export const placeBlock = (typeId: string, c: number, r: number): boolean => {
 
 /** Sell a placed block for half its cost. The Gate can never be sold.
  *  Returns the refund, or null when the sale is rejected. */
-export const sellBlock = (c: number, r: number): { wood: number; stone: number } | null => {
+export const sellBlock = (c: number, r: number): { wood: number; stone: number; coins: number } | null => {
   const b = blockAt(c, r)
   if (!b || b.typeId === GATE_ID) return null
   const refund = sellRefund(b.typeId)
   wood.value += refund.wood
   stone.value += refund.stone
+  runCoins.value += refund.coins
   removeBlock(b, false)
   resolveOrphans()
   syncTowerStats()
@@ -604,10 +653,13 @@ const landingRowFor = (c: number, fromRow: number): number => {
 
 // ─── Damage ─────────────────────────────────────────────────────────────────
 
-const damageBlock = (b: Block, amount: number): void => {
+const damageBlock = (b: Block, amount: number, fromY?: number): void => {
   // Armour is flat and floored at 1 damage, so a swarm of chip damage still
-  // eventually eats a stone wall — armour buys time, never immunity.
-  const dealt = Math.max(1, amount - armorFor(b.typeId))
+  // eventually eats a stone wall — armour buys time, never immunity. The roof's
+  // divisor sits inside that same floor, for the same reason.
+  let dealt = amount - armorFor(b)
+  if (b.roof && isTopSide(b, fromY)) dealt /= ROOF_TOP_DEFENSE_DIV
+  dealt = Math.max(1, dealt)
   b.hp -= dealt
   b.flash = 1
   pushFx({ kind: 'blockHit', x: b.c, y: b.r + 0.5, amount: dealt })
@@ -633,6 +685,20 @@ const damageBlock = (b: Block, amount: number): void => {
  * arrow-proof engine still dies to those — the immunity is a statement about
  * arrows, not about being invincible.
  */
+/**
+ * What this individual bleeds.
+ *
+ * Read from the DESIGN bound to it, not from its type: a grunt is a Grumpling
+ * or a Rattlejack depending on its uid, and one of those is a skeleton.
+ * Machines shed sparks and scrap; anything with no design falls back to blood.
+ */
+const goreOf = (e: Enemy): string => {
+  const def = enemyDef(e.typeId)
+  if (def.siege) return 'metal'
+  const mid = pickMonster(def.monster, e.uid)
+  return mid ? monsterGore(mid) : 'blood'
+}
+
 const damageEnemy = (e: Enemy, amount: number, fromX: number, source?: ProjectileKind): void => {
   if (e.dying > 0) return
   const def = enemyDef(e.typeId)
@@ -653,7 +719,12 @@ const damageEnemy = (e: Enemy, amount: number, fromX: number, source?: Projectil
   }
   e.hp -= dealt
   e.flash = 1
-  pushFx({ kind: 'enemyHit', x: e.x, y: e.y, amount: Math.round(dealt) })
+  pushFx({
+    kind: 'enemyHit', x: e.x, y: e.y, amount: Math.round(dealt),
+    gore: goreOf(e),
+    // Spray AWAY from whatever landed the hit.
+    dir: Math.sign(e.x - fromX) || 1
+  })
   if (e.hp <= 0) killEnemy(e)
 }
 
@@ -664,8 +735,8 @@ const damageEnemy = (e: Enemy, amount: number, fromX: number, source?: Projectil
  * the easiest to break silently, so they need to be exercisable without
  * routing damage through an enemy that has to walk there first.
  */
-export const damageBlockForTest = (b: Block, amount: number): void => {
-  damageBlock(b, amount)
+export const damageBlockForTest = (b: Block, amount: number, fromY?: number): void => {
+  damageBlock(b, amount, fromY)
 }
 
 const damageEnemiesInRadius = (
@@ -695,6 +766,7 @@ const killEnemy = (e: Enemy): void => {
 
   const drop = Math.max(1, Math.round(def.coins * mCoinDrop))
   runCoins.value += drop
+  runCoinsEarned.value += drop
   pushFx({ kind: 'enemyDie', x: e.x, y: e.y, palette: def.palette, coins: drop, boss: !!def.boss })
 }
 
@@ -915,12 +987,13 @@ const stepEnemies = (dt: number): void => {
       e.cd -= dt
       if (e.cd <= 0) {
         e.cd = def.attackCooldownMs
-        damageBlock(target, def.damage)
+        damageBlock(target, def.damage, e.y)
         pushFx({
           kind: 'enemyAttack',
           x: e.x, y: e.y,
           tx: target.c, ty: target.r + 0.5,
-          ranged: false
+          ranged: false,
+          gore: goreOf(e)
         })
       }
       continue
@@ -961,7 +1034,7 @@ const stepEnemies = (dt: number): void => {
           pushFx({ kind: 'explosion', x: target.c, y: target.r + 0.5, radius: splash })
           damageBlocksInRadius(target.c, target.r + 0.5, splash, def.damage)
         } else {
-          damageBlock(target, def.damage)
+          damageBlock(target, def.damage, e.y)
         }
         pushFx({
           kind: 'siegeShot',
@@ -984,13 +1057,14 @@ const stepEnemies = (dt: number): void => {
     e.cd -= dt
     if (e.cd <= 0) {
       e.cd = def.attackCooldownMs
-      damageBlock(target, def.damage)
+      damageBlock(target, def.damage, e.y)
       applyThorns(target, e)
       pushFx({
         kind: 'enemyAttack',
         x: e.x, y: e.y,
         tx: target.c, ty: target.r + 0.5,
-        ranged: def.reach > 2
+        ranged: def.reach > 2,
+        gore: goreOf(e)
       })
     }
   }
@@ -1075,6 +1149,7 @@ const stepBurning = (dt: number): void => {
   }
 }
 
+/** `y` is both the centre of the blast and where it came from. */
 const damageBlocksInRadius = (x: number, y: number, radius: number, amount: number): void => {
   const r2 = radius * radius
   // Snapshot first: `damageBlock` can mutate the map (destruction + collapse).
@@ -1086,7 +1161,7 @@ const damageBlocksInRadius = (x: number, y: number, radius: number, amount: numb
   }
   for (const b of hits) {
     if (!blocksByUid.has(b.uid)) continue // already destroyed by an earlier hit
-    damageBlock(b, amount)
+    damageBlock(b, amount, y)
   }
 }
 
@@ -1479,7 +1554,12 @@ const stepProjectiles = (dt: number): void => {
     } else {
       const target = enemies.find((e) => e.uid === p.targetUid && e.dying <= 0)
       if (target) damageEnemy(target, p.damage, p.x, p.kind)
-      pushFx({ kind: 'impact', x: p.x, y: p.y, kindOf: p.kind })
+      pushFx({
+        kind: 'impact', x: p.x, y: p.y, kindOf: p.kind,
+        // Debris throws along the round's own line of travel; a radial puff
+        // reads as a decal stamped on the scene rather than as a hit.
+        angle: Math.atan2(p.vy, p.vx)
+      })
     }
 
     if (p.slowPct > 0) {
@@ -1645,8 +1725,15 @@ export const callWave = (): void => {
   // penalty for coasting. Both are folded into the single `difficulty` scalar
   // the director already understands, so composition rules are untouched.
   const adaptive = adaptiveFactor(next, towerPower(measureTower()))
-  const mul = difficultyFactor() * adaptive * flawless.multiplier
+  const dynamic = adaptive * flawless.multiplier
+  const mul = difficultyFactor() * dynamic
   difficultyMul.value = Math.round(mul * 100) / 100
+  // Toughness takes a SOFTENED share of the dynamic terms, not the whole of
+  // them. `adaptive` and the flawless streak already multiply the wave's head
+  // count; feeding them into per-enemy HP at full strength multiplies the same
+  // response twice, and the curve goes vertical the moment a player has a good
+  // run — which is exactly the player it should be rewarding.
+  waveHpMul = difficultyFactor() * Math.pow(dynamic, 0.45)
   lostBlockThisWave = false
   plan = planWave(next, mul)
   spawnCursor = 0
@@ -1664,12 +1751,24 @@ export const callWave = (): void => {
 
 let pendingBonus = 1
 
+/**
+ * This wave's ENEMY-TOUGHNESS scalar.
+ *
+ * Deliberately not the same number the wave director uses for composition —
+ * see the derivation in `callWave`.
+ */
+let waveHpMul = 1
+
 /** Put one enemy of `typeId` on the field, entering from `side`. */
 const spawnEnemy = (typeId: string, side: 1 | -1): void => {
   const def = enemyDef(typeId)
   const bounds = towerBounds()
   const edge = side === 1 ? bounds.minC - SPAWN_MARGIN : bounds.maxC + SPAWN_MARGIN
-  const hp = Math.round(def.hp * difficultyFactor())
+  // The FULL wave scalar, not just the user's difficulty setting. This line
+  // used to read `difficultyFactor()` alone, which meant the adaptive
+  // difficulty — the whole system that measures the player's tower and prices
+  // the wave against it — moved enemy COUNTS and never enemy toughness.
+  const hp = Math.max(1, Math.round(def.hp * waveHpMul * enemyHpScale(wave.value)))
   // Bombers enter already at cruising height rather than climbing from the
   // dive lane — a bomber that spawned low would take its first pass THROUGH
   // the anti-air it exists to fly over.
@@ -1808,15 +1907,54 @@ const syncGateRefs = (): void => {
   gateMaxHp.value = gate ? gate.maxHp : 1
 }
 
+/**
+  * The tower as it stood at the START of the wave that killed it.
+  *
+  * `endRun` drops the resume snapshot from storage so the next boot does not
+  * restore a run whose gate is already rubble — but that snapshot is exactly
+  * what a continue needs, so it is kept in memory for the length of the defeat
+  * screen and nowhere else. It deliberately does not survive a reload: a grace
+  * chance is for the run you are looking at.
+  */
+let graceSnapshot: RunSnapshot | null = null
+let graceUsed = false
+
+/** Is a continue on the table? One per run, and only if there is a wave to go back to. */
+export const graceAvailable = ref(false)
+
+/**
+ * Rebuild the tower as it was and re-enter the build phase for the wave that
+ * killed it.
+ *
+ * Restores from the same snapshot the resume path uses, so it recovers the
+ * exact layout, resources and wave — not an approximation of them.
+ */
+export const continueRun = (): boolean => {
+  if (!graceSnapshot || graceUsed) return false
+  setState(RUN_KEY, graceSnapshot)
+  const ok = resumeRun()
+  if (!ok) return false
+  graceUsed = true
+  graceAvailable.value = false
+  graceSnapshot = null
+  return true
+}
+
 const endRun = (): void => {
   phase.value = 'defeat'
   // Consolation floor. A run that ends on wave 1 with no kills would otherwise
   // pay literally nothing, which reads as the game being broken rather than as
   // a hard loss — and it is exactly the run a new player is most likely to have.
   const floor = 5 + wavesClearedThisRun * 4
-  if (runCoins.value < floor) runCoins.value = floor
+  if (runCoins.value < floor) {
+    runCoinsEarned.value += floor - runCoins.value
+    runCoins.value = floor
+  }
   // The run is over — drop the resume snapshot so the next boot starts fresh
-  // rather than restoring a tower whose gate is already rubble.
+  // rather than restoring a tower whose gate is already rubble. Hold it in
+  // memory first, though: it is what a grace continue rebuilds from.
+  graceSnapshot = getState<RunSnapshot | null>(RUN_KEY, null)
+  graceAvailable.value = !graceUsed && !!graceSnapshot?.blocks?.length
   removeState(RUN_KEY)
   pushFx({ kind: 'gateFell', x: 0, y: 0 })
 }
@@ -1881,6 +2019,10 @@ export const startRun = (): void => {
   wood.value = startWood.value
   stone.value = startStone.value
   runCoins.value = 0
+  runCoinsEarned.value = 0
+  graceSnapshot = null
+  graceUsed = false
+  graceAvailable.value = false
   kills.value = 0
   killsByType.value = {}
   triggerRef(killsByType)
@@ -1920,6 +2062,9 @@ export const resumeRun = (): boolean => {
   wood.value = Math.max(0, Math.floor(snap.wood) || 0)
   stone.value = Math.max(0, Math.floor(snap.stone) || 0)
   runCoins.value = Math.max(0, Math.floor(snap.runCoins) || 0)
+  // A resumed run has no record of what was already spent, so the best
+  // available floor for the progression feed is the balance it resumes with.
+  runCoinsEarned.value = runCoins.value
   kills.value = Math.max(0, Math.floor(snap.kills) || 0)
   killsByType.value = { ...(snap.killsByType ?? {}) }
   triggerRef(killsByType)
@@ -1939,7 +2084,7 @@ export const resumeRun = (): boolean => {
       continue
     }
     const isEnhanced = enhanced === 1
-    const maxHp = maxHpFor(typeId, isEnhanced)
+    const maxHp = maxHpFor(typeId, isEnhanced, roof === 1)
     // Clamp HP to the CURRENT max: a tech purchase between sessions should
     // raise the ceiling, never leave a block sitting above it.
     const restored = spawnBlock(
@@ -1978,6 +2123,11 @@ export const runSummary = () => ({
   kills: kills.value,
   killsByType: { ...killsByType.value },
   coins: runCoins.value,
+  // What the run EARNED, before anything was spent on blocks. Progression
+  // (daily missions, lifetime-coin achievements) has to read this rather than
+  // the balance, or spending gold would look like the counter running
+  // backwards — which the mission feed interprets as a brand-new run.
+  coinsEarned: runCoinsEarned.value,
   height: towerHeight.value,
   blocks: blockCount.value,
   blocksPlaced: blocksPlacedThisRun
@@ -2020,7 +2170,13 @@ const fixedStep = (dt: number): void => {
   syncGateRefs()
 
   const allSpawned = spawnCursor >= plan.orders.length
-  const noneAlive = enemies.every((e) => e.dying > 0)
+  // `enemies.length`, not "every enemy is dying".
+  //
+  // A dying enemy is still on screen for the length of its death animation, so
+  // completing the wave the instant the last one STARTED dying put the
+  // wave-clear toast over a corpse that was still fading out. Waiting for the
+  // array to drain costs a few hundred milliseconds and removes the overlap.
+  const noneAlive = enemies.length === 0
   // Fires are deliberately NOT part of this check: a molotov is meant to keep
   // eating the crown into the build phase, and holding the wave open for it
   // would just deny the player their payout while they watch it burn.

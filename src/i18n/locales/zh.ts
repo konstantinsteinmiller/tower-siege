@@ -27,7 +27,7 @@ export default {
 
   'blocks': {
     'sell': '出售',
-    'roofNote': '带屋顶——上方无法再建造。',
+    'roofNote': '带屋顶——生命值翻倍，来自上方的防御提升三倍。上方需留空。',
     'enhancedNote': '强化 — 生命值与伤害更高。',
     'enhancedHand': '强化积木',
     'reroll': '更换此方块',
@@ -104,10 +104,9 @@ export default {
     'towerFell': '高塔倒塌了！',
     'reachedWave': '你坚持到了第 {n} 波',
     'newRecord': '新纪录！',
-    'defeated': '击败',
-    'reward': '奖励',
     'upgrade': '升级！',
     'defendAgain': '再次防守',
+    'continueRun': '重建并继续',
     'double': '金币翻倍',
     'firstRunDouble': '2× — 今日首次围攻！',
     'tripleWave': '3× 金币 — {n}',

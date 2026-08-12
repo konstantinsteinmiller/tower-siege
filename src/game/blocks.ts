@@ -100,7 +100,7 @@ export const BLOCK_DEFS: Record<string, BlockDef> = {
   bombard: {
     id: 'bombard',
     kind: 'weapon',
-    cost: { wood: 20, stone: 22 },
+    cost: { wood: 20, stone: 22, coins: 26 },
     hp: 65,
     weapon: {
       damage: 42,
@@ -121,7 +121,7 @@ export const BLOCK_DEFS: Record<string, BlockDef> = {
   mortar: {
     id: 'mortar',
     kind: 'weapon',
-    cost: { stone: 30 },
+    cost: { stone: 30, coins: 22 },
     hp: 70,
     armor: 2,
     weapon: {
@@ -142,7 +142,7 @@ export const BLOCK_DEFS: Record<string, BlockDef> = {
   tesla: {
     id: 'tesla',
     kind: 'weapon',
-    cost: { stone: 40 },
+    cost: { stone: 40, coins: 32 },
     hp: 60,
     weapon: {
       damage: 13,
@@ -161,7 +161,7 @@ export const BLOCK_DEFS: Record<string, BlockDef> = {
   frost: {
     id: 'frost',
     kind: 'weapon',
-    cost: { stone: 30 },
+    cost: { stone: 30, coins: 24 },
     hp: 60,
     weapon: {
       damage: 4,
@@ -197,7 +197,7 @@ export const BLOCK_DEFS: Record<string, BlockDef> = {
   repair: {
     id: 'repair',
     kind: 'utility',
-    cost: { wood: 50 },
+    cost: { wood: 50, coins: 20 },
     hp: 60,
     utility: { repairPerWave: 12 },
     unlockNode: 'unlockRepair',
@@ -230,7 +230,7 @@ export const BLOCK_DEFS: Record<string, BlockDef> = {
   mint: {
     id: 'mint',
     kind: 'economy',
-    cost: { wood: 45, stone: 45 },
+    cost: { wood: 45, stone: 45, coins: 40 },
     hp: 70,
     economy: { coins: 5 },
     unlockNode: 'unlockMint',
@@ -260,10 +260,11 @@ export const ENHANCED_DAMAGE_MUL = 1.5
 
 /** Coin/resource refund for selling a placed block: half the build cost,
  *  rounded down, so demolishing and rebuilding is never free churn. */
-export const sellRefund = (id: string): { wood: number; stone: number } => {
+export const sellRefund = (id: string): { wood: number; stone: number; coins: number } => {
   const def = blockDef(id)
   return {
     wood: Math.floor((def.cost.wood ?? 0) * 0.5),
-    stone: Math.floor((def.cost.stone ?? 0) * 0.5)
+    stone: Math.floor((def.cost.stone ?? 0) * 0.5),
+    coins: Math.floor((def.cost.coins ?? 0) * 0.5)
   }
 }

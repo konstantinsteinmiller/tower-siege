@@ -29,6 +29,8 @@ interface Props {
   enhanced?: boolean[]
   wood: number
   stone: number
+  /** Run gold — the third build currency, spent by the tech-gated pieces. */
+  coins: number
   /** Whether the shared reroll charge is off cooldown. */
   rerollReady?: boolean
   /** Whole seconds until the reroll charge returns. */
@@ -94,6 +96,7 @@ interface Entry {
   shapeId: string
   wood: number
   stone: number
+  coins: number
   affordable: boolean
   roof: boolean
   enhanced: boolean
@@ -109,7 +112,9 @@ const entries = computed<Entry[]>(() =>
       shapeId,
       wood: cost.wood,
       stone: cost.stone,
-      affordable: props.wood >= cost.wood && props.stone >= cost.stone,
+      coins: cost.coins,
+      affordable:
+        props.wood >= cost.wood && props.stone >= cost.stone && props.coins >= cost.coins,
       roof: shapeHasRoof(shapeId),
       enhanced: props.enhanced[slot] === true,
       // Shape ids (`w1`, `cannonMount`, `sL`) are NOT block ids, so they have
@@ -199,6 +204,9 @@ const infoEntry = computed(() => {
           span.build-tray__cost-item(v-if="infoEntry.stone > 0" :class="{ 'is-short': stone < infoEntry.stone }")
             i.build-tray__dot.is-stone
             | {{ infoEntry.stone }} {{ t('resources.stone') }}
+          span.build-tray__cost-item(v-if="infoEntry.coins > 0" :class="{ 'is-short': coins < infoEntry.coins }")
+            i.build-tray__dot.is-gold
+            | {{ infoEntry.coins }} {{ t('resources.coins') }}
         div.build-tray__roof-note(v-if="infoEntry.roof") {{ t('blocks.roofNote') }}
         div.build-tray__enhanced-note(v-if="infoEntry.enhanced") {{ t('blocks.enhancedNote') }}
 
@@ -207,6 +215,7 @@ const infoEntry = computed(() => {
         button.build-tray__tile(
           type="button"
           :class="{ 'is-selected': selected === e.slot, 'is-poor': !e.affordable, 'is-enhanced': e.enhanced }"
+          :style="{ '--tile-w': tileSize + 'px' }"
           :aria-label="e.name"
           @click="onTile(e.slot)"
           @pointerenter="openInfo(e.slot)"
@@ -225,7 +234,9 @@ const infoEntry = computed(() => {
             //- the tile itself rather than only in the info box.
             span.build-tray__roof-badge(v-if="e.roof") ⌂
           //- Price chips. Only the resources the shape actually costs are shown,
-          //- so a wood-only piece never displays a misleading "0 stone".
+          //- so a wood-only piece never displays a misleading "0 stone". A piece
+          //- can carry all three at once, which is why the row is width-capped
+          //- to the thumbnail below rather than allowed to widen the tile.
           span.build-tray__cost
             span.build-tray__cost-item(v-if="e.wood > 0" :class="{ 'is-short': wood < e.wood }")
               i.build-tray__dot.is-wood
@@ -233,6 +244,9 @@ const infoEntry = computed(() => {
             span.build-tray__cost-item(v-if="e.stone > 0" :class="{ 'is-short': stone < e.stone }")
               i.build-tray__dot.is-stone
               | {{ e.stone }}
+            span.build-tray__cost-item(v-if="e.coins > 0" :class="{ 'is-short': coins < e.coins }")
+              i.build-tray__dot.is-gold
+              | {{ e.coins }}
 
         //- Swap this piece for a fresh draw. One charge is shared across all
         //- four slots, so the countdown is the same everywhere — it is drawn
@@ -444,10 +458,27 @@ const infoEntry = computed(() => {
   font-size: 0.6rem
   line-height: 1
 
+// Capped to the thumbnail width, and allowed to wrap.
+//
+// The tile is a shrink-to-fit column, so its WIDEST child sets its width. With
+// a third price chip the row overtook the body and every tile grew past the
+// width `tileSize` budgeted for it — enough to push the 4th offer outside the
+// scroll viewport, with nothing on screen to suggest it was there.
+//
+// The cap restores the invariant that a tile is sized by its body alone, so a
+// three-chip piece lays out exactly like a one-chip piece. A row too long for
+// the cap wraps to a second line instead, which costs a few pixels of height
+// the tray has to spare rather than width it does not. This is deliberately
+// unconditional: the squeeze depends on the track the tray is dealt (one
+// column of the bottom bar, ~230 px on a 500 px phone), not on the viewport,
+// so a media query alone would miss it.
 .build-tray__cost
   display: flex
+  flex-wrap: wrap
   align-items: center
-  gap: 0.3em
+  justify-content: center
+  max-width: var(--tile-w, 2.75rem)
+  gap: 0.15em 0.2em
   line-height: 1
 
 .build-tray__cost-item
@@ -472,6 +503,37 @@ const infoEntry = computed(() => {
     background-color: #a9682f
   &.is-stone
     background-color: #8b939d
+  &.is-gold
+    background-color: #ffd93c
+
+// ─── Narrow screens ─────────────────────────────────────────────────────────
+//
+// At 320 px the tile is pinned to its 44 px tap-target floor, so the only
+// slack left is chrome. Shrinking the dot and gaps keeps the common two-digit
+// three-chip row on ONE line (≈43 px against the 44 px cap) instead of wrapping
+// every gold-costed piece to two.
+//
+// The tray padding and body padding come down for a second reason: `perSlot`
+// budgets the THUMBNAIL, but each tile also spends body padding and a 2 px
+// border, so 4 × chrome + 3 × gap ran ~14 px past the measured track before the
+// 44 px floor was even reached. Trimming both brings that back inside it.
+@media (max-width: 24rem)
+  .build-tray__cost
+    gap: 0.1em 0.15em
+
+  .build-tray__cost-item
+    gap: 0.1em
+
+  .build-tray__dot
+    width: 0.4em
+    height: 0.4em
+
+  .build-tray__scroll
+    gap: 0.2rem
+    padding: 0.25rem
+
+  .build-tray__body
+    padding: 0.05rem
 
 // ─── Info box ───────────────────────────────────────────────────────────────
 
@@ -537,10 +599,13 @@ const infoEntry = computed(() => {
 .build-tray__part-hp
   color: #9fb6de
 
+// Wraps because this row spells the resources out in words — three of them in
+// a locale with long nouns would otherwise stretch the box past its max-width.
 .build-tray__info-cost
   display: flex
+  flex-wrap: wrap
   align-items: center
-  gap: 0.6rem
+  gap: 0.15rem 0.6rem
   margin-top: 0.15rem
   padding-top: 0.2rem
   border-top: 1px solid rgba(255, 255, 255, 0.14)

@@ -36,6 +36,7 @@ import type { EnemyDef, ProjectileKind } from './types'
 export const ENEMY_DEFS: Record<string, EnemyDef> = {
   grunt: {
     id: 'grunt',
+    monster: ['grumpling', 'rattlejack'],
     hp: 22,
     speed: 1.0,
     damage: 5,
@@ -50,6 +51,7 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
   },
   runner: {
     id: 'runner',
+    monster: 'cinderhound',
     hp: 13,
     speed: 1.9,
     damage: 4,
@@ -64,6 +66,7 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
   },
   slinger: {
     id: 'slinger',
+    monster: 'bonecap',
     hp: 20,
     speed: 0.9,
     damage: 6,
@@ -79,6 +82,7 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
   },
   brute: {
     id: 'brute',
+    monster: 'snaggletusk',
     hp: 100,
     speed: 0.6,
     damage: 15,
@@ -93,6 +97,7 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
   },
   bomber: {
     id: 'bomber',
+    monster: 'blorp',
     hp: 34,
     speed: 1.15,
     damage: 0,
@@ -108,6 +113,7 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
   },
   bat: {
     id: 'bat',
+    monster: ['nibbler', 'wispling'],
     hp: 24,
     speed: 1.4,
     damage: 6,
@@ -122,6 +128,7 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
   },
   bulwark: {
     id: 'bulwark',
+    monster: 'marrowknight',
     hp: 70,
     speed: 0.75,
     damage: 11,
@@ -141,6 +148,7 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
   // share of each wave ramps with the wave index (see `waves.ts`).
   wyvern: {
     id: 'wyvern',
+    monster: 'skewer',
     hp: 70,
     speed: 1.25,
     damage: 14,
@@ -162,6 +170,7 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
   // coverage that can actually reach UP.
   bombardier: {
     id: 'bombardier',
+    monster: 'gloomcrow',
     hp: 58,
     speed: 1.05,
     damage: 22,
@@ -178,6 +187,7 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
   },
   firebug: {
     id: 'firebug',
+    monster: 'dustmoth',
     hp: 86,
     speed: 0.95,
     damage: 16,
@@ -328,6 +338,7 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
 
   golem: {
     id: 'golem',
+    monster: 'thornwick',
     hp: 900,
     speed: 0.45,
     damage: 50,

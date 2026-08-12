@@ -1262,3 +1262,42 @@ run: gating it means a player whose ad fails to fill is stuck on the defeat
 screen with no way back into the game. The rewarded placements are the 2×
 payout, the tripled wave payout, the reinforced hand and the 2× speed buff —
 all things a player can decline and carry on without.
+
+---
+
+## 19. Fix — daily missions never advanced
+
+`recordRun()` was called from exactly one place: `presentDefeat`. Daily mission
+progress therefore only moved when the Gate fell.
+
+That made the panel a liar. A player forty kills into a siege opens the missions
+board — which is precisely when they would — and sees `0/120`. With runs now
+lasting many minutes, "your dailies update when you die" is indistinguishable
+from "the dailies are broken", which is exactly how it was reported.
+
+**Progress is now credited in DELTAS.** `recordRun` takes the run's *cumulative*
+totals and credits only what has not been credited yet, which makes it
+idempotent and safe to call at any cadence. It is fed from three places, none of
+which needs to know about the others:
+
+* every wave clear — the natural checkpoint, when the numbers have settled;
+* whenever the missions panel opens, emitted *before* the modal shows so the
+  first frame is already correct rather than visibly ticking up;
+* at the end of the run, catching the partial wave the player died in.
+
+`beginMissionRun()` re-baselines the tracker on a fresh run, and `recordRun`
+additionally re-baselines on its own whenever a counter goes backwards — a
+resumed snapshot, or a call site that forgot. Without that guard a new run would
+credit a negative delta and claw back progress the player had earned.
+
+`waves` stays a `max` (a best-single-run goal), so three short runs still cannot
+add up to "survive to wave 9".
+
+**Achievements were left alone.** They are lifetime accumulators with a `runs`
+counter, so they must be fed exactly once per finished run — the single
+`presentDefeat` call is correct for them and would be a bug anywhere else.
+
+The regression tests pin the system clock to a date whose rotation is known to
+contain the types under test. The triplet is generated from a hash of the day,
+so without pinning, roughly a quarter of days would have silently asserted
+nothing.

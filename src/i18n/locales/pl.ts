@@ -27,7 +27,7 @@ export default {
 
   'blocks': {
     'sell': 'Sprzedaj',
-    'roofNote': 'Zadaszone — nic nie postawisz na wierzchu.',
+    'roofNote': 'Zadaszone — podwójne PZ, potrójna obrona z góry. Wymaga wolnego nieba.',
     'enhancedNote': 'Wzmocnione — więcej PŻ i obrażeń.',
     'enhancedHand': 'Wzmocniona ręka',
     'reroll': 'Wymień ten element',
@@ -104,10 +104,9 @@ export default {
     'towerFell': 'Wieża upadła!',
     'reachedWave': 'Przetrwałeś do fali {n}',
     'newRecord': 'Nowy rekord!',
-    'defeated': 'Pokonani',
-    'reward': 'Nagroda',
     'upgrade': 'Ulepsz!',
     'defendAgain': 'Broń ponownie',
+    'continueRun': 'Odbuduj i graj dalej',
     'double': 'Podwój monety',
     'firstRunDouble': '2× — pierwsze oblężenie dziś!',
     'tripleWave': '3× monety — {n}',

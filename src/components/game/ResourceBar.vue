@@ -52,7 +52,7 @@ watch(() => props.coins, (n, o) => { if (n > o) pop(coinPop) })
           path(d="M7 7 L13 11 L20 15" fill="none" stroke="#a8b2bd" stroke-width="1.2")
         span.resource-bar__value(:class="{ pop: stonePop }") {{ stone }}
 
-      div.resource-bar__item
+      div.resource-bar__item.resource-bar__item--coins
         //- Coin glyph.
         svg.resource-bar__icon(viewBox="0 0 24 24" aria-hidden="true")
           circle(cx="12" cy="12" r="9" fill="#e0a81c" stroke="#8a6410" stroke-width="1.6")
@@ -118,4 +118,33 @@ watch(() => props.coins, (n, o) => { if (n > o) pop(coinPop) })
     scale: 1.32
   100%
     scale: 1
+
+// ─── Portrait phone ─────────────────────────────────────────────────────────
+//
+// The top row runs wave-status | resources | wallet across the full width, and
+// on a 390 px screen those three already consume 360 px of it — before the
+// numbers reach four digits. Coins are the natural thing to move: wood and
+// stone are the materials being spent right now, while coins are the run's
+// banked currency, so splitting them off separates two different kinds of
+// number as well as buying the row back ~50 px.
+@media (max-width: 30rem) and (orientation: portrait)
+  // Grid, not a wrapping flex row. `flex-basis: 100%` on the coin item makes it
+  // contribute a full container width to max-content, so the pill stayed as
+  // wide as it was before and only got taller. A grid sizes its columns from
+  // the content that actually sits in them, and a spanning item does not drag
+  // that width up with it.
+  .resource-bar__body
+    display: grid
+    grid-template-columns: auto auto
+    justify-content: center
+    align-items: center
+    row-gap: 0.06rem
+    column-gap: clamp(0.4rem, 3vw, 0.8rem)
+
+  .resource-bar__item--coins
+    grid-column: 1 / -1
+    justify-content: center
+    padding-top: 0.12rem
+    border-top: 1px solid rgba(255, 255, 255, 0.14)
+
 </style>

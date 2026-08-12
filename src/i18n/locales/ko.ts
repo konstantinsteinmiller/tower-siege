@@ -27,7 +27,7 @@ export default {
 
   'blocks': {
     'sell': '판매',
-    'roofNote': '지붕 있음 — 위에는 아무것도 지을 수 없습니다.',
+    'roofNote': '지붕 있음 — 체력 2배, 위쪽 공격 방어 3배. 위가 비어 있어야 합니다.',
     'enhancedNote': '강화됨 — 체력과 피해량이 더 높습니다.',
     'enhancedHand': '강화 블록',
     'reroll': '이 조각 교체',
@@ -104,10 +104,9 @@ export default {
     'towerFell': '타워가 무너졌다!',
     'reachedWave': '웨이브 {n}까지 버텼습니다',
     'newRecord': '신기록!',
-    'defeated': '처치',
-    'reward': '보상',
     'upgrade': '업그레이드!',
     'defendAgain': '다시 방어',
+    'continueRun': '재건하고 계속',
     'double': '코인 2배',
     'firstRunDouble': '2× — 오늘의 첫 공성전!',
     'tripleWave': '코인 3배 — {n}',

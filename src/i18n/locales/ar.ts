@@ -27,7 +27,7 @@ export default {
 
   'blocks': {
     'sell': 'بيع',
-    'roofNote': 'مسقوف — لا يمكن البناء فوقه.',
+    'roofNote': 'مسقوف — ضعف نقاط الصحة ودفاع ثلاثي ضد الضربات من الأعلى. يحتاج إلى سماء مفتوحة.',
     'enhancedNote': 'معزّز — صحة وضرر أكبر.',
     'enhancedHand': 'يد معزّزة',
     'reroll': 'استبدل هذه القطعة',
@@ -104,10 +104,9 @@ export default {
     'towerFell': 'سقط البرج!',
     'reachedWave': 'صمدت حتى الموجة {n}',
     'newRecord': 'رقم قياسي جديد!',
-    'defeated': 'المهزومون',
-    'reward': 'المكافأة',
     'upgrade': 'ترقية!',
     'defendAgain': 'دافع مجدداً',
+    'continueRun': 'أعد البناء وتابع',
     'double': 'ضاعف العملات',
     'firstRunDouble': '2× — أول حصار اليوم!',
     'tripleWave': '3× عملات — {n}',
