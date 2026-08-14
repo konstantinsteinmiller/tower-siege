@@ -71,7 +71,9 @@ export default {
       'bomber': 'Підривник', 'bat': 'Кажан', 'bulwark': 'Щитоносець', 'golem': 'Облоговий голем',
       'wyvern': 'Віверна',
       'eel': 'Морський змій',
+      'shark': 'Рифова акула',
       'kraken': 'Кракен',
+      'seadrake': 'Морський дракон',
       'ram': 'Таран',
       'ballista': 'Баліста',
       'catapult': 'Катапульта',
@@ -110,7 +112,12 @@ export default {
     'double': 'Подвоїти монети',
     'firstRunDouble': '2× — перша облога сьогодні!',
     'tripleWave': '3× монети — {n}',
-    'waveCleared': 'Хвилю {n} відбито!'
+    'waveCleared': 'Хвилю {n} відбито!',
+    'scoreLabel': 'Очки',
+    'bestLabel': 'Рекорд',
+    'scoreCurrent': '({n} цього разу)',
+    'rankLabel': 'Місце',
+    'rankOf': 'з {n}'
   },
 
   'tech': {

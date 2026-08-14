@@ -71,7 +71,9 @@ export default {
       'bomber': 'Bombarolo', 'bat': 'Pipistrello', 'bulwark': 'Baluardo', 'golem': 'Golem d’assedio',
       'wyvern': 'Viverna',
       'eel': 'Serpente marino',
+      'shark': 'Squalo di scogliera',
       'kraken': 'Kraken',
+      'seadrake': 'Drago marino',
       'ram': 'Ariete',
       'ballista': 'Balista',
       'catapult': 'Catapulta',
@@ -110,7 +112,12 @@ export default {
     'double': 'Raddoppia le monete',
     'firstRunDouble': '2× — primo assedio di oggi!',
     'tripleWave': '3× monete: {n}',
-    'waveCleared': 'Ondata {n} respinta!'
+    'waveCleared': 'Ondata {n} respinta!',
+    'scoreLabel': 'Punteggio',
+    'bestLabel': 'Record',
+    'scoreCurrent': '({n} in questa partita)',
+    'rankLabel': 'Posizione',
+    'rankOf': 'su {n}'
   },
 
   'tech': {

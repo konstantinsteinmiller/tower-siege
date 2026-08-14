@@ -71,7 +71,9 @@ export default {
       'bomber': '爆弾兵', 'bat': 'コウモリ', 'bulwark': '盾兵', 'golem': '攻城ゴーレム',
       'wyvern': 'ワイバーン',
       'eel': '海竜',
+      'shark': 'リーフシャーク',
       'kraken': 'クラーケン',
+      'seadrake': '海竜王',
       'ram': '破城槌',
       'ballista': 'バリスタ',
       'catapult': 'カタパルト',
@@ -110,7 +112,12 @@ export default {
     'double': 'コイン2倍',
     'firstRunDouble': '2× — 本日最初の包囲戦！',
     'tripleWave': 'コイン3倍 — {n}',
-    'waveCleared': 'ウェーブ {n} を防衛！'
+    'waveCleared': 'ウェーブ {n} を防衛！',
+    'scoreLabel': 'スコア',
+    'bestLabel': '最高スコア',
+    'scoreCurrent': '(今回 {n})',
+    'rankLabel': '順位',
+    'rankOf': '{n} 人中'
   },
 
   'tech': {

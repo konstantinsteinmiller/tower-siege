@@ -17,11 +17,15 @@ import {
   beginPinch, updatePinch, endPinch, recenter, isManual,
   getZoom, worldToScreenX, worldToScreenY
 } from '@/use/useTowerCamera'
-import { drawScene, setBuildOverlay } from '@/use/useTowerArt'
+import { drawScene, resetDrawnFx, setBuildOverlay } from '@/use/useTowerArt'
 import { resetVfx } from '@/use/useTowerVfx'
 import { warmAudio } from '@/use/useTowerAudio'
 import { warmSpriteProbes } from '@/game/art'
 import useTowerProgress, { buildHalfWidth, bestWave } from '@/use/useTowerProgress'
+import {
+  reportRun, rankFor, boardSize, playerTotal, leaderboardEnabled,
+  leaderboardPending, OUTSIDE_BOARD
+} from '@/use/useLeaderboard'
 import useTowerEconomy from '@/use/useTowerEconomy'
 import useMissions, { beginMissionRun } from '@/use/useMissions'
 import useAchievements from '@/use/useAchievements'
@@ -427,6 +431,31 @@ const twoXUsed = ref(false)
 const firstRunBonusActive = ref(false)
 const summary = ref(runSummary())
 
+// ── Leaderboard ──
+// Everything here degrades to "not shown". A board that is unset, unreachable
+// or still loading must never keep the player on the defeat screen.
+// The headline number is the player's BEST, with its rank — a rank computed
+// from a weak run would drop every time they played badly, which reads as the
+// board punishing them for playing. Showing the record standing, with this
+// run's score beside it, makes "I did not beat it" the obvious reading and
+// leaves the reason to play again on screen.
+const bestScoreValue = computed(() => Math.max(progress.bestScore.value, summary.value.score))
+const isRecordRun = computed(
+  () => summary.value.score > 0 && summary.value.score >= bestScoreValue.value
+)
+const rankValue = computed(() => rankFor(bestScoreValue.value))
+const rankPending = computed(() => leaderboardPending.value && rankValue.value === 0)
+const showRank = computed(
+  () => leaderboardEnabled && bestScoreValue.value > 0 && (rankPending.value || rankValue.value !== 0)
+)
+/** Formatted in script, not in the template: `#{…}` is Pug's own interpolation
+ *  syntax, so a literal `#` in front of a mustache is a parse error. */
+const rankDisplay = computed(() => {
+  if (rankPending.value) return '…'
+  if (rankValue.value === OUTSIDE_BOARD) return `#${boardSize().toLocaleString()}+`
+  return `#${rankValue.value.toLocaleString()}`
+})
+
 const rewardCoinRef = ref<HTMLElement | null>(null)
 const coinBadgeRef = ref<InstanceType<typeof CoinBadge> | null>(null)
 const coinBadgeEl = computed<HTMLElement | null>(() => coinBadgeRef.value?.rootEl ?? null)
@@ -488,11 +517,17 @@ const presentDefeat = async (): Promise<void> => {
   progress.recordRunEnd({
     wave: s.wave,
     kills: s.kills,
+    score: s.score,
     wavesCleared: s.wavesCleared,
     height: s.height,
     blocks: s.blocks,
     blocksPlaced: s.blocksPlaced
   })
+  // `recordRunEnd` has already folded this run into the stored best, so
+  // `bestScore` is now the highest the player has ever managed — which is both
+  // the number the board holds and the number the rank belongs to. Never
+  // awaited: a slow or dead endpoint must not hold up the defeat screen.
+  void reportRun(progress.bestScore.value, Math.max(s.wave, 1))
   firstRunBonusActive.value = getState<string>(DAILY_BONUS_DAY_KEY, '') !== todayKey()
 
   await maybeShowInterstitial()
@@ -542,6 +577,7 @@ const startFreshRun = (): void => {
   selectedSlot.value = null
   inspected.value = null
   resetVfx()
+  resetDrawnFx()
   startRun()
   progress.recordRunStart()
   snapToFit()
@@ -902,6 +938,7 @@ const onContinueRun = async (): Promise<void> => {
     selectedSlot.value = null
     inspected.value = null
     resetVfx()
+    resetDrawnFx()
     playSound('level-up', 0.07)
   })
 }
@@ -1296,6 +1333,21 @@ onUnmounted(() => {
           div.result__coins(ref="rewardCoinRef")
             IconCoin(class="result__coin-icon")
             span.result__coin-value +{{ summary.coins }}
+
+        //- Score, and where it stands. One strip, two cells: they stay side by
+        //- side at every width because both are short, and the rank cell simply
+        //- drops out when there is no board to rank against.
+        div.result__stats
+          div.result__stat
+            span.result__stat-label {{ t('result.bestLabel') }}
+            span.result__stat-value {{ bestScoreValue.toLocaleString() }}
+            //- This run, beside the record it did or did not beat. Hidden on a
+            //- record run, where the two numbers are the same one.
+            span.result__stat-note(v-if="!isRecordRun") {{ t('result.scoreCurrent', { n: summary.score.toLocaleString() }) }}
+          div.result__stat(v-if="showRank")
+            span.result__stat-label {{ t('result.rankLabel') }}
+            span.result__stat-value {{ rankDisplay }}
+            span.result__stat-note(v-if="playerTotal > 0") {{ t('result.rankOf', { n: playerTotal.toLocaleString() }) }}
 
         //- 2× rewarded video.
         FRewardButton(
@@ -1763,6 +1815,63 @@ onUnmounted(() => {
   font-size: clamp(1.2rem, 6vw, 2.2rem)
   text-shadow: 3px 3px 0 #000
 
+// ── Score / rank strip ──
+// Two cells on one row at every width. Both values are short (a score is three
+// or four digits, a rank four or five), so stacking them would waste the one
+// axis the defeat screen is actually short of — height, on a phone in
+// landscape, where four CTAs already have to fit underneath.
+.result__stats
+  display: flex
+  align-items: stretch
+  justify-content: center
+  gap: clamp(0.4rem, 2.5vw, 0.9rem)
+  width: 100%
+  padding: clamp(0.3rem, 1.6vw, 0.55rem) clamp(0.5rem, 3vw, 1rem)
+  border-radius: 0.75rem
+  background: rgba(8, 14, 28, 0.5)
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.08)
+
+.result__stat
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  gap: 0.05rem
+  // Equal halves, so the divider sits dead centre whatever the numbers are.
+  flex: 1 1 0
+  min-width: 0
+
+  & + &
+    border-left: 2px solid rgba(255, 255, 255, 0.1)
+    padding-left: clamp(0.4rem, 2.5vw, 0.9rem)
+
+.result__stat-label
+  color: rgba(214, 228, 255, 0.72)
+  font-weight: 800
+  text-transform: uppercase
+  letter-spacing: 0.04em
+  font-size: clamp(0.55rem, 2.6vw, 0.78rem)
+
+.result__stat-value
+  color: #fff
+  font-weight: 900
+  line-height: 1.05
+  font-size: clamp(1rem, 4.6vw, 1.6rem)
+  text-shadow: 2px 2px 0 #000
+  // Tabular figures stop the rank jittering sideways when it updates from a
+  // derived guess to the number the server returned.
+  font-variant-numeric: tabular-nums
+  white-space: nowrap
+
+.result__stat-note
+  color: rgba(214, 228, 255, 0.6)
+  font-weight: 700
+  font-size: clamp(0.5rem, 2.3vw, 0.7rem)
+  white-space: nowrap
+  overflow: hidden
+  text-overflow: ellipsis
+  max-width: 100%
+
 .result__twox
   display: inline-flex
   align-items: center
@@ -1797,6 +1906,33 @@ onUnmounted(() => {
 
   .result__coin-value
     font-size: 1.5rem
+
+  // Same reasoning as everything above it: drive the strip off the SHORT axis
+  // in landscape, or it opens up widest exactly where there is least room.
+  .result__stats
+    padding: 0.2rem 0.6rem
+    border-radius: 0.55rem
+
+  .result__stat-label
+    font-size: 0.6rem
+
+  .result__stat-value
+    font-size: clamp(0.9rem, 3.4vh, 1.2rem)
+
+  .result__stat-note
+    font-size: 0.55rem
+
+// Tablets and anything wider: the dialog stops being width-constrained, so the
+// strip can breathe instead of staying phone-tight inside a 26rem column.
+@media (min-width: 48rem) and (orientation: portrait)
+  .result
+    max-width: 30rem
+
+  .result__stats
+    padding: 0.6rem 1.2rem
+
+  .result__stat-value
+    font-size: 1.7rem
 
 .fade-enter-active, .fade-leave-active
   transition: opacity 220ms ease

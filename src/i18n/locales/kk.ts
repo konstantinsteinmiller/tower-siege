@@ -71,7 +71,9 @@ export default {
       'bomber': 'Бомбалаушы', 'bat': 'Жарқанат', 'bulwark': 'Қалқаншы', 'golem': 'Қоршау големі',
       'wyvern': 'Виверна',
       'eel': 'Теңіз жыланы',
+      'shark': 'Риф акуласы',
       'kraken': 'Кракен',
+      'seadrake': 'Теңіз айдаһары',
       'ram': 'Қошқар',
       'ballista': 'Баллиста',
       'catapult': 'Катапульта',
@@ -110,7 +112,12 @@ export default {
     'double': 'Тиынды екі есе',
     'firstRunDouble': '2× — бүгінгі алғашқы қоршау!',
     'tripleWave': '3× монета — {n}',
-    'waveCleared': '{n}-толқын тойтарылды!'
+    'waveCleared': '{n}-толқын тойтарылды!',
+    'scoreLabel': 'Ұпай',
+    'bestLabel': 'Үздік ұпай',
+    'scoreCurrent': '(осы ойында {n})',
+    'rankLabel': 'Орын',
+    'rankOf': '{n} ішінен'
   },
 
   'tech': {

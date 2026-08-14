@@ -71,7 +71,9 @@ export default {
       'bomber': '폭탄병', 'bat': '박쥐', 'bulwark': '방패병', 'golem': '공성 골렘',
       'wyvern': '와이번',
       'eel': '바다뱀',
+      'shark': '암초 상어',
       'kraken': '크라켄',
+      'seadrake': '바다 드래곤',
       'ram': '충차',
       'ballista': '발리스타',
       'catapult': '투석기',
@@ -110,7 +112,12 @@ export default {
     'double': '코인 2배',
     'firstRunDouble': '2× — 오늘의 첫 공성전!',
     'tripleWave': '코인 3배 — {n}',
-    'waveCleared': '웨이브 {n} 방어 성공!'
+    'waveCleared': '웨이브 {n} 방어 성공!',
+    'scoreLabel': '점수',
+    'bestLabel': '최고 점수',
+    'scoreCurrent': '(이번 판 {n})',
+    'rankLabel': '순위',
+    'rankOf': '{n}명 중'
   },
 
   'tech': {

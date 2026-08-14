@@ -71,7 +71,9 @@ export default {
       'bomber': 'Подрывник', 'bat': 'Летучая мышь', 'bulwark': 'Щитоносец', 'golem': 'Осадный голем',
       'wyvern': 'Виверна',
       'eel': 'Морской змей',
+      'shark': 'Рифовая акула',
       'kraken': 'Кракен',
+      'seadrake': 'Морской дракон',
       'ram': 'Таран',
       'ballista': 'Баллиста',
       'catapult': 'Катапульта',
@@ -110,7 +112,12 @@ export default {
     'double': 'Удвоить монеты',
     'firstRunDouble': '2× — первая осада сегодня!',
     'tripleWave': '3× монеты — {n}',
-    'waveCleared': 'Волна {n} отбита!'
+    'waveCleared': 'Волна {n} отбита!',
+    'scoreLabel': 'Очки',
+    'bestLabel': 'Рекорд',
+    'scoreCurrent': '({n} за этот раз)',
+    'rankLabel': 'Место',
+    'rankOf': 'из {n}'
   },
 
   'tech': {

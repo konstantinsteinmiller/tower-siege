@@ -31,6 +31,32 @@ export const RUNS_KEY = 'ts_runs'
 export const TOTAL_BLOCKS_KEY = 'ts_total_blocks'
 /** Lifetime coins earned (achievement metric, never decremented by spending). */
 export const TOTAL_COINS_KEY = 'ts_total_coins'
+/** Best leaderboard score ever posted: kills in one run, bosses worth five. */
+export const BEST_SCORE_KEY = 'ts_best_score'
+/**
+ * Display name submitted with a leaderboard score.
+ *
+ * Three slots, deliberately separate, because they have different lifetimes and
+ * a strict precedence: a name the player CHOSE outranks one a portal SDK
+ * supplies, which outranks the generated fallback. Collapsing them into one
+ * field means an SDK name can never take over from the generated one — the
+ * first thing written wins forever.
+ */
+/** Chosen by the player. Highest precedence, never overwritten by us. */
+export const PLAYER_NAME_KEY = 'ts_player_name'
+/** Last display name a portal SDK gave us; remembered so a momentary SDK
+ *  outage doesn't drop the player back to their anonymous name. */
+export const SDK_NAME_KEY = 'ts_sdk_name'
+/** Generated once for players with no account and no SDK: "Anonymous123456". */
+export const ANON_NAME_KEY = 'ts_anon_name'
+/** The name the leaderboard row currently shows, so a better one can be sent
+ *  up when it finally resolves. */
+export const POSTED_NAME_KEY = 'ts_posted_name'
+/** Stable anonymous id for this save, used as the leaderboard row key. */
+export const PLAYER_ID_KEY = 'ts_player_id'
+/** Highest score this device has successfully posted to the board. Lets a best
+ *  raised by a cloud hydrate reach the board without re-posting every run. */
+export const SUBMITTED_SCORE_KEY = 'ts_submitted_score'
 
 // ─── The resumable run ──────────────────────────────────────────────────────
 

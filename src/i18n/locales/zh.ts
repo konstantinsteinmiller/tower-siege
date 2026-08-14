@@ -71,7 +71,9 @@ export default {
       'bomber': '爆破兵', 'bat': '蝙蝠', 'bulwark': '盾卫', 'golem': '攻城魔像',
       'wyvern': '双足飞龙',
       'eel': '海蛇',
+      'shark': '礁鲨',
       'kraken': '海妖',
+      'seadrake': '海龙',
       'ram': '攻城槌',
       'ballista': '弩炮',
       'catapult': '投石机',
@@ -110,7 +112,12 @@ export default {
     'double': '金币翻倍',
     'firstRunDouble': '2× — 今日首次围攻！',
     'tripleWave': '3× 金币 — {n}',
-    'waveCleared': '第 {n} 波已守住！'
+    'waveCleared': '第 {n} 波已守住！',
+    'scoreLabel': '分数',
+    'bestLabel': '最高分',
+    'scoreCurrent': '(本局 {n})',
+    'rankLabel': '排名',
+    'rankOf': '共 {n} 名'
   },
 
   'tech': {

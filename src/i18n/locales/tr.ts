@@ -71,7 +71,9 @@ export default {
       'bomber': 'Bombacı', 'bat': 'Yarasa', 'bulwark': 'Siperci', 'golem': 'Kuşatma Golemi',
       'wyvern': 'Vivern',
       'eel': 'Deniz yılanı',
+      'shark': 'Resif köpekbalığı',
       'kraken': 'Kraken',
+      'seadrake': 'Deniz ejderi',
       'ram': 'Koçbaşı',
       'ballista': 'Balista',
       'catapult': 'Mancınık',
@@ -110,7 +112,12 @@ export default {
     'double': 'Altınları ikiye katla',
     'firstRunDouble': '2× — bugünkü ilk kuşatma!',
     'tripleWave': '3× altın — {n}',
-    'waveCleared': '{n}. dalga durduruldu!'
+    'waveCleared': '{n}. dalga durduruldu!',
+    'scoreLabel': 'Puan',
+    'bestLabel': 'En iyi puan',
+    'scoreCurrent': '(bu turda {n})',
+    'rankLabel': 'Sıra',
+    'rankOf': '/ {n}'
   },
 
   'tech': {

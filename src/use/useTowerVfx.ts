@@ -21,9 +21,14 @@ export type FxEvent =
   | { kind: 'sell'; x: number; y: number }
   | { kind: 'blockHit'; x: number; y: number; amount: number }
   | { kind: 'shatter'; x: number; y: number; palette: string }
-  | { kind: 'explosion'; x: number; y: number; radius: number }
+  /** `kindOf` is the round that detonated, so a frost shell does not bloom
+   *  orange. Omitted for demolition charges, which are always fire. */
+  | { kind: 'explosion'; x: number; y: number; radius: number; kindOf?: string }
   | { kind: 'impact'; x: number; y: number; kindOf: string; angle: number }
-  | { kind: 'muzzle'; x: number; y: number; angle: number; palette: string }
+  /** `weapon` is the firing block's type id: the renderer draws a different
+   *  flash for a bow, a cannon and a mortar, and anchors it to that fixture's
+   *  own barrel rather than to the cell centre. */
+  | { kind: 'muzzle'; x: number; y: number; angle: number; palette: string; weapon: string }
   | { kind: 'lightning'; x: number; y: number; points: number[] }
   | { kind: 'enemyHit'; x: number; y: number; amount: number; gore: string; dir: number }
   | { kind: 'enemyDie'; x: number; y: number; palette: string; coins: number; boss: boolean }

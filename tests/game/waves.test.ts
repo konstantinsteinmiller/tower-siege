@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   planWave, waveBudget, isBossWave, earlyCallBonus, buildTimeMs, waveReward, makeRng,
   BUILD_TIME_MS, EARLY_CALL_MAX_BONUS,
-  airShare, seaShare, countAir, countSea
+  airShare, seaShare, countAir, countSea, previewsFor
 } from '@/game/waves'
 import { ENEMY_DEFS } from '@/game/enemies'
 
@@ -37,11 +37,23 @@ describe('wave director determinism', () => {
 })
 
 describe('wave composition', () => {
-  it('never spawns an enemy before its introduction wave', () => {
+  it('never ROLLS an enemy before its introduction wave', () => {
+    // The gate governs the director's random pool. Scripted previews are the
+    // declared exception — they exist precisely to show a threat before it
+    // unlocks — so they are subtracted before the invariant is checked rather
+    // than weakening it for everything else.
     for (let w = 1; w <= 30; w++) {
+      const budgeted = new Map<string, number>()
+      for (const [typeId, count] of previewsFor(w)) budgeted.set(typeId, count)
       for (const order of planWave(w).orders) {
+        const left = budgeted.get(order.typeId) ?? 0
+        if (left > 0) { budgeted.set(order.typeId, left - 1); continue }
         const def = ENEMY_DEFS[order.typeId]!
-        expect(def.minWave).toBeLessThanOrEqual(w)
+        expect(def.minWave, `wave ${w}: ${order.typeId}`).toBeLessThanOrEqual(w)
+      }
+      // Every previewed unit actually made it into the plan.
+      for (const [typeId, left] of budgeted) {
+        expect(left, `wave ${w}: missing ${typeId} previews`).toBe(0)
       }
     }
   })
@@ -140,9 +152,13 @@ describe('early-call bonus', () => {
 })
 
 describe('air and sea pressure ramps', () => {
-  it('sends no flyers before they are introduced', () => {
+  it('sends no flyers before they are introduced, except the scripted preview', () => {
+    // Waves 4-6 each carry two bats on purpose: air arrives in force at 9, and
+    // a player who has never seen a flyer by then has built the wrong tower
+    // without ever being told. Everything else before 9 stays clean.
     for (let w = 1; w < 9; w++) {
-      expect(countAir(planWave(w)), `wave ${w}`).toBe(0)
+      const expected = w >= 4 && w <= 6 ? 2 : 0
+      expect(countAir(planWave(w)), `wave ${w}`).toBe(expected)
     }
   })
 
@@ -162,9 +178,34 @@ describe('air and sea pressure ramps', () => {
     expect(airShare(60)).toBeLessThanOrEqual(0.35)
   })
 
-  it('sends no sea creatures before wave 12, then reliably after', () => {
-    for (let w = 1; w < 12; w++) expect(countSea(planWave(w)), `wave ${w}`).toBe(0)
+  it('sends no sea creatures before wave 12, bar the single wave-5 preview', () => {
+    for (let w = 1; w < 12; w++) {
+      expect(countSea(planWave(w)), `wave ${w}`).toBe(w === 5 ? 1 : 0)
+    }
     for (let w = 13; w <= 30; w++) expect(countSea(planWave(w)), `wave ${w}`).toBeGreaterThan(0)
+  })
+
+  it('charges previews to the wave budget instead of stacking them on top', () => {
+    // A preview is a TRADE — the new thing replaces chaff. If it were additive,
+    // waves 4-6 would spike above their neighbours and the introduction would
+    // read as a difficulty wall rather than as information.
+    for (const w of [4, 5, 6]) {
+      const plan = planWave(w)
+      const previewed = previewsFor(w).reduce((n, [, count]) => n + count, 0)
+      const ground = plan.total - countAir(plan) - countSea(plan)
+      expect(previewed, `wave ${w} previews`).toBeGreaterThan(0)
+      // Ground pressure survives, and the wave stays in family with its
+      // neighbours rather than ballooning.
+      expect(ground, `wave ${w} ground`).toBeGreaterThan(0)
+      expect(plan.total, `wave ${w} total`).toBeLessThanOrEqual(planWave(7).total + previewed)
+    }
+  })
+
+  it('keeps the previews deterministic, like every other part of a wave', () => {
+    for (const w of [4, 5, 6]) {
+      expect(countAir(planWave(w)), `wave ${w}`).toBe(countAir(planWave(w)))
+      expect(planWave(w).orders).toEqual(planWave(w).orders)
+    }
   })
 
   it('caps both shares so ground pressure never disappears', () => {

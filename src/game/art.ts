@@ -67,7 +67,11 @@ export const PALETTES: Record<string, Palette> = {
   bombardier: { dark: '#3a3020', mid: '#6a5936', light: '#9b8552', accent: '#4a5560', accent2: '#cfd8e2', debris: [106, 89, 54] },
   firebug: { dark: '#3d1a12', mid: '#7a3418', light: '#b45a24', accent: '#ff8a2a', accent2: '#ffe0a0', debris: [122, 52, 24] },
   eel: { dark: '#123040', mid: '#1f5a68', light: '#2f8a94', accent: '#7ef0d0', accent2: '#d8fff4', debris: [31, 90, 104] },
+  // Slate, so the fin cutting the surface reads as iron-grey against the water
+  // rather than as another green eel.
+  shark: { dark: '#1b2c3a', mid: '#3f5c74', light: '#6d8ba6', accent: '#c9d8e4', accent2: '#eef4f8', debris: [63, 92, 116] },
   kraken: { dark: '#1a1030', mid: '#332055', light: '#553a85', accent: '#b06bff', accent2: '#e8d0ff', debris: [51, 32, 85] },
+  seadrake: { dark: '#12332f', mid: '#2f7f74', light: '#57b0a2', accent: '#c9503a', accent2: '#ffd76a', debris: [47, 127, 116] },
 
   // ── Siege engines ────────────────────────────────────────────────────────
   // Timber-and-iron tones, deliberately close to one another: engines should

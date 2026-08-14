@@ -71,7 +71,9 @@ export default {
       'bomber': 'Bombardeiro', 'bat': 'Morcego', 'bulwark': 'Baluarte', 'golem': 'Golem de cerco',
       'wyvern': 'Serpe',
       'eel': 'Serpente marinha',
+      'shark': 'Tubarão de recife',
       'kraken': 'Kraken',
+      'seadrake': 'Dragão marinho',
       'ram': 'Aríete',
       'ballista': 'Balista',
       'catapult': 'Catapulta',
@@ -110,7 +112,12 @@ export default {
     'double': 'Dobrar moedas',
     'firstRunDouble': '2× — primeiro cerco de hoje!',
     'tripleWave': '3× moedas — {n}',
-    'waveCleared': 'Onda {n} contida!'
+    'waveCleared': 'Onda {n} contida!',
+    'scoreLabel': 'Pontos',
+    'bestLabel': 'Recorde',
+    'scoreCurrent': '({n} nesta partida)',
+    'rankLabel': 'Posição',
+    'rankOf': 'de {n}'
   },
 
   'tech': {

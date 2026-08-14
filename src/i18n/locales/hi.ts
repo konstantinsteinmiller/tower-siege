@@ -71,7 +71,9 @@ export default {
       'bomber': 'बमवर्षक', 'bat': 'चमगादड़', 'bulwark': 'ढालधारी', 'golem': 'घेराबंदी गोलेम',
       'wyvern': 'वाइवर्न',
       'eel': 'समुद्री सर्प',
+      'shark': 'रीफ शार्क',
       'kraken': 'क्रैकेन',
+      'seadrake': 'समुद्री ड्रैगन',
       'ram': 'भेदक',
       'ballista': 'बैलिस्टा',
       'catapult': 'गुलेल',
@@ -110,7 +112,12 @@ export default {
     'double': 'सिक्के दोगुने',
     'firstRunDouble': '2× — आज की पहली घेराबंदी!',
     'tripleWave': '3× सिक्के — {n}',
-    'waveCleared': 'लहर {n} रोकी गई!'
+    'waveCleared': 'लहर {n} रोकी गई!',
+    'scoreLabel': 'स्कोर',
+    'bestLabel': 'सर्वोच्च स्कोर',
+    'scoreCurrent': '(इस बार {n})',
+    'rankLabel': 'रैंक',
+    'rankOf': '{n} में से'
   },
 
   'tech': {

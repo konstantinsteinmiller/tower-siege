@@ -1,4 +1,4 @@
-import { ref, computed, shallowRef, triggerRef, watch, type Ref } from 'vue'
+import { ref, computed, shallowRef, triggerRef, watch, type ComputedRef, type Ref } from 'vue'
 import {
   BLOCK_DEFS, blockDef, GATE_ID, sellRefund, ENHANCED_HP_MUL, ENHANCED_DAMAGE_MUL
 } from '@/game/blocks'
@@ -145,6 +145,28 @@ export const runCoins = ref(0)
 export const runCoinsEarned = ref(0)
 export const kills = ref(0)
 export const killsByType: Ref<KillTally> = ref({})
+
+/** What a boss is worth on the leaderboard, in ordinary kills. */
+export const BOSS_SCORE = 5
+
+/**
+ * The run's leaderboard score: one point per enemy killed since wave 1, five
+ * for a boss.
+ *
+ * DERIVED from the kill tally rather than counted into a ref of its own. The
+ * tally is already in the run snapshot, so a resumed siege restores its score
+ * for free — a separately-counted score would have needed its own snapshot
+ * field, and would have silently reset to zero for every player mid-run at the
+ * moment this shipped.
+ */
+export const runScore: ComputedRef<number> = computed(() => {
+  let total = 0
+  for (const typeId in killsByType.value) {
+    const n = killsByType.value[typeId] ?? 0
+    total += n * (enemyDef(typeId).boss ? BOSS_SCORE : 1)
+  }
+  return total
+})
 export const enemiesLeft = ref(0)
 export const enemiesTotal = ref(0)
 export const gateHp = ref(0)
@@ -1381,7 +1403,7 @@ const stepTurrets = (dt: number): void => {
         (w.splash ?? 0) * mSplash, w.slowPct ?? 0, w.slowMs ?? 0)
     }
 
-    pushFx({ kind: 'muzzle', x: bx, y: by, angle: b.aim, palette: def.palette })
+    pushFx({ kind: 'muzzle', x: bx, y: by, angle: b.aim, palette: def.palette, weapon: b.typeId })
   }
 }
 
@@ -1538,7 +1560,7 @@ const stepProjectiles = (dt: number): void => {
       const fire = p.kind === 'fire'
       pushFx({
         kind: fire ? 'firebomb' : 'explosion',
-        x: p.x, y: p.y, radius: Math.max(0.6, p.splash)
+        x: p.x, y: p.y, radius: Math.max(0.6, p.splash), kindOf: p.kind
       })
       damageBlocksInRadius(p.x, p.y, Math.max(0.5, p.splash), p.damage)
       if (p.burnMs && p.burnDps) {
@@ -1549,7 +1571,7 @@ const stepProjectiles = (dt: number): void => {
     }
 
     if (p.splash > 0) {
-      pushFx({ kind: 'explosion', x: p.x, y: p.y, radius: p.splash })
+      pushFx({ kind: 'explosion', x: p.x, y: p.y, radius: p.splash, kindOf: p.kind })
       damageEnemiesInRadius(p.x, p.y, p.splash, p.damage, p.kind)
     } else {
       const target = enemies.find((e) => e.uid === p.targetUid && e.dying <= 0)
@@ -2121,6 +2143,8 @@ export const runSummary = () => ({
   wave: wave.value,
   wavesCleared: wavesClearedThisRun,
   kills: kills.value,
+  /** Leaderboard score — see `runScore`. */
+  score: runScore.value,
   killsByType: { ...killsByType.value },
   coins: runCoins.value,
   // What the run EARNED, before anything was spent on blocks. Progression

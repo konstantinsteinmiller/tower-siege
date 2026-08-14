@@ -71,7 +71,9 @@ export default {
       'bomber': 'Bomber', 'bat': 'Fledermaus', 'bulwark': 'Bollwerk', 'golem': 'Belagerungsgolem',
       'wyvern': 'Wyvern',
       'eel': 'Seeschlange',
+      'shark': 'Riffhai',
       'kraken': 'Krake',
+      'seadrake': 'Seedrache',
       'ram': 'Sturmbock',
       'ballista': 'Ballista',
       'catapult': 'Katapult',
@@ -110,7 +112,12 @@ export default {
     'double': 'Münzen verdoppeln',
     'firstRunDouble': '2× – erste Belagerung heute!',
     'tripleWave': '3× Münzen – {n}',
-    'waveCleared': 'Welle {n} gehalten!'
+    'waveCleared': 'Welle {n} gehalten!',
+    'scoreLabel': 'Punkte',
+    'bestLabel': 'Bestwert',
+    'scoreCurrent': '({n} dieser Lauf)',
+    'rankLabel': 'Rang',
+    'rankOf': 'von {n}'
   },
 
   'tech': {

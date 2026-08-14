@@ -210,6 +210,7 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
   // something that covers the shoreline, not just the horizon.
   eel: {
     id: 'eel',
+    monster: 'sliverfin',
     hp: 45,
     speed: 1.1,
     damage: 12,
@@ -223,8 +224,28 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
     palette: 'eel',
     surfaceMs: 520
   },
+  // The shark is the sea's RUNNER: it surfaces in a third of the time the eel
+  // takes, so the warning the wake gives is much shorter. A shoreline defence
+  // that was fast enough for eels is not automatically fast enough for these.
+  shark: {
+    id: 'shark',
+    monster: 'gnashfin',
+    hp: 90,
+    speed: 1.55,
+    damage: 22,
+    attackCooldownMs: 900,
+    reach: 1.3,
+    movement: 'sea',
+    coins: 6,
+    cost: 42,
+    minWave: 15,
+    scale: 1.0,
+    palette: 'shark',
+    surfaceMs: 340
+  },
   kraken: {
     id: 'kraken',
+    monster: 'brinemaw',
     hp: 190,
     speed: 0.7,
     damage: 34,
@@ -237,6 +258,25 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
     scale: 1.25,
     palette: 'kraken',
     surfaceMs: 720
+  },
+  // The heavy of the water. Deliberately NOT given an arrow immunity: that rule
+  // belongs to the ironclad ram alone, and a second carrier would turn a
+  // teaching moment into a general tax on archery.
+  seadrake: {
+    id: 'seadrake',
+    monster: 'tidewyrm',
+    hp: 260,
+    speed: 0.9,
+    damage: 44,
+    attackCooldownMs: 1400,
+    reach: 1.9,
+    movement: 'sea',
+    coins: 15,
+    cost: 92,
+    minWave: 24,
+    scale: 1.4,
+    palette: 'seadrake',
+    surfaceMs: 820
   },
 
   // ── Siege engines ──────────────────────────────────────────────────────

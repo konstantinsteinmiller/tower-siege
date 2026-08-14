@@ -209,6 +209,27 @@ export const buildCsp = (env: Record<string, string>): string => {
       ...(isCrazyWeb ? CG_PARTNER_HOSTS : [])
     ]
 
+  /**
+   * The leaderboard Worker, derived from the build's own env rather than
+   * hard-coded, so pointing a build at a different endpoint updates the policy
+   * with it and there is no way to ship a URL the CSP then refuses.
+   *
+   * Skipped on Yandex: their moderator flags third-party storage endpoints, and
+   * the minimal host list above exists precisely to keep them out. A Yandex
+   * build simply has no board (`VITE_LEADERBOARD_URL` unset there), and the
+   * client treats that as "feature off".
+   */
+  const leaderboardHost = ((): string[] => {
+    if (isYandex) return []
+    const raw = env.VITE_LEADERBOARD_URL ?? ''
+    if (!raw) return []
+    try {
+      return [new URL(raw).origin]
+    } catch {
+      return []
+    }
+  })()
+
   // Per-directive extras — mode-driven openings beyond `'self'` + hosts.
   const scriptSrcExtra: string[] = []
   if (isGlitch) scriptSrcExtra.push('\'unsafe-inline\'')
@@ -232,7 +253,8 @@ export const buildCsp = (env: Record<string, string>): string => {
       // covers what's actually needed at runtime).
       ...(isYandex ? [] : CONNECT_BASE_EXTRA),
       // GD / Playgama partner analytics / ad telemetry beacons.
-      ...(adWaterfallBuild ? ['https:', 'wss:'] : [])
+      ...(adWaterfallBuild ? ['https:', 'wss:'] : []),
+      ...leaderboardHost
     ],
     // GD / Playgama ads + CG rich-media creatives render in nested iframes
     // from partner domains; CG specifically pulls TheTradeDesk/2mdn

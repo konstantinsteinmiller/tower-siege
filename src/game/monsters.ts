@@ -9,6 +9,7 @@ import {
   contourPoints, pivot
 } from '@/game/monsterKit'
 import { drawDustmoth, drawSkewer, drawGloomcrow } from '@/game/monstersAir'
+import { drawSliverfin, drawGnashfin, drawTidewyrm, drawBrinemaw } from '@/game/monstersSea'
 
 /**
  * ─── Monster designs ────────────────────────────────────────────────────────
@@ -83,6 +84,16 @@ export interface MonsterDef {
    * backwards into the tower.
    */
   faces: 'left' | 'right' | 'front'
+  /**
+   * Where the design hangs off its position on the battlefield.
+   *
+   * A walker is placed by its FEET, because the cast varies in how much
+   * headroom it uses and centring them would leave the tall ones hovering and
+   * the short ones sunk. A swimmer has no feet: it is placed by the middle of
+   * its body, which is also the point the water line is measured against.
+   * Defaults to `feet`.
+   */
+  anchor?: 'feet' | 'centre'
   draw: (ctx: CanvasRenderingContext2D, S: number, t: number) => void
 }
 
@@ -2110,6 +2121,54 @@ export const MONSTERS: MonsterDef[] = [
     tagline: 'Bone crow. Carrying something gold it did not find lying around.',
     backdrop: ['#262b3a', '#10131c'],
     draw: drawGloomcrow
+  },
+
+  // ── Swimmers ─────────────────────────────────────────────────────────────
+  // Authored side-on and centred, and animated by a travelling wave rather than
+  // a gait. See the header of `monstersSea.ts`.
+  {
+    id: 'sliverfin',
+    gore: 'blood',
+    cycleMs: 700,
+    faces: 'right',
+    anchor: 'centre',
+    name: 'Sliverfin',
+    tagline: 'Reef eel. A ribbon with a mouth on the front, and it is always open.',
+    backdrop: ['#14332f', '#081715'],
+    draw: drawSliverfin
+  },
+  {
+    id: 'gnashfin',
+    gore: 'blood',
+    cycleMs: 900,
+    faces: 'right',
+    anchor: 'centre',
+    name: 'Gnashfin',
+    tagline: 'Reefshark. Stiff through the shoulders, and everything else is teeth.',
+    backdrop: ['#1b2c3a', '#0c141c'],
+    draw: drawGnashfin
+  },
+  {
+    id: 'tidewyrm',
+    gore: 'blood',
+    cycleMs: 1500,
+    faces: 'right',
+    anchor: 'centre',
+    name: 'Tidewyrm',
+    tagline: 'Sea dragon. Crested, whiskered, and the only thing down there with hands.',
+    backdrop: ['#153230', '#081716'],
+    draw: drawTidewyrm
+  },
+  {
+    id: 'brinemaw',
+    gore: 'ooze',
+    cycleMs: 1800,
+    faces: 'right',
+    anchor: 'centre',
+    name: 'Brinemaw',
+    tagline: 'Deep kraken. Hangs a little green light out and waits for company.',
+    backdrop: ['#251a3a', '#100a1c'],
+    draw: drawBrinemaw
   }
 ]
 

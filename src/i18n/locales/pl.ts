@@ -71,7 +71,9 @@ export default {
       'bomber': 'Bombardier', 'bat': 'Nietoperz', 'bulwark': 'Tarczownik', 'golem': 'Golem oblężniczy',
       'wyvern': 'Wiwerna',
       'eel': 'Wąż morski',
+      'shark': 'Rekin rafowy',
       'kraken': 'Kraken',
+      'seadrake': 'Smok morski',
       'ram': 'Taran',
       'ballista': 'Balista',
       'catapult': 'Katapulta',
@@ -110,7 +112,12 @@ export default {
     'double': 'Podwój monety',
     'firstRunDouble': '2× — pierwsze oblężenie dziś!',
     'tripleWave': '3× monety — {n}',
-    'waveCleared': 'Fala {n} odparta!'
+    'waveCleared': 'Fala {n} odparta!',
+    'scoreLabel': 'Wynik',
+    'bestLabel': 'Rekord',
+    'scoreCurrent': '({n} w tej grze)',
+    'rankLabel': 'Miejsce',
+    'rankOf': 'z {n}'
   },
 
   'tech': {

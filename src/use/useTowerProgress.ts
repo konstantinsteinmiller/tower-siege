@@ -3,7 +3,7 @@ import { saveDataVersion, flushSaveNow } from '@/use/useSaveStatus'
 import { getState, setState, setStates, towerState } from '@/use/useTowerState'
 import {
   TECH_KEY, BEST_WAVE_KEY, BEST_HEIGHT_KEY, BEST_BLOCKS_KEY,
-  TOTAL_KILLS_KEY, TOTAL_WAVES_KEY, RUNS_KEY, TOTAL_BLOCKS_KEY
+  TOTAL_KILLS_KEY, TOTAL_WAVES_KEY, RUNS_KEY, TOTAL_BLOCKS_KEY, BEST_SCORE_KEY
 } from '@/keys'
 import useTowerEconomy from '@/use/useTowerEconomy'
 import { TECH_NODES, TECH_BY_ID, techCost, sumEffect, unlockedBlocks } from '@/game/tech'
@@ -48,6 +48,7 @@ const tech: Ref<TechState> = ref(loadTech())
 const bestWave: Ref<number> = ref(readNumber(BEST_WAVE_KEY, 0))
 const bestHeight: Ref<number> = ref(readNumber(BEST_HEIGHT_KEY, 0))
 const bestBlocks: Ref<number> = ref(readNumber(BEST_BLOCKS_KEY, 0))
+const bestScore: Ref<number> = ref(readNumber(BEST_SCORE_KEY, 0))
 const totalKills: Ref<number> = ref(readNumber(TOTAL_KILLS_KEY, 0))
 const totalWaves: Ref<number> = ref(readNumber(TOTAL_WAVES_KEY, 0))
 const totalBlocks: Ref<number> = ref(readNumber(TOTAL_BLOCKS_KEY, 0))
@@ -58,6 +59,7 @@ const refresh = (): void => {
   bestWave.value = readNumber(BEST_WAVE_KEY, bestWave.value)
   bestHeight.value = readNumber(BEST_HEIGHT_KEY, bestHeight.value)
   bestBlocks.value = readNumber(BEST_BLOCKS_KEY, bestBlocks.value)
+  bestScore.value = readNumber(BEST_SCORE_KEY, bestScore.value)
   totalKills.value = readNumber(TOTAL_KILLS_KEY, totalKills.value)
   totalWaves.value = readNumber(TOTAL_WAVES_KEY, totalWaves.value)
   totalBlocks.value = readNumber(TOTAL_BLOCKS_KEY, totalBlocks.value)
@@ -169,6 +171,8 @@ export default function useTowerProgress() {
   const recordRunEnd = (stats: {
     wave: number
     kills: number
+    /** Leaderboard score for the run: kills, bosses worth five. */
+    score: number
     wavesCleared: number
     height: number
     blocks: number
@@ -177,6 +181,7 @@ export default function useTowerProgress() {
     const nextBestWave = Math.max(bestWave.value, stats.wave)
     const nextBestHeight = Math.max(bestHeight.value, stats.height)
     const nextBestBlocks = Math.max(bestBlocks.value, stats.blocks)
+    const nextBestScore = Math.max(bestScore.value, Math.max(0, Math.floor(stats.score)))
     const nextKills = totalKills.value + Math.max(0, stats.kills)
     const nextWaves = totalWaves.value + Math.max(0, stats.wavesCleared)
     const nextBlocks = totalBlocks.value + Math.max(0, stats.blocksPlaced)
@@ -184,6 +189,7 @@ export default function useTowerProgress() {
     bestWave.value = nextBestWave
     bestHeight.value = nextBestHeight
     bestBlocks.value = nextBestBlocks
+    bestScore.value = nextBestScore
     totalKills.value = nextKills
     totalWaves.value = nextWaves
     totalBlocks.value = nextBlocks
@@ -192,6 +198,7 @@ export default function useTowerProgress() {
       [BEST_WAVE_KEY]: nextBestWave,
       [BEST_HEIGHT_KEY]: nextBestHeight,
       [BEST_BLOCKS_KEY]: nextBestBlocks,
+      [BEST_SCORE_KEY]: nextBestScore,
       [TOTAL_KILLS_KEY]: nextKills,
       [TOTAL_WAVES_KEY]: nextWaves,
       [TOTAL_BLOCKS_KEY]: nextBlocks
@@ -211,6 +218,7 @@ export default function useTowerProgress() {
     bestWave,
     bestHeight,
     bestBlocks,
+    bestScore,
     totalKills,
     totalWaves,
     totalBlocks,
@@ -228,4 +236,4 @@ export default function useTowerProgress() {
   }
 }
 
-export { tech, bestWave, bestHeight, bestBlocks, totalKills, totalWaves, totalBlocks, runs }
+export { tech, bestWave, bestHeight, bestBlocks, bestScore, totalKills, totalWaves, totalBlocks, runs }

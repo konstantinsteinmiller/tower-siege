@@ -71,7 +71,9 @@ export default {
       'bomber': 'المفجّر', 'bat': 'خفاش', 'bulwark': 'حامل الترس', 'golem': 'جولم الحصار',
       'wyvern': 'التنين المجنح',
       'eel': 'أفعى البحر',
+      'shark': 'قرش الشعاب',
       'kraken': 'الكراكن',
+      'seadrake': 'تنين البحر',
       'ram': 'كبش النطح',
       'ballista': 'بالستا',
       'catapult': 'منجنيق',
@@ -110,7 +112,12 @@ export default {
     'double': 'ضاعف العملات',
     'firstRunDouble': '2× — أول حصار اليوم!',
     'tripleWave': '3× عملات — {n}',
-    'waveCleared': 'تم صد الموجة {n}!'
+    'waveCleared': 'تم صد الموجة {n}!',
+    'scoreLabel': 'النقاط',
+    'bestLabel': 'أفضل نتيجة',
+    'scoreCurrent': '({n} هذه الجولة)',
+    'rankLabel': 'الترتيب',
+    'rankOf': 'من {n}'
   },
 
   'tech': {

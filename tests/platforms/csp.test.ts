@@ -271,6 +271,40 @@ describe('buildCsp', () => {
     })
   })
 
+  describe('leaderboard endpoint', () => {
+    const URL = 'https://tower-siege-leaderboard.example.workers.dev'
+
+    it('folds the endpoint origin into connect-src', () => {
+      // Derived from the build's own env rather than hard-coded, so pointing a
+      // build at a different Worker cannot leave the policy behind.
+      const csp = buildCsp({ VITE_LEADERBOARD_URL: URL })
+      expect(csp.match(/connect-src ([^;]+)/)![1]!).toContain(URL)
+    })
+
+    it('adds only the ORIGIN, never a path', () => {
+      const csp = buildCsp({ VITE_LEADERBOARD_URL: `${URL}/score` })
+      const connectSrc = csp.match(/connect-src ([^;]+)/)![1]!
+      expect(connectSrc).toContain(URL)
+      expect(connectSrc).not.toContain('/score')
+    })
+
+    it('omits it entirely on Yandex builds', () => {
+      // Yandex's moderator rejects third-party "service storage" URLs found
+      // anywhere in the bundle, CSP meta tag included. The matching
+      // `.env.yandex.local` blanks the variable so the client never fires a
+      // request this policy would refuse — but the policy must hold even if
+      // someone fills that back in.
+      const csp = buildCsp({ VITE_APP_YANDEX: 'true', VITE_LEADERBOARD_URL: URL })
+      expect(csp).not.toContain('workers.dev')
+    })
+
+    it('shrugs off an unset or malformed URL', () => {
+      expect(buildCsp({})).not.toContain('workers.dev')
+      // A typo must not take the whole policy — and therefore the build — down.
+      expect(() => buildCsp({ VITE_LEADERBOARD_URL: 'not a url' })).not.toThrow()
+    })
+  })
+
   describe('directive ordering and shape', () => {
     it('emits all 8 standard directives separated by "; "', () => {
       const csp = buildCsp(baseEnv())

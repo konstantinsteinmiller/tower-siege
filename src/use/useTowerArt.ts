@@ -3,10 +3,10 @@ import { enemyDef } from '@/game/enemies'
 import { themedPalette, spriteFor, withAlpha, mixHex, type Palette } from '@/game/art'
 import { isBossWave } from '@/game/waves'
 import {
-  monsterFrame, monsterFaces, pickMonster, primeMonsterSprites, allMonsterIds,
-  SPRITE_FOOT, SPRITE_HEIGHT
+  monsterFrame, monsterFaces, monsterAnchor, pickMonster, primeMonsterSprites,
+  allMonsterIds, SPRITE_FOOT, SPRITE_HEIGHT
 } from '@/game/monsterSprites'
-import { blob, fillShape, ink, noise2, shrink } from '@/game/inkArt'
+import { blob, fillShape, ink, noise2, shrink, stroke as inkStroke, type Pt } from '@/game/inkArt'
 import { SHAPE_BY_ID } from '@/game/shapes'
 import { ALLY_DEFS } from '@/game/allies'
 import { GRASS_DEPTH, SEA_LEVEL } from '@/game/world'
@@ -545,6 +545,12 @@ const roundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 
 // ─── Weapon fixtures (drawn live — they rotate and recoil) ──────────────────
 
+/** Elevation of a mortar tube, radians above horizontal. Shared with the
+ *  muzzle flash so the flame leaves the actual mouth of the actual barrel. */
+const MORTAR_ELEV = 0.98
+/** The bombard drops it just over the wall, so it sits far steeper. */
+const BOMBARD_ELEV = 1.24
+
 const drawFixture = (ctx: CanvasRenderingContext2D, b: Block, cx: number, cy: number, s: number, t: number): void => {
   const def = blockDef(b.typeId)
   const p = themedPalette(def.palette)
@@ -729,22 +735,31 @@ const drawFixture = (ctx: CanvasRenderingContext2D, b: Block, cx: number, cy: nu
       break
     }
     case 'mortar': {
-      // Fixed steep angle — mortars lob, they don't track.
-      ctx.rotate(b.c < 0 ? -0.9 : -2.24)
-      ctx.translate(0, recoil)
-      const g = ctx.createLinearGradient(-s * 0.16, 0, s * 0.16, 0)
-      g.addColorStop(0, p.dark); g.addColorStop(0.5, p.light); g.addColorStop(1, p.mid)
+      // Fixed steep angle — mortars lob, they don't track. The tube is built
+      // along +x like the cannon's and then rotated onto its elevation, so one
+      // angle serves the drawing, the recoil and the muzzle flash. (Built
+      // pointing "up" and mirrored by negating the angle, a right-hand column
+      // aimed its mouth down into its own carriage.)
+      ctx.rotate(-lobAngle(b.c, MORTAR_ELEV))
+      ctx.translate(-recoil, 0)
+      const g = ctx.createLinearGradient(0, -s * 0.16, 0, s * 0.16)
+      g.addColorStop(0, p.light); g.addColorStop(0.5, p.mid); g.addColorStop(1, p.dark)
       ctx.fillStyle = g
       ctx.beginPath()
-      ctx.moveTo(-s * 0.13, 0)
-      ctx.lineTo(-s * 0.2, -s * 0.42)
-      ctx.lineTo(s * 0.2, -s * 0.42)
-      ctx.lineTo(s * 0.13, 0)
+      ctx.moveTo(0, -s * 0.13)
+      ctx.lineTo(s * 0.42, -s * 0.2)
+      ctx.lineTo(s * 0.42, s * 0.2)
+      ctx.lineTo(0, s * 0.13)
       ctx.closePath()
       ctx.fill()
       ctx.strokeStyle = withAlpha('#000', 0.5); ctx.lineWidth = Math.max(1, s * 0.02); ctx.stroke()
+      // Reinforcing band, so the tube has a waist to recoil against.
+      ctx.strokeStyle = withAlpha(p.accent, 0.85)
+      ctx.lineWidth = Math.max(1, s * 0.035)
+      ctx.beginPath(); ctx.moveTo(s * 0.16, -s * 0.17); ctx.lineTo(s * 0.16, s * 0.17); ctx.stroke()
+      // Bore.
       ctx.fillStyle = withAlpha('#000', 0.55)
-      ctx.beginPath(); ctx.ellipse(0, -s * 0.42, s * 0.2, s * 0.06, 0, 0, Math.PI * 2); ctx.fill()
+      ctx.beginPath(); ctx.ellipse(s * 0.42, 0, s * 0.06, s * 0.2, 0, 0, Math.PI * 2); ctx.fill()
       break
     }
     case 'tesla': {
@@ -825,21 +840,21 @@ const drawFixture = (ctx: CanvasRenderingContext2D, b: Block, cx: number, cy: nu
       // Squat wide-mouthed barrel on a steep fixed elevation. Unlike the mortar
       // it recoils straight DOWN into its pit, which is the visual difference
       // between "lobs far" and "drops it just over the wall".
-      ctx.rotate(b.c < 0 ? -1.15 : -1.99)
-      ctx.translate(0, recoil * 1.4)
+      ctx.rotate(-lobAngle(b.c, BOMBARD_ELEV))
+      ctx.translate(-recoil * 1.4, 0)
 
       // Trunnion cheeks.
       ctx.fillStyle = p.dark
       ctx.beginPath(); ctx.arc(0, 0, s * 0.16, 0, Math.PI * 2); ctx.fill()
 
-      const g = ctx.createLinearGradient(-s * 0.22, 0, s * 0.22, 0)
-      g.addColorStop(0, p.dark); g.addColorStop(0.42, p.light); g.addColorStop(1, p.mid)
+      const g = ctx.createLinearGradient(0, -s * 0.22, 0, s * 0.22)
+      g.addColorStop(0, p.light); g.addColorStop(0.58, p.mid); g.addColorStop(1, p.dark)
       ctx.fillStyle = g
       ctx.beginPath()
-      ctx.moveTo(-s * 0.15, s * 0.04)
-      ctx.lineTo(-s * 0.23, -s * 0.3)
-      ctx.lineTo(s * 0.23, -s * 0.3)
-      ctx.lineTo(s * 0.15, s * 0.04)
+      ctx.moveTo(-s * 0.04, -s * 0.15)
+      ctx.lineTo(s * 0.3, -s * 0.23)
+      ctx.lineTo(s * 0.3, s * 0.23)
+      ctx.lineTo(-s * 0.04, s * 0.15)
       ctx.closePath()
       ctx.fill()
       ctx.strokeStyle = withAlpha('#000', 0.55); ctx.lineWidth = Math.max(1, s * 0.025); ctx.stroke()
@@ -847,20 +862,21 @@ const drawFixture = (ctx: CanvasRenderingContext2D, b: Block, cx: number, cy: nu
       // Reinforcing bands.
       ctx.strokeStyle = withAlpha(p.accent, 0.9)
       ctx.lineWidth = Math.max(1, s * 0.04)
-      for (const yy of [-0.08, -0.2]) {
+      for (const xx of [0.08, 0.2]) {
+        const halfH = 0.17 + xx * 0.2
         ctx.beginPath()
-        ctx.moveTo(-s * (0.17 + yy * -0.2), s * yy)
-        ctx.lineTo(s * (0.17 + yy * -0.2), s * yy)
+        ctx.moveTo(s * xx, -s * halfH)
+        ctx.lineTo(s * xx, s * halfH)
         ctx.stroke()
       }
       // Flared muzzle + bore shadow.
       ctx.fillStyle = p.accent
       ctx.beginPath()
-      ctx.ellipse(0, -s * 0.3, s * 0.25, s * 0.07, 0, 0, Math.PI * 2)
+      ctx.ellipse(s * 0.3, 0, s * 0.07, s * 0.25, 0, 0, Math.PI * 2)
       ctx.fill()
       ctx.fillStyle = '#0d0b09'
       ctx.beginPath()
-      ctx.ellipse(0, -s * 0.3, s * 0.17, s * 0.045, 0, 0, Math.PI * 2)
+      ctx.ellipse(s * 0.3, 0, s * 0.045, s * 0.17, 0, 0, Math.PI * 2)
       ctx.fill()
       break
     }
@@ -1046,9 +1062,17 @@ const drawEnemy = (target: CanvasRenderingContext2D, e: Enemy, t: number): void 
   }
 
   // Sea creatures are fish, not humanoids — they get a bespoke body and
-  // skip the torso/legs/head pipeline entirely.
+  // skip the torso/legs/head pipeline entirely. A baked design replaces that
+  // body when one is bound and ready; anything not yet baked keeps swimming as
+  // the older drawn fish rather than popping out of existence.
   if (def.movement === 'sea') {
-    drawSeaCreature(ctx, e, def, p, s, t)
+    const seaId = pickMonster(def.monster, e.uid)
+    // Swimmers play their cycle slower than a walk: a tail beat is a longer
+    // stroke than a footfall, and driving it at gait speed makes a shark look
+    // like it is sprinting on the spot.
+    const seaFrame = seaId ? monsterFrame(seaId, e.phase * 1.5 / (Math.PI * 2)) : null
+    if (seaFrame) drawSeaSprite(ctx, e, p, seaFrame, seaId !== null && monsterFaces(seaId) === 'left', s)
+    else drawSeaCreature(ctx, e, def, p, s, t)
     ctx.restore()
     stamp()
     // Only show the bar once it has broken the surface — a bar floating over
@@ -1079,8 +1103,13 @@ const drawEnemy = (target: CanvasRenderingContext2D, e: Enemy, t: number): void 
       const h = frame.height * k
       // Line the strip up by the FEET, not by its centre: the designs differ in
       // how much headroom they use, and centring them would leave the tall ones
-      // hovering and the wide ones sunk.
-      ctx.drawImage(frame, -w * 0.5, s * 0.5 - SPRITE_FOOT * k, w, h)
+      // hovering and the wide ones sunk. A design that declares itself centred
+      // — a swimmer, which has no feet — is honoured here too, so the anchor
+      // means the same thing wherever a strip is drawn.
+      const top = monsterAnchor(monsterId) === 'centre'
+        ? -h * 0.5
+        : s * 0.5 - SPRITE_FOOT * k
+      ctx.drawImage(frame, -w * 0.5, top, w, h)
       ctx.restore()
       stamp()
       if (e.hp < e.maxHp && e.dying <= 0) {
@@ -1907,19 +1936,37 @@ const drawSeaCreature = (
   ctx.globalAlpha = 1
 
   // ── Above-water body ──
-  if (waterY > 0) {
+  // The clip runs from well above the crown DOWN TO the waterline, so its
+  // height is the distance between them — not `waterY`, which is only the
+  // waterline's own offset. Passing that as the height put the visible band at
+  // [-4s, -4s + waterY]: entirely above the creature. The body was drawn, then
+  // clipped away, and a sea monster rearing up to bite vanished at exactly the
+  // moment the player needed to see it.
+  if (waterY > -s * 4) {
     ctx.save()
     ctx.beginPath()
-    ctx.rect(-s * 3, -s * 4, s * 6, waterY)
+    ctx.rect(-s * 3, -s * 4, s * 6, waterY + s * 4)
     ctx.clip()
     drawBody(null)
     ctx.restore()
   }
 
-  // ── Surface disturbance ──
-  // A travelling wake while submerged, widening into foam as it breaches. This
-  // is the player's only warning that something is coming out of the water, so
-  // it is drawn unconditionally rather than only when the body shows.
+  drawSeaSurface(ctx, p, s, waterY, surfaced)
+}
+
+/**
+ * What the water does about the thing under it.
+ *
+ * A travelling wake while submerged, widening into foam as it breaches, and the
+ * dorsal fin cutting the surface. This is the player's only warning that
+ * something is coming out of the water, so it is drawn unconditionally — for
+ * the drawn fish and the baked designs alike — rather than only when the body
+ * happens to show.
+ */
+const drawSeaSurface = (
+  ctx: CanvasRenderingContext2D, p: Palette, s: number, waterY: number, surfaced: number
+): void => {
+  const zoom = getZoom()
   const foam = 0.3 + surfaced * 0.7
   ctx.save()
   ctx.globalAlpha = 0.5
@@ -1953,6 +2000,79 @@ const drawSeaCreature = (
   }
   ctx.restore()
   ctx.globalAlpha = 1
+}
+
+/** Canvas filters darken the submerged pass cheaply; Safari &lt;17 lacks them,
+ *  where the alpha drop alone still reads as depth over dark water. */
+const CAN_FILTER = typeof CanvasRenderingContext2D !== 'undefined' &&
+  'filter' in CanvasRenderingContext2D.prototype
+
+/**
+ * A sea creature drawn from its baked design strip.
+ *
+ * Same two presentations as the procedural fish — a dimmed silhouette below the
+ * waterline, the full drawing above it — but the body is now one of the cast in
+ * `monstersSea.ts` rather than a generic gradient fish, and the strip carries
+ * its own swim cycle.
+ *
+ * The rear-up is a ROTATION of the whole sprite rather than a second baked
+ * pose. A strip per attack state would double the bake for every design; a
+ * nose-up tilt driven by `surfaced` costs nothing and reads as exactly what it
+ * is — an animal levering itself out of the water to reach the wall.
+ */
+const drawSeaSprite = (
+  ctx: CanvasRenderingContext2D, e: Enemy, p: Palette,
+  frame: HTMLCanvasElement, faceLeft: boolean, s: number
+): void => {
+  const surfaced = e.surfaced ?? 0
+  const zoom = getZoom()
+  // Screen-space offset from the creature's origin down to the waterline.
+  // Positive means part of the body is ABOVE the water.
+  const waterY = (e.y - SEA_LEVEL) * zoom
+
+  const k = (s * 1.5) / SPRITE_HEIGHT
+  const w = frame.width * k
+  const h = frame.height * k
+
+  /**
+   * Levering out of the water, not levitating over it.
+   *
+   * A fully surfaced creature's origin sits most of a cell ABOVE the waterline
+   * — that is what lets it reach the lowest blocks — so a body drawn centred on
+   * it stands clear of the sea altogether and reads as beached on the grass.
+   * Dropping the drawing back toward the water as it rears keeps the tail wet
+   * and puts the head at the wall, which is the pose the whole mechanic
+   * describes. `e.y` is left alone: it is the simulation's idea of where the
+   * animal is, and the wake is measured from it.
+   */
+  const dip = surfaced * 0.36 * zoom
+  const rear = -surfaced * 0.85
+
+  /** One pass of the body, clipped to a band and optionally dimmed. */
+  const pass = (top: number, height: number, alpha: number, dim: boolean): void => {
+    if (height <= 0) return
+    ctx.save()
+    // The clip stays on the TRUE waterline while the body moves inside it, so
+    // the split follows the drawing rather than the simulation's origin.
+    ctx.beginPath()
+    ctx.rect(-s * 3, top, s * 6, height)
+    ctx.clip()
+    ctx.globalAlpha *= alpha
+    if (dim && CAN_FILTER) ctx.filter = 'brightness(0.5) saturate(0.6)'
+    ctx.translate(0, dip)
+    // +x is forward and screen y runs down, so a negative rotation lifts the
+    // head. Mirroring happens outside this, so it reads the same both ways.
+    ctx.rotate(rear)
+    if (faceLeft) ctx.scale(-1, 1)
+    ctx.drawImage(frame, -w * 0.5, -h * 0.5, w, h)
+    if (dim && CAN_FILTER) ctx.filter = 'none'
+    ctx.restore()
+  }
+
+  pass(waterY, s * 8, 0.55 + surfaced * 0.25, true)
+  pass(-s * 4, waterY + s * 4, 1, false)
+
+  drawSeaSurface(ctx, p, s, waterY, surfaced)
 }
 
 const drawEnemyProp = (
@@ -2996,19 +3116,33 @@ const consumeFx = (ev: FxEvent): void => {
     }
     case 'explosion': {
       const r = ev.radius
-      spawnBlast(ev.x, ev.y, Math.min(1.3, r * 0.7), 'shell', 0, { life: 480, radial: true })
+      // A splash detonation is drawn with the palette of the ROUND that made
+      // it. Every splash used to bloom as the same orange fireball, which meant
+      // a frost shell — a weapon whose entire identity is that it is cold —
+      // exploded in fire.
+      const cold = ev.kindOf === 'frost'
+      const kindOf = cold ? 'frost' : ev.kindOf === 'ball' ? 'ball' : 'shell'
+      spawnBlast(ev.x, ev.y, Math.min(1.3, r * 0.7), kindOf, 0,
+        { life: cold ? 420 : 480, radial: true, dust: !cold && ev.y < 1.1 })
       // A soft additive bloom UNDER the drawn fireball. Kept small: it is there
       // to make the drawing glow, not to be the effect.
-      emit({ x: ev.x, y: ev.y, life: 130, size: r * 0.5, color: [255, 250, 220], alpha: 0.45, additive: true })
+      emit({
+        x: ev.x, y: ev.y, life: 130, size: r * 0.5,
+        color: cold ? [212, 246, 255] : [255, 250, 220], alpha: 0.45, additive: true
+      })
       for (let i = 0; i < Math.round(26 * density); i++) {
         const a = Math.random() * Math.PI * 2
         const sp = (1 + Math.random() * 6) * r * 0.5
         emit({
           x: ev.x, y: ev.y,
-          vx: Math.cos(a) * sp, vy: Math.sin(a) * sp + 1.5,
+          vx: Math.cos(a) * sp, vy: Math.sin(a) * sp + (cold ? 0.6 : 1.5),
           life: 380 + Math.random() * 320, size: 0.2 + Math.random() * 0.24,
-          color: i % 3 === 0 ? [255, 240, 180] : [255, 140, 40],
-          gravity: 3, drag: 2.4, additive: true
+          color: cold
+            ? (i % 3 === 0 ? [240, 253, 255] : [150, 226, 255])
+            : (i % 3 === 0 ? [255, 240, 180] : [255, 140, 40]),
+          gravity: cold ? 5 : 3, drag: 2.4, additive: true,
+          shape: cold && i % 2 === 0 ? 1 : 0,
+          rot: Math.random() * 6.28, vrot: (Math.random() - 0.5) * 9
         })
       }
       for (let i = 0; i < Math.round(12 * density); i++) {
@@ -3016,12 +3150,13 @@ const consumeFx = (ev: FxEvent): void => {
           x: ev.x, y: ev.y,
           vx: (Math.random() - 0.5) * 3 * r, vy: 0.8 + Math.random() * 2.4,
           life: 900 + Math.random() * 500, size: 0.55 * r,
-          color: [70, 66, 62], alpha: 0.5, gravity: -1.4, drag: 1.3, shape: 3
+          color: cold ? [186, 216, 228] : [70, 66, 62],
+          alpha: cold ? 0.35 : 0.5, gravity: -1.4, drag: 1.3, shape: 3
         })
       }
-      if (ev.y < 1.4) emitDecal(ev.x, 0.06, r * 0.9, 0.5)
+      if (!cold && ev.y < 1.4) emitDecal(ev.x, 0.06, r * 0.9, 0.5)
       triggerShake(r > 2 ? 'strong' : 'small')
-      playFx('explosion')
+      playFx(cold ? 'frost' : 'explosion')
       break
     }
     case 'impact': {
@@ -3060,8 +3195,11 @@ const consumeFx = (ev: FxEvent): void => {
         }
       }
 
-      spawnBlast(ev.x, ev.y, BLAST_R[ev.kindOf] ?? 0.45, ev.kindOf, a0,
-        { life: ev.kindOf === 'bolt' ? 260 : 340 })
+      spawnBlast(ev.x, ev.y, BLAST_R[ev.kindOf] ?? 0.45, ev.kindOf, a0, {
+        life: ev.kindOf === 'bolt' ? 260 : 340,
+        // Only the heavy rounds kick up a skirt, and only near the dirt.
+        dust: ev.y < 0.9 && (ev.kindOf === 'ball' || ev.kindOf === 'shell')
+      })
 
       switch (ev.kindOf) {
         case 'bolt':
@@ -3135,21 +3273,54 @@ const consumeFx = (ev: FxEvent): void => {
       break
     }
     case 'muzzle': {
-      if (q === 'low') { playFx('shoot'); break }
-      const p = themedPalette(ev.palette)
-      const ox = Math.cos(ev.angle) * 0.5
-      const oy = Math.sin(ev.angle) * 0.5
-      emit({
-        x: ev.x + ox, y: ev.y + oy, life: 110, size: 0.7,
-        color: hexToRgb(p.accent2), alpha: 0.9, additive: true
-      })
-      for (let i = 0; i < Math.round(5 * density); i++) {
-        const spread = ev.angle + (Math.random() - 0.5) * 0.7
-        emit({
-          x: ev.x + ox, y: ev.y + oy,
-          vx: Math.cos(spread) * 5, vy: Math.sin(spread) * 5,
-          life: 190, size: 0.09, color: [255, 220, 150], additive: true, shape: 2, drag: 4
-        })
+      // The flash itself is DRAWN (see `drawMuzzle`); particles only carry the
+      // embers and grit that a drawn shape can't animate convincingly.
+      const rec = MUZZLE_RECIPES[ev.weapon]
+      if (!rec) { playFx('shoot'); break }
+
+      // A lobbing gun fires on its own fixed elevation, and the tesla straight
+      // up out of its coil — following the aim would hang the flame in mid-air
+      // beside a barrel that never moved.
+      const ang = rec.up ? Math.PI / 2
+        : rec.elev !== undefined ? lobAngle(ev.x, rec.elev)
+        : ev.angle
+      const mx = ev.x + Math.cos(ang) * rec.reach
+      const my = ev.y + Math.sin(ang) * rec.reach + (rec.rise ?? 0)
+      spawnMuzzle(mx, my, ang, rec)
+
+      if (q !== 'low') {
+        if (rec.style === 'gun' || rec.style === 'lob') {
+          // Burning grains riding the flame out, and — for the heavy guns —
+          // soot falling back around the tube.
+          const heavy = rec.style === 'lob'
+          for (let i = 0; i < Math.round((heavy ? 4 : 6) * density); i++) {
+            const a = ang + (Math.random() - 0.5) * rec.spread * 1.6
+            const sp = (heavy ? 3 : 6) * (0.5 + Math.random())
+            emit({
+              x: mx, y: my, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+              life: 200 + Math.random() * 180, size: 0.07,
+              color: [255, 214, 140], additive: true, shape: 2, drag: 4.5
+            })
+          }
+          if (heavy) {
+            for (let i = 0; i < Math.round(3 * density); i++) {
+              emit({
+                x: mx, y: my, vx: (Math.random() - 0.5) * 1.6, vy: 0.6 + Math.random() * 1.2,
+                life: 700 + Math.random() * 400, size: 0.26,
+                color: [86, 80, 72], alpha: 0.45, gravity: -1, drag: 1.5, shape: 3
+              })
+            }
+            triggerShake('small')
+          }
+        } else if (rec.style === 'bow') {
+          // Grit off the rail — the bow throws no light at all.
+          for (let i = 0; i < Math.round(3 * density); i++) {
+            emit({
+              x: mx, y: my, vx: (Math.random() - 0.5) * 1.4, vy: -0.3 - Math.random() * 0.8,
+              life: 320, size: 0.07, color: [196, 182, 156], alpha: 0.7, gravity: 5, drag: 2.6
+            })
+          }
+        }
       }
       playFx('shoot')
       break
@@ -3411,6 +3582,9 @@ const consumeFx = (ev: FxEvent): void => {
       screenFlash = Math.max(screenFlash, 0.1)
       triggerShake('small')
       const r = ev.radius
+      // The drawn bloom the particles sit inside. Slower and sootier than a
+      // shell's, which is the whole difference between fuel and powder.
+      spawnBlast(ev.x, ev.y, Math.min(1.2, r * 0.8), 'fire', 0, { life: 620, radial: true, dust: ev.y < 1.1 })
       for (let i = 0; i < Math.round(26 * density); i++) {
         const a = Math.random() * Math.PI * 2
         const sp = (0.4 + Math.random()) * r * 2.2
@@ -3531,13 +3705,22 @@ const lightningBolts: Bolt[] = []
 let screenFlash = 0
 
 /**
- * Recursive midpoint displacement gives the bolt its characteristic jitter;
- * drawing the same path three times (wide + dim → medium → white core) is what
- * makes it read as *light* rather than a drawn line.
+ * The bolt, drawn rather than glowed.
+ *
+ * Three even-width strokes stacked into a bloom is how you fake light, and it
+ * was the one mark on the field that looked airbrushed. What replaces it is the
+ * same silhouette laid in as INK ribbons — a dark outer edge so the bolt reads
+ * against a bright sky, a cyan body, a white core, each tapering along its own
+ * length — plus hairs forking off the joints, which is the drawn shorthand for
+ * electricity that no amount of blur supplies.
  */
 const drawLightning = (ctx: CanvasRenderingContext2D, bolt: Bolt): void => {
   const t = bolt.life / bolt.maxLife
   const zoom = getZoom()
+  const rich = quality.value !== 'low'
+  // Snaps to full width and thins away, rather than dimming uniformly.
+  const w = Math.min(1, t * 2.2)
+  ctx.globalAlpha = Math.min(1, t * 1.7)
 
   for (let seg = 0; seg + 3 < bolt.points.length; seg += 2) {
     const x1 = worldToScreenX(bolt.points[seg]!)
@@ -3545,33 +3728,48 @@ const drawLightning = (ctx: CanvasRenderingContext2D, bolt: Bolt): void => {
     const x2 = worldToScreenX(bolt.points[seg + 2]!)
     const y2 = worldToScreenY(bolt.points[seg + 3]!)
 
-    const path: number[] = [x1, y1]
-    const steps = 7
-    const amp = zoom * 0.22
+    // Jitter scaled to the SPAN, and enough steps to carry it. A fixed seven
+    // kinks of a fixed amplitude across a link that might be ten cells long is
+    // how a bolt ends up looking like a drawn sword blade.
+    const dx = x2 - x1
+    const dy = y2 - y1
+    const span = Math.hypot(dx, dy) || 1
+    const steps = Math.max(6, Math.min(16, Math.round(span / (zoom * 0.45))))
+    const amp = Math.min(zoom * 0.9, span * 0.16)
+    // Perpendicular, so the kinks cut ACROSS the run instead of sliding along it.
+    const px = -dy / span
+    const py = dx / span
+
+    const path: Pt[] = [[x1, y1]]
     for (let i = 1; i < steps; i++) {
       const f = i / steps
-      const nx = x1 + (x2 - x1) * f
-      const ny = y1 + (y2 - y1) * f
       // Deterministic per-segment jitter so the bolt doesn't crawl while alive.
-      const j = (hash(seg * 13.7 + i * 3.1) - 0.5) * amp * (1 - Math.abs(f - 0.5) * 2)
-      path.push(nx + j, ny + j * 0.8)
+      const j = (hash(seg * 13.7 + i * 3.1) - 0.5) * 2 * amp * (1 - Math.abs(f - 0.5) * 1.4)
+      path.push([x1 + dx * f + px * j, y1 + dy * f + py * j])
     }
-    path.push(x2, y2)
+    path.push([x2, y2])
 
-    ctx.lineCap = 'round'
-    ctx.lineJoin = 'round'
-    for (const [width, colour, alpha] of [
-      [zoom * 0.28, '#57e2ff', 0.20],
-      [zoom * 0.11, '#a8f0ff', 0.55],
-      [zoom * 0.045, '#ffffff', 0.95]
-    ] as const) {
-      ctx.strokeStyle = colour
-      ctx.globalAlpha = alpha * t
-      ctx.lineWidth = Math.max(1, width)
-      ctx.beginPath()
-      ctx.moveTo(path[0]!, path[1]!)
-      for (let i = 2; i < path.length; i += 2) ctx.lineTo(path[i]!, path[i + 1]!)
-      ctx.stroke()
+    const seed = seg * 7 + 3
+    if (rich) inkStroke(ctx, path, zoom * 0.15 * w, zoom * 0.07 * w, '#12283a', seed)
+    inkStroke(ctx, path, zoom * 0.1 * w, zoom * 0.042 * w, '#6fd8ff', seed + 1)
+    inkStroke(ctx, path, zoom * 0.042 * w, zoom * 0.016 * w, '#ffffff', seed + 2)
+
+    // Forks. Two hairs peeling off mid-run, thinning to nothing — the bolt
+    // spending charge on air it isn't going to reach.
+    if (!rich) continue
+    for (let k = 0; k < 2; k++) {
+      const at = 2 + Math.floor(hash(seg * 5.3 + k * 11.7) * (steps - 3))
+      const from = path[at]!
+      const dx = path[at + 1]![0] - from[0]
+      const dy = path[at + 1]![1] - from[1]
+      const side = k ? 1 : -1
+      const len = 0.55 + hash(seg * 3.9 + k) * 0.9
+      const hair: Pt[] = [
+        from,
+        [from[0] + (dx * 0.9 - dy * side * 0.8) * len, from[1] + (dy * 0.9 + dx * side * 0.8) * len],
+        [from[0] + (dx * 1.9 - dy * side * 0.5) * len, from[1] + (dy * 1.9 + dx * side * 1.3) * len]
+      ]
+      inkStroke(ctx, hair, zoom * 0.05 * w, zoom * 0.004, '#a8f0ff', seed + 5 + k)
     }
   }
   ctx.globalAlpha = 1
@@ -3617,6 +3815,8 @@ interface Blast {
   pal: BlastPalette
   /** Suppresses the hot core, for hits that should not read as fire. */
   cold: boolean
+  /** Detonated on (or just above) the ground: throws a sheet of dust sideways. */
+  dust: boolean
 }
 
 const BLAST_PALETTES: Record<string, BlastPalette> = {
@@ -3624,7 +3824,12 @@ const BLAST_PALETTES: Record<string, BlastPalette> = {
   ball: { core: '#fff3d2', mid: '#ffb44a', deep: '#c85a1e', ink: '#33190f', smoke: '#7d7166' },
   shell: { core: '#fffdf2', mid: '#ffc24a', deep: '#d4441f', ink: '#2e150e', smoke: '#6e655e' },
   zap: { core: '#ffffff', mid: '#c8f2ff', deep: '#3f9fdc', ink: '#12283a', smoke: '#7f97a8' },
-  frost: { core: '#ffffff', mid: '#dcf7ff', deep: '#5cc0e4', ink: '#123244', smoke: '#93b6c4' }
+  // Stepped hard, on purpose: a cold blast built from three near-whites reads
+  // as a smudge of steam rather than as ice breaking.
+  frost: { core: '#ffffff', mid: '#b7ecff', deep: '#3f9fd8', ink: '#123244', smoke: '#93b6c4' },
+  // Burning fuel: sootier and redder than gunpowder, so a molotov landing on
+  // the tower never reads as one of the player's own rounds going off.
+  fire: { core: '#fff2c2', mid: '#ff8f2a', deep: '#a52d0e', ink: '#28100a', smoke: '#4f463f' }
 }
 
 /** Peak radius per weapon, world units. Range matters more than the values. */
@@ -3637,7 +3842,7 @@ let blastSeq = 0
 
 const spawnBlast = (
   x: number, y: number, r: number, kind: string, angle: number,
-  o: { life?: number; radial?: boolean } = {}
+  o: { life?: number; radial?: boolean; dust?: boolean } = {}
 ): void => {
   const q = quality.value
   if (q === 'low' && blasts.length >= 3) return
@@ -3654,7 +3859,8 @@ const spawnBlast = (
     angle: -angle,
     radial: o.radial ?? false,
     pal: BLAST_PALETTES[kind] ?? BLAST_PALETTES.ball!,
-    cold: kind === 'frost' || kind === 'zap'
+    cold: kind === 'frost' || kind === 'zap',
+    dust: o.dust ?? false
   })
 }
 
@@ -3724,8 +3930,29 @@ const drawBlast = (ctx: CanvasRenderingContext2D, b: Blast): void => {
     ctx.globalAlpha = bodyA
     fillShape(ctx, body, b.pal.deep)
     fillShape(ctx, shrink(body, 0.74, -br * 0.16, -br * 0.2), b.pal.mid)
-    fillShape(ctx, shrink(body, b.cold ? 0.36 : 0.31, -br * 0.3, -br * 0.36), b.pal.core)
+    fillShape(ctx, shrink(body, b.cold ? 0.26 : 0.31, -br * 0.3, -br * 0.36), b.pal.core)
     ink(ctx, body, { width: br * 0.17, color: b.pal.ink, breakUp: 0.28, seed: seed + 2 })
+  }
+
+  // ── Dust sheet ──
+  // A round that goes off ON the ground does not throw a sphere: it throws a
+  // low, wide skirt of dirt sideways, and that skirt is most of what makes a
+  // mortar hit look like it landed rather than like it happened in mid-air.
+  if (b.dust && quality.value !== 'low') {
+    const dustA = Math.min(1, u * 4) * Math.max(0, 1 - Math.max(0, u - 0.35) / 0.65) * 0.75
+    if (dustA > 0.04) {
+      ctx.globalAlpha = dustA
+      const ground = worldToScreenY(0) - worldToScreenY(b.y)
+      const spread = R * (0.7 + blastEase(u * 1.8) * 1.5)
+      for (const side of [-1, 1]) {
+        const px = side * spread
+        const pr = R * (0.42 + u * 0.5)
+        const puff = blob(px, ground - pr * 0.35, pr * 1.15, pr * 0.62, b.seed + side * 3, 0.22, 2.3, 22)
+        fillShape(ctx, puff, '#93887a')
+        fillShape(ctx, shrink(puff, 0.6, px - pr * 0.4, ground - pr * 0.7), '#c4b8a4')
+        ink(ctx, puff, { width: pr * 0.14, color: '#4a3f33', breakUp: 0.55, seed: b.seed + side })
+      }
+    }
   }
 
   // ── Smoke ──
@@ -3753,168 +3980,632 @@ const drawBlast = (ctx: CanvasRenderingContext2D, b: Blast): void => {
   ctx.restore()
 }
 
+// ─── Muzzle flashes ─────────────────────────────────────────────────────────
+//
+// A shot leaving a barrel used to be one additive blob and five streaks —
+// the same mark for a bow, a cannon and a mortar, and the only pure-glow thing
+// on a field where the monsters, the blocks and the impact blasts are all flat
+// tones under broken ink.
+//
+// A shot is DRAWN now. The flame is a fan cut into tongues, filled in three cel
+// tones and inked; the smoke is its own inked silhouette; and the whole thing
+// is redrawn in three HOLDS rather than tweened, because the small jump in the
+// contour between holds is exactly what a scaled sprite cannot fake.
+
+type FlashStyle = 'gun' | 'lob' | 'bow' | 'coil' | 'chill'
+
+interface FlashPalette {
+  /** Hot centre. */
+  core: string
+  /** Body of the flame — the tone that identifies the gun. */
+  mid: string
+  /** Shadow side, and the ring. */
+  deep: string
+  ink: string
+  smoke: string
+}
+
+const FLASH_PALETTES: Record<string, FlashPalette> = {
+  // Loose powder: yellow-hot and quick.
+  powder: { core: '#fffdf0', mid: '#ffce67', deep: '#e0651c', ink: '#2a1408', smoke: '#7d7267' },
+  // A heavy charge under a short tube: redder, and mostly smoke.
+  heavy: { core: '#fff7dc', mid: '#ffb246', deep: '#c2451c', ink: '#231208', smoke: '#615950' },
+  arc: { core: '#ffffff', mid: '#cdf3ff', deep: '#3f9fdc', ink: '#10202e', smoke: '#8098aa' },
+  rime: { core: '#ffffff', mid: '#e2f8ff', deep: '#5cbde2', ink: '#123244', smoke: '#9dbecc' },
+  dust: { core: '#fdf4e0', mid: '#e3d2b0', deep: '#a08a6a', ink: '#3a2a18', smoke: '#8f8069' }
+}
+
+interface FlashRecipe {
+  style: FlashStyle
+  pal: FlashPalette
+  /** Block centre → barrel mouth, world units. Keeps the flame ON the gun. */
+  reach: number
+  /** Flame length at full extension, world units. */
+  len: number
+  /** Half-angle of the fan. */
+  spread: number
+  life: number
+  /**
+   * Fixed elevation in radians for the guns that lob instead of tracking,
+   * mirrored for columns left of the gate. Absent means "along the aim".
+   */
+  elev?: number
+  /** Straight up out of the cell, whatever the block is pointing at. */
+  up?: boolean
+  /** Extra lift, world units — for fixtures that sit on top of their block. */
+  rise?: number
+}
+
+/**
+ * Elevation of the lobbing guns, as a WORLD angle (y-up).
+ *
+ * Mortars and bombards do not track: they sit at a steep fixed angle pointing
+ * AWAY from the gate, so a column on the left of the tower answers the left
+ * lane and one on the right answers the right.
+ */
+const lobAngle = (c: number, elev: number): number => (c < 0 ? Math.PI - elev : elev)
+
+const MUZZLE_RECIPES: Record<string, FlashRecipe> = {
+  cannon: { style: 'gun', pal: FLASH_PALETTES.powder!, reach: 0.56, len: 0.95, spread: 0.6, life: 260 },
+  mortar: { style: 'lob', pal: FLASH_PALETTES.heavy!, reach: 0.46, len: 0.8, spread: 0.52, life: 460, elev: MORTAR_ELEV },
+  bombard: { style: 'lob', pal: FLASH_PALETTES.heavy!, reach: 0.34, len: 0.66, spread: 0.66, life: 400, elev: BOMBARD_ELEV },
+  archer: { style: 'bow', pal: FLASH_PALETTES.dust!, reach: 0.26, len: 0.46, spread: 0.9, life: 180 },
+  tesla: { style: 'coil', pal: FLASH_PALETTES.arc!, reach: 0.38, len: 0.44, spread: 1.5, life: 200, up: true },
+  // The frost fixture is a cluster of crystals sitting ON TOP of its block, so
+  // the vapour has to leave from up there — along the aim, but lifted.
+  frost: { style: 'chill', pal: FLASH_PALETTES.rime!, reach: 0.32, len: 0.52, spread: 0.85, life: 320, rise: 0.26 }
+}
+
+interface Muzzle {
+  x: number
+  y: number
+  /** Screen-space heading (canvas y runs down). */
+  angle: number
+  life: number
+  maxLife: number
+  seed: number
+  rec: FlashRecipe
+}
+
+const muzzles: Muzzle[] = []
+let muzzleSeq = 0
+
+const spawnMuzzle = (x: number, y: number, worldAngle: number, rec: FlashRecipe): void => {
+  const q = quality.value
+  const cap = q === 'high' ? 10 : q === 'medium' ? 6 : 3
+  if (muzzles.length >= cap) muzzles.shift()
+  muzzleSeq = (muzzleSeq + 1) % 991
+  muzzles.push({
+    x, y,
+    angle: -worldAngle,
+    life: rec.life, maxLife: rec.life,
+    seed: muzzleSeq * 5.77,
+    rec
+  })
+}
+
+/**
+ * The flame: a fan opening along +x whose leading edge is cut into tongues.
+ *
+ * A smooth cone reads as a cone. It is the tongues — and the fact that no two
+ * are the same length — that make a discharge look like burning gas instead of
+ * a lighting effect stuck on the end of a barrel.
+ */
+const flameFan = (
+  len: number, base: number, spread: number, tongues: number, seed: number, n = 22
+): Pt[] => {
+  const pts: Pt[] = []
+  for (let i = 0; i <= n; i++) {
+    const u = i / n
+    const a = (u - 0.5) * 2 * spread
+    // Clamped: 1.5708 overshoots π/2, so the cosine goes microscopically
+    // negative at the rim and a fractional power of that is NaN.
+    const fall = Math.pow(Math.max(0, Math.cos((a / spread) * 1.5708)), 0.55)
+    const cut = 0.56 + 0.44 * Math.abs(Math.cos(u * Math.PI * tongues + seed * 0.7))
+    const jitter = 0.82 + noise2(u * 6.1, seed, seed) * 0.42
+    const r = base + (len - base) * fall * cut * jitter
+    pts.push([Math.cos(a) * r, Math.sin(a) * r])
+  }
+  // Close around the mouth rather than across it, so the fill is a solid form
+  // and not a wedge with a straight chord cut through its throat.
+  for (let i = n; i >= 0; i--) {
+    const u = i / n
+    const a = (u - 0.5) * 2 * spread
+    pts.push([Math.cos(a) * base * 0.18, Math.sin(a) * base * 0.7])
+  }
+  return pts
+}
+
+/**
+ * One smoke lobe. Every puff a gun makes is drawn by this, so a mortar plume
+ * and a cannon's powder smoke are unmistakably the same material.
+ *
+ * Deliberately pale and thinly drawn: at full opacity with a heavy contour a
+ * lobe stops being smoke and becomes a boulder, and a stack of them turns a
+ * mortar into a chimney with rocks coming out of it.
+ */
+const smokePuff = (
+  ctx: CanvasRenderingContext2D, x: number, y: number, r: number,
+  pal: FlashPalette, seed: number, inked: boolean
+): void => {
+  const puff = blob(x, y, r, r * 0.82, seed, 0.26, 2.5, 18)
+  fillShape(ctx, puff, mixHex(pal.smoke, '#ffffff', 0.22))
+  fillShape(ctx, shrink(puff, 0.55, x - r * 0.34, y - r * 0.4), mixHex(pal.smoke, '#ffffff', 0.62))
+  // Only the underside carries a line — the lit crown of a cloud has no edge.
+  if (inked) {
+    ink(ctx, puff, {
+      width: r * 0.1, color: pal.ink, breakUp: 0.85, seed: seed + 3,
+      weight: (_t, na) => Math.max(0, Math.sin(na)) * 1.3 + 0.05
+    })
+  }
+}
+
+const drawMuzzle = (ctx: CanvasRenderingContext2D, m: Muzzle): void => {
+  const Z = getZoom()
+  const rec = m.rec
+  const L0 = rec.len * Z
+  if (L0 < 4) return
+
+  const u = 1 - m.life / m.maxLife
+  const q = quality.value
+  const rich = q !== 'low'
+  // Three holds, as with the impact blasts: limited animation, not a tween.
+  const hold = Math.min(2, Math.floor(u * 3))
+  const seed = m.seed + hold * 19.7
+  const pal = rec.pal
+  // World "up" expressed in the rotated local frame, so smoke lifts vertically
+  // no matter which way the gun is pointing.
+  const upx = -Math.sin(m.angle)
+  const upy = -Math.cos(m.angle)
+
+  ctx.save()
+  ctx.translate(worldToScreenX(m.x), worldToScreenY(m.y))
+  ctx.rotate(m.angle)
+
+  switch (rec.style) {
+    case 'gun':
+    case 'lob': {
+      const heavy = rec.style === 'lob'
+      // Punches out over the first third of its life and is pulled back into
+      // the bore over the rest. A discharge does not fade in place.
+      const flameU = Math.min(1, u / (heavy ? 0.45 : 0.62))
+      const grow = flameU < 0.42 ? blastEase(flameU / 0.42) : 1 - ((flameU - 0.42) / 0.58) * 0.72
+      const L = L0 * Math.max(0, grow)
+      const base = L * 0.32
+      const fade = 1 - Math.max(0, (flameU - 0.4) / 0.6)
+
+      // Fine linework is a lie at play scale: a cell is ~25 px on screen, so a
+      // ring and a spray of slivers drawn at a tenth of that land as stray
+      // hairs beside the gun. They are worth drawing only once the camera is
+      // close enough for them to be shapes.
+      const detail = rich && L0 >= 16
+
+      // ── Shards ──
+      // Burning grains thrown clear of the mouth. The only hard edges here:
+      // everything else is curves, so the "bang" has to come from somewhere.
+      if (detail && flameU < 0.55) {
+        ctx.globalAlpha = (1 - flameU / 0.55) * 0.9
+        ctx.fillStyle = pal.mid
+        const shards = heavy ? 3 : 4
+        for (let i = 0; i < shards; i++) {
+          const a = (i / (shards - 1) - 0.5) * rec.spread * 2.3 + noise2(i * 2.7, seed, seed) * 0.3
+          const len = L * (0.85 + noise2(i * 1.9, seed + 4, seed) * 0.7)
+          const w = L * 0.12
+          ctx.beginPath()
+          ctx.moveTo(Math.cos(a) * len, Math.sin(a) * len)
+          ctx.lineTo(Math.cos(a) * base + Math.cos(a + 1.5708) * w, Math.sin(a) * base + Math.sin(a + 1.5708) * w)
+          ctx.lineTo(Math.cos(a) * base - Math.cos(a + 1.5708) * w, Math.sin(a) * base - Math.sin(a + 1.5708) * w)
+          ctx.closePath()
+          ctx.fill()
+        }
+      }
+
+      // ── Flame ──
+      if (fade > 0.03 && L > 3) {
+        ctx.globalAlpha = fade
+        const fan = flameFan(L, base, rec.spread, heavy ? 3 : 4, seed, rich ? 22 : 14)
+        fillShape(ctx, fan, pal.deep)
+        fillShape(ctx, shrink(fan, 0.66), pal.mid)
+        fillShape(ctx, shrink(fan, heavy ? 0.3 : 0.36), pal.core)
+        if (rich) ink(ctx, fan, { width: L * 0.11, color: pal.ink, breakUp: 0.45, seed: seed + 6 })
+      }
+
+      // ── Blast ring ──
+      // The pressure wave leaving the mouth: a broken ink ellipse standing
+      // across the barrel, wide and gone before the smoke arrives. Only the
+      // flat-shooting guns get one — a mortar's charge stays in the tube, and
+      // a ring drawn round a near-vertical mouth read as a stray scratch.
+      const ringA = 1 - u * 3.4
+      if (detail && !heavy && ringA > 0.04) {
+        const d = L0 * (0.25 + blastEase(u * 2.4) * 0.8)
+        const rr = L0 * (0.35 + blastEase(u * 2.2) * 0.5)
+        ctx.globalAlpha = ringA * 0.75
+        ink(ctx, blob(d, 0, rr * 0.5, rr, seed + 9, 0.18, 2.2, 24), {
+          width: Math.max(1.5, L0 * 0.12 * (1 - u)),
+          color: pal.deep,
+          breakUp: 0.4,
+          seed: seed + 12
+        })
+      }
+
+      // ── Smoke ──
+      // The cannon coughs a little; the mortar is mostly smoke, and its plume
+      // outlives the flame by half a second. That difference is the whole
+      // reason the two guns don't sound alike on screen.
+      const smokeA = Math.min(1, Math.max(0, (u - 0.12) / 0.2)) *
+        Math.max(0, 1 - Math.max(0, u - (heavy ? 0.5 : 0.4)) / (heavy ? 0.5 : 0.6)) *
+        (heavy ? 0.5 : 0.34)
+      if (rich && smokeA > 0.04) {
+        const n = heavy ? (q === 'high' ? 3 : 2) : 2
+        for (let i = 0; i < n; i++) {
+          // Pushed out of the muzzle, then lifted — smoke leaves along the
+          // barrel and immediately forgets about it. Each lobe further along
+          // the plume is thinner than the one behind it, which is what keeps
+          // the column from reading as a stack of identical objects.
+          const wob = noise2(i * 3.3, m.seed, m.seed)
+          const along = L0 * (0.25 + i * 0.3) * (0.5 + u * 0.8)
+          const lift = L0 * u * (heavy ? 0.95 : 0.6) * (0.4 + i * 0.3)
+          const drift = (wob - 0.5) * L0 * 0.35
+          const pr = L0 * (0.2 + wob * 0.22) * (0.55 + u * 0.9)
+          ctx.globalAlpha = smokeA * (1 - i * 0.24)
+          smokePuff(ctx, along + upx * lift - upy * drift, upy * lift + upx * drift, pr, pal, m.seed + i * 7, true)
+        }
+      }
+      break
+    }
+
+    case 'bow': {
+      // No fire — a bow releases air. Two motion arcs snapping shut across the
+      // string's path, and a flick of grit off the rail.
+      const a = 1 - u
+      if (a <= 0.02) break
+      ctx.globalAlpha = a * 0.85
+      for (const k of [0, 1]) {
+        const r = L0 * (0.42 + k * 0.3 + u * 0.55)
+        const arc: Pt[] = []
+        for (let i = 0; i <= 8; i++) {
+          const th = (i / 8 - 0.5) * rec.spread * 2
+          arc.push([Math.cos(th) * r, Math.sin(th) * r * 1.15])
+        }
+        // Dark line first, pale one chasing it: a release reads as a flick of
+        // light escaping a dark stroke, and one tone alone reads as a smudge.
+        inkStroke(ctx, arc, L0 * 0.02, L0 * (0.09 - k * 0.04), k ? '#f6ead2' : pal.ink, seed + k * 3)
+      }
+      // The shaft's own wake: a thin line already leaving along the aim.
+      ctx.globalAlpha = a * 0.5
+      inkStroke(ctx, [[L0 * 0.2, 0], [L0 * (0.9 + u * 1.4), 0]], L0 * 0.05, L0 * 0.008, pal.mid, seed + 7)
+      break
+    }
+
+    case 'coil': {
+      // The coil dumping its charge: hard zigzag hairs, no soft glow — the
+      // lightning that follows is the light, this is the crack.
+      const a = 1 - u * 1.4
+      if (a <= 0.02) break
+      ctx.globalAlpha = Math.min(1, a)
+      const arms = rich ? 5 : 3
+      for (let i = 0; i < arms; i++) {
+        const th = (i / arms) * Math.PI * 2 + m.seed * 0.9
+        const len = L0 * (0.6 + noise2(i * 2.1, seed, seed) * 0.9) * (0.5 + blastEase(u * 2) * 0.8)
+        const hair: Pt[] = [[0, 0]]
+        for (let k = 1; k <= 3; k++) {
+          const f = k / 3
+          const j = (noise2(i * 3.1 + k, seed + 2, seed) - 0.5) * len * 0.45
+          hair.push([Math.cos(th) * len * f - Math.sin(th) * j, Math.sin(th) * len * f + Math.cos(th) * j])
+        }
+        inkStroke(ctx, hair, L0 * 0.09, L0 * 0.012, pal.deep, seed + i)
+        inkStroke(ctx, hair, L0 * 0.045, L0 * 0.006, pal.core, seed + i + 40)
+      }
+      break
+    }
+
+    case 'chill': {
+      // Frost: vapour, not flame. Pale lobes that bloom and sag, with a few
+      // hard crystal slivers thrown along the barrel.
+      const a = Math.min(1, (1 - u) * 1.6)
+      if (a <= 0.02) break
+      ctx.globalAlpha = a * 0.9
+      const spread = L0 * (0.3 + blastEase(u * 1.8) * 0.75)
+      for (let i = 0; i < (rich ? 3 : 2); i++) {
+        const th = (i / 3 - 0.33) * rec.spread * 1.8
+        const pr = L0 * (0.3 + noise2(i * 2.9, m.seed, m.seed) * 0.16) * (0.7 + u * 0.6)
+        const cxx = Math.cos(th) * spread + upx * L0 * u * 0.3
+        const cyy = Math.sin(th) * spread + upy * L0 * u * 0.3
+        const puff = blob(cxx, cyy, pr, pr * 0.82, seed + i * 4, 0.24, 2.6, 18)
+        fillShape(ctx, puff, pal.deep)
+        fillShape(ctx, shrink(puff, 0.62, cxx - pr * 0.28, cyy - pr * 0.3), pal.mid)
+        if (rich) ink(ctx, puff, { width: pr * 0.16, color: pal.ink, breakUp: 0.5, seed: seed + i })
+      }
+      if (rich && u < 0.6) {
+        ctx.globalAlpha = (1 - u / 0.6) * 0.95
+        ctx.fillStyle = pal.core
+        for (let i = 0; i < 4; i++) {
+          const th = (i / 3 - 0.5) * rec.spread * 2
+          const len = L0 * (0.7 + noise2(i * 1.7, seed + 1, seed) * 0.8)
+          const w = L0 * 0.05
+          ctx.beginPath()
+          ctx.moveTo(Math.cos(th) * len, Math.sin(th) * len)
+          ctx.lineTo(Math.cos(th) * L0 * 0.2 + Math.cos(th + 1.5708) * w, Math.sin(th) * L0 * 0.2 + Math.sin(th + 1.5708) * w)
+          ctx.lineTo(Math.cos(th) * L0 * 0.2 - Math.cos(th + 1.5708) * w, Math.sin(th) * L0 * 0.2 - Math.sin(th + 1.5708) * w)
+          ctx.closePath()
+          ctx.fill()
+        }
+      }
+      break
+    }
+  }
+
+  ctx.restore()
+  ctx.globalAlpha = 1
+}
+
+/**
+ * A drawn round object: wobbled contour, three flat tones, inked.
+ *
+ * Every lump of matter in flight is built from this, so a cannonball, a shell
+ * and a dropped bomb are recognisably the same material under the same light —
+ * which is precisely what a stack of radial gradients could not give them.
+ */
+const celOrb = (
+  ctx: CanvasRenderingContext2D,
+  cx: number, cy: number, rx: number, ry: number,
+  pal: { deep: string; mid: string; lit: string; line: string },
+  seed: number, inked: boolean
+): Pt[] => {
+  const body = blob(cx, cy, rx, ry, seed, 0.11, 2.6, inked ? 20 : 12)
+  fillShape(ctx, body, pal.deep)
+  fillShape(ctx, shrink(body, 0.8, cx - rx * 0.2, cy - ry * 0.24), pal.mid)
+  fillShape(ctx, shrink(body, 0.34, cx - rx * 0.44, cy - ry * 0.48), pal.lit)
+  if (inked) ink(ctx, body, { width: Math.max(1, rx * 0.34), color: pal.line, breakUp: 0.34, seed: seed + 2 })
+  return body
+}
+
+/** Iron, as it reads on every round the tower and the enemy throw. */
+const IRON = { deep: '#0f1114', mid: '#333a42', lit: '#6e7783', line: '#07080a' }
+
 const drawProjectile = (ctx: CanvasRenderingContext2D, p: Projectile): void => {
   const zoom = getZoom()
   const x = worldToScreenX(p.x)
   const y = worldToScreenY(p.y)
+  const q = quality.value
+  const rich = q === 'high'
+  // Deterministic per-round seed: the wobble has to stay put frame to frame,
+  // or a cannonball boils on its way across the sky.
+  const seed = (p.uid % 97) * 3.7
 
-  // Trail. Two characters, because a trail is half of what identifies a shot
-  // at speed: a thin bright streak for the small fast rounds, and a puff of
-  // powder smoke that widens and thins with age for anything with mass. A
+  // ── Trail ──
+  // Two characters, because a trail is half of what identifies a shot at speed.
+  // Anything with mass leaves DRAWN powder smoke — inked lobes that expand and
+  // thin with age — and the small fast rounds leave a tapered ink whisk. A
   // cannonball wearing the archer's hard bright line is most of why the two
-  // weapons looked alike in flight.
-  if (p.trail.length >= 4) {
+  // weapons used to look alike in flight.
+  const n = p.trail.length / 2
+  if (n >= 3) {
     if (p.kind === 'ball' || p.kind === 'shell' || p.kind === 'bomb') {
-      const n = p.trail.length / 2
-      ctx.lineCap = 'round'
-      for (let i = 0; i + 1 < n; i++) {
-        // 0 at the oldest sample, 1 at the round itself.
-        const a = n > 1 ? i / (n - 1) : 1
-        ctx.strokeStyle = `rgba(132,126,118,${0.04 + 0.2 * a})`
-        ctx.lineWidth = Math.max(1, zoom * (0.15 - 0.09 * a))
-        ctx.beginPath()
-        ctx.moveTo(worldToScreenX(p.trail[i * 2]!), worldToScreenY(p.trail[i * 2 + 1]!))
-        ctx.lineTo(worldToScreenX(p.trail[i * 2 + 2]!), worldToScreenY(p.trail[i * 2 + 3]!))
-        ctx.stroke()
+      const smoke = themedPalette('smoke')
+      const step = q === 'low' ? 3 : 2
+      for (let i = 0; i < n - 1; i += step) {
+        // 1 at the oldest sample, 0 at the round itself.
+        const age = 1 - i / (n - 1)
+        const pr = zoom * 0.075 * (0.5 + age * 1.15)
+        if (pr < 1.5) continue
+        ctx.globalAlpha = 0.4 * (1 - age * 0.82)
+        const px = worldToScreenX(p.trail[i * 2]!)
+        const py = worldToScreenY(p.trail[i * 2 + 1]!)
+        const puff = blob(px, py, pr, pr * 0.88, seed + i * 4.1, 0.2, 2.4, rich ? 16 : 10)
+        fillShape(ctx, puff, smoke.mid)
+        fillShape(ctx, shrink(puff, 0.6, px - pr * 0.3, py - pr * 0.34), smoke.light)
+        if (rich && age < 0.45) {
+          ink(ctx, puff, { width: pr * 0.2, color: smoke.dark, breakUp: 0.55, seed: seed + i })
+        }
       }
+      ctx.globalAlpha = 1
     } else {
-      ctx.globalCompositeOperation = 'lighter'
-      ctx.strokeStyle = p.kind === 'frost' ? 'rgba(150,235,255,0.5)' : 'rgba(255,190,110,0.45)'
-      ctx.lineWidth = Math.max(1, zoom * 0.06)
-      ctx.lineCap = 'round'
-      ctx.beginPath()
-      ctx.moveTo(worldToScreenX(p.trail[0]!), worldToScreenY(p.trail[1]!))
-      for (let i = 2; i < p.trail.length; i += 2) {
-        ctx.lineTo(worldToScreenX(p.trail[i]!), worldToScreenY(p.trail[i + 1]!))
+      // A whisk: nocked thin at the tail, swelling toward the round. Drawn as
+      // ink rather than stroked, so it belongs to the same hand as everything
+      // it flies past.
+      const path: Pt[] = []
+      for (let i = 0; i < p.trail.length; i += 2) {
+        path.push([worldToScreenX(p.trail[i]!), worldToScreenY(p.trail[i + 1]!)])
       }
-      ctx.stroke()
-      ctx.globalCompositeOperation = 'source-over'
+      const cold = p.kind === 'frost'
+      ctx.globalAlpha = cold ? 0.5 : 0.42
+      inkStroke(ctx, path, zoom * 0.005, zoom * (cold ? 0.1 : 0.07), cold ? '#9fe9ff' : '#ffd79a', seed + 5)
+      ctx.globalAlpha = cold ? 0.9 : 0.75
+      inkStroke(ctx, path, zoom * 0.002, zoom * (cold ? 0.045 : 0.03), cold ? '#eafcff' : '#fff3d4', seed + 9)
+      ctx.globalAlpha = 1
     }
   }
 
   switch (p.kind) {
     case 'bolt': {
+      // An arrow is a drawn object, not a lit one: a tapered shaft, a flat
+      // steel head with one bright facet, and fletching that reads even at
+      // eight pixels because it is the only warm note on the round.
       const ang = Math.atan2(-p.vy, p.vx)
+      const u = zoom * 0.1
       ctx.save()
       ctx.translate(x, y)
       ctx.rotate(ang)
-      ctx.fillStyle = '#e0c089'
-      ctx.fillRect(-zoom * 0.16, -zoom * 0.02, zoom * 0.3, zoom * 0.04)
-      ctx.fillStyle = '#ffffff'
+
+      // Shaft — swelling toward the head, the way a nib leaves a line.
+      inkStroke(ctx, [[-u * 1.7, 0], [u * 0.4, 0], [u * 1.5, 0]], u * 0.16, u * 0.34, '#c39a5e', seed)
+      inkStroke(ctx, [[-u * 1.7, u * 0.1], [u * 1.5, u * 0.1]], u * 0.07, u * 0.13, '#6d4a24', seed + 3)
+
+      // Head: two flat tones and a hard inked edge.
+      const head: Pt[] = [[u * 2.5, 0], [u * 1.35, -u * 0.5], [u * 1.6, 0], [u * 1.35, u * 0.5]]
+      fillShape(ctx, head, '#8e9aa8')
+      fillShape(ctx, [[u * 2.4, -u * 0.04], [u * 1.4, -u * 0.42], [u * 1.62, -u * 0.05]], '#e8eef6')
+      if (rich) ink(ctx, head, { width: u * 0.14, color: '#171c22', breakUp: 0.3, seed: seed + 7 })
+
+      // Fletching.
+      ctx.fillStyle = '#2f7d5a'
+      for (const f of [-1, 1]) {
+        ctx.beginPath()
+        ctx.moveTo(-u * 1.75, 0)
+        ctx.lineTo(-u * 1.1, f * u * 0.55)
+        ctx.lineTo(-u * 0.55, f * u * 0.12)
+        ctx.closePath()
+        ctx.fill()
+      }
+      ctx.restore()
+      break
+    }
+
+    case 'ball': {
+      // Cannonball: a solid iron round shot, deliberately circular and NOT
+      // aligned to its velocity. Roundness is the entire silhouette cue for a
+      // cannon — elongate it and it reads as a second, fatter arrow.
+      const r = zoom * 0.11
+      if (r < 1.5) { ctx.fillStyle = IRON.mid; ctx.fillRect(x - 1, y - 1, 2, 2); break }
+
+      // Muzzle heat still clinging to the shot, drawn as a crescent on the
+      // TRAILING limb rather than sprayed as a glow: a hot edge says the ball
+      // just left a barrel, a halo says the ball is a light source.
+      const back = Math.atan2(p.vy, p.vx) + Math.PI
+      ctx.globalAlpha = 0.55
+      fillShape(ctx, blob(x + Math.cos(back) * r * 0.5, y - Math.sin(back) * r * 0.5, r * 0.72, r * 0.66, seed + 11, 0.2, 2.4, 12), '#e0621c')
+      ctx.globalAlpha = 1
+
+      celOrb(ctx, x, y, r, r * 0.98, IRON, seed, rich)
+      // A specular pip: one dot is all it takes to stop a filled shape reading
+      // as a flat disc.
+      fillShape(ctx, blob(x - r * 0.4, y - r * 0.44, r * 0.24, r * 0.2, seed + 4, 0.25, 2, 10), '#ffffff')
+      break
+    }
+
+    case 'shell': {
+      // The mortar's round: a finned iron shell that points along its arc, with
+      // a fuse still burning at the tail. The fuse is the tell that this one is
+      // going to detonate rather than simply land.
+      const ang = Math.atan2(-p.vy, p.vx)
+      const u = zoom * 0.1
+      if (u < 1.5) { ctx.fillStyle = IRON.mid; ctx.fillRect(x - 1, y - 1, 2, 2); break }
+      ctx.save()
+      ctx.translate(x, y)
+      ctx.rotate(ang)
+
+      // Fins first, so the body sits over their roots.
+      ctx.fillStyle = IRON.mid
+      for (const f of [-1, 1]) {
+        ctx.beginPath()
+        ctx.moveTo(-u * 0.5, f * u * 0.25)
+        ctx.lineTo(-u * 1.5, f * u * 0.95)
+        ctx.lineTo(-u * 0.6, f * u * 0.2)
+        ctx.closePath()
+        ctx.fill()
+      }
+
+      celOrb(ctx, 0, 0, u * 1.35, u * 0.72, IRON, seed, rich)
+      // Driving band: the one bright horizontal on an otherwise dark form.
+      ctx.globalAlpha = 0.9
+      fillShape(ctx, [[-u * 0.25, -u * 0.66], [u * 0.1, -u * 0.66], [u * 0.1, u * 0.66], [-u * 0.25, u * 0.66]], '#c98a2a')
+      ctx.globalAlpha = 1
+
+      // Fuse spark — a tiny drawn star, not a glow.
+      const sp = 0.6 + 0.4 * Math.sin(p.life / 40)
+      ctx.fillStyle = '#ffe9b0'
       ctx.beginPath()
-      ctx.moveTo(zoom * 0.14, -zoom * 0.045)
-      ctx.lineTo(zoom * 0.24, 0)
-      ctx.lineTo(zoom * 0.14, zoom * 0.045)
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2
+        const rr = u * (i % 2 ? 0.16 : 0.46) * sp
+        const sx = -u * 1.6 + Math.cos(a) * rr
+        const sy = Math.sin(a) * rr
+        if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy)
+      }
       ctx.closePath()
       ctx.fill()
       ctx.restore()
       break
     }
-    case 'ball': {
-      // Cannonball: a solid iron round shot, deliberately circular and NOT
-      // aligned to its velocity. It used to share the bomber's finned casing,
-      // which — elongated along its own heading — read as a second, fatter
-      // arrow. Roundness is the entire silhouette cue for a cannon.
-      const r = zoom * 0.105
 
-      // Muzzle heat still clinging to the shot. A glow rather than a streak,
-      // so it never draws a line across the sky.
-      ctx.globalCompositeOperation = 'lighter'
-      const heat = ctx.createRadialGradient(x, y, 0, x, y, r * 2.2)
-      heat.addColorStop(0, 'rgba(255,168,78,0.3)')
-      heat.addColorStop(1, 'rgba(255,120,40,0)')
-      ctx.fillStyle = heat
-      ctx.beginPath(); ctx.arc(x, y, r * 2.2, 0, Math.PI * 2); ctx.fill()
-      ctx.globalCompositeOperation = 'source-over'
-
-      // Iron, lit from the upper left like everything else in the scene.
-      const iron = ctx.createRadialGradient(x - r * 0.4, y - r * 0.45, r * 0.05, x, y, r * 1.05)
-      iron.addColorStop(0, '#767d86')
-      iron.addColorStop(0.5, '#3a3f46')
-      iron.addColorStop(1, '#0e1013')
-      ctx.fillStyle = iron
-      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill()
-
-      // A specular pip and a cool bounce on the lower limb: two dots are all it
-      // takes to stop a filled circle reading as a flat disc.
-      ctx.fillStyle = 'rgba(255,255,255,0.55)'
-      ctx.beginPath(); ctx.arc(x - r * 0.38, y - r * 0.42, r * 0.22, 0, Math.PI * 2); ctx.fill()
-      ctx.fillStyle = 'rgba(150,172,196,0.28)'
-      ctx.beginPath(); ctx.arc(x + r * 0.22, y + r * 0.48, r * 0.3, 0, Math.PI * 2); ctx.fill()
-      break
-    }
     case 'bomb': {
-      // A finned iron bomb that points along its own velocity — the rotation is
-      // what sells the fall, and it is the player's cue to look up.
-      const ang = Math.atan2(p.vy, p.vx) + Math.PI / 2
+      // Enemy ordnance: the same iron, but nose-down along its own velocity.
+      // The rotation is what sells the fall, and it is the player's cue to
+      // look up.
+      const ang = Math.atan2(-p.vy, p.vx)
+      const u = zoom * 0.1
+      if (u < 1.5) { ctx.fillStyle = IRON.mid; ctx.fillRect(x - 1, y - 1, 2, 2); break }
       ctx.save()
       ctx.translate(x, y)
-      ctx.rotate(-ang)
-      const g = ctx.createLinearGradient(-zoom * 0.1 * 0.8, 0, zoom * 0.1 * 0.8, 0)
-      g.addColorStop(0, '#15171b')
-      g.addColorStop(0.45, '#4a5058')
-      g.addColorStop(1, '#20242a')
-      ctx.fillStyle = g
-      ctx.beginPath()
-      ctx.ellipse(0, 0, zoom * 0.1 * 0.7, zoom * 0.1 * 1.25, 0, 0, Math.PI * 2)
-      ctx.fill()
+      ctx.rotate(ang)
       ctx.fillStyle = '#8f98a4'
       for (const f of [-1, 1]) {
         ctx.beginPath()
-        ctx.moveTo(f * zoom * 0.1 * 0.2, zoom * 0.1 * 0.85)
-        ctx.lineTo(f * zoom * 0.1 * 0.95, zoom * 0.1 * 1.5)
-        ctx.lineTo(f * zoom * 0.1 * 0.2, zoom * 0.1 * 1.45)
+        ctx.moveTo(-u * 0.6, f * u * 0.2)
+        ctx.lineTo(-u * 1.6, f * u * 0.9)
+        ctx.lineTo(-u * 1.45, f * u * 0.15)
         ctx.closePath()
         ctx.fill()
       }
-      ctx.fillStyle = 'rgba(255,255,255,0.4)'
-      ctx.beginPath()
-      ctx.ellipse(-zoom * 0.1 * 0.25, -zoom * 0.1 * 0.35, zoom * 0.1 * 0.16, zoom * 0.1 * 0.42, 0.2, 0, Math.PI * 2)
-      ctx.fill()
+      celOrb(ctx, 0, 0, u * 1.25, u * 0.7, IRON, seed, rich)
       ctx.restore()
       break
     }
+
     case 'fire': {
-      // Molotov: a tumbling bottle wrapped in its own flame.
+      // Molotov: a tumbling bottle wrapped in its own flame. The flame is the
+      // same fan the guns fire, pointed at the sky and re-cut every 90 ms, so
+      // burning fuel looks the same wherever it appears in the game.
+      const u = zoom * 0.1
       const spin = (p.life / 90) % (Math.PI * 2)
-      const flame = ctx.createRadialGradient(x, y, 0, x, y, zoom * 0.1 * 2.4)
-      flame.addColorStop(0, 'rgba(255,244,190,0.95)')
-      flame.addColorStop(0.35, 'rgba(255,150,40,0.7)')
-      flame.addColorStop(1, 'rgba(255,90,20,0)')
-      ctx.fillStyle = flame
-      ctx.beginPath(); ctx.arc(x, y, zoom * 0.1 * 2.4, 0, Math.PI * 2); ctx.fill()
+      const fire = themedPalette('fire')
+      const hold = Math.floor(p.life / 90)
+
+      ctx.save()
+      ctx.translate(x, y)
+      // Flame climbs, whichever way the bottle is tumbling.
+      const fan = flameFan(u * 3.1, u * 0.9, 0.95, 3, hold * 4.3 + seed, rich ? 18 : 12)
+      ctx.rotate(-Math.PI / 2)
+      fillShape(ctx, fan, fire.dark)
+      fillShape(ctx, shrink(fan, 0.72), fire.mid)
+      fillShape(ctx, shrink(fan, 0.4), fire.light)
+      fillShape(ctx, shrink(fan, 0.18), fire.accent)
+      if (rich) ink(ctx, fan, { width: u * 0.3, color: '#3a1206', breakUp: 0.5, seed: seed + 6 })
+      ctx.restore()
 
       ctx.save()
       ctx.translate(x, y)
       ctx.rotate(spin)
-      ctx.fillStyle = '#5f9e4c'
-      roundRect(ctx, -zoom * 0.1 * 0.42, -zoom * 0.1 * 0.85, zoom * 0.1 * 0.84, zoom * 0.1 * 1.5, zoom * 0.1 * 0.3)
-      ctx.fill()
-      ctx.strokeStyle = 'rgba(0,0,0,0.45)'
-      ctx.lineWidth = Math.max(1, zoom * 0.1 * 0.14)
-      ctx.stroke()
+      const glass: Pt[] = [
+        [-u * 0.42, u * 0.85], [-u * 0.5, -u * 0.2], [-u * 0.2, -u * 0.75],
+        [u * 0.2, -u * 0.75], [u * 0.5, -u * 0.2], [u * 0.42, u * 0.85]
+      ]
+      fillShape(ctx, glass, '#3f7a34')
+      fillShape(ctx, shrink(glass, 0.5, -u * 0.25, 0), '#7fc063')
+      if (rich) ink(ctx, glass, { width: u * 0.22, color: '#14260f', breakUp: 0.3, seed: seed + 1 })
       ctx.fillStyle = '#e8dcc0'
-      ctx.fillRect(-zoom * 0.1 * 0.16, -zoom * 0.1 * 1.2, zoom * 0.1 * 0.32, zoom * 0.1 * 0.4)
+      ctx.fillRect(-u * 0.18, -u * 1.15, u * 0.36, u * 0.45)
       ctx.restore()
       break
     }
-    case 'shell': {
-      const r = zoom * (p.kind === 'shell' ? 0.11 : 0.09)
-      const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, 0, x, y, r)
-      g.addColorStop(0, '#7a828e')
-      g.addColorStop(1, '#14161a')
-      ctx.fillStyle = g
-      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill()
-      break
-    }
+
     case 'frost': {
-      const r = zoom * 0.1
-      const g = ctx.createRadialGradient(x, y, 0, x, y, r * 2)
-      g.addColorStop(0, 'rgba(230,253,255,1)')
-      g.addColorStop(0.4, 'rgba(140,240,255,0.8)')
-      g.addColorStop(1, 'rgba(140,240,255,0)')
-      ctx.fillStyle = g
-      ctx.beginPath(); ctx.arc(x, y, r * 2, 0, Math.PI * 2); ctx.fill()
+      // A shard of ice rather than a ball of light: three flat pale tones under
+      // a cold outline, turning slowly so it catches differently each frame.
+      const r = zoom * 0.11
+      if (r < 1.5) { ctx.fillStyle = '#cdf2ff'; ctx.fillRect(x - 1, y - 1, 2, 2); break }
+      const spin = p.life / 260
+      ctx.save()
+      ctx.translate(x, y)
+      ctx.rotate(spin)
+      const crystal: Pt[] = [
+        [0, -r * 1.5], [r * 0.5, -r * 0.35], [r * 1.15, 0],
+        [r * 0.5, r * 0.4], [0, r * 1.35], [-r * 0.5, r * 0.4],
+        [-r * 1.15, 0], [-r * 0.5, -r * 0.35]
+      ]
+      fillShape(ctx, crystal, '#4f9dbe')
+      fillShape(ctx, shrink(crystal, 0.66, -r * 0.2, -r * 0.3), '#b6ecff')
+      fillShape(ctx, shrink(crystal, 0.28, -r * 0.35, -r * 0.5), '#ffffff')
+      if (rich) ink(ctx, crystal, { width: r * 0.26, color: '#123244', breakUp: 0.4, seed: seed + 3 })
+      ctx.restore()
+      // Two chips tumbling alongside, so the round reads as ice breaking off it.
+      ctx.globalAlpha = 0.8
+      for (let i = 0; i < 2; i++) {
+        const a = spin * (i ? -1.6 : 1.3) + i * 2.1
+        fillShape(ctx, blob(x + Math.cos(a) * r * 1.5, y + Math.sin(a) * r * 1.5, r * 0.28, r * 0.2, seed + i * 6, 0.3, 2, 8), '#dcf6ff')
+      }
+      ctx.globalAlpha = 1
       break
     }
   }
@@ -4237,6 +4928,10 @@ export const drawScene = (
     blasts[i]!.life -= dtMs
     if (blasts[i]!.life <= 0) blasts.splice(i, 1)
   }
+  for (let i = muzzles.length - 1; i >= 0; i--) {
+    muzzles[i]!.life -= dtMs
+    if (muzzles[i]!.life <= 0) muzzles.splice(i, 1)
+  }
   if (screenFlash > 0) screenFlash = Math.max(0, screenFlash - dtMs / 260)
 
   ctx.clearRect(0, 0, w, h)
@@ -4302,7 +4997,10 @@ export const drawScene = (
   // 7d. Allies, in front of the enemies they are riding into.
   for (const a of getAllies()) drawAlly(ctx, a, t)
 
-  // 8. Projectiles.
+  // 8. Muzzle flashes, over the barrels that made them.
+  for (const m of muzzles) drawMuzzle(ctx, m)
+
+  // 8a. Projectiles.
   for (const p of getProjectiles()) drawProjectile(ctx, p)
   for (const bolt of lightningBolts) drawLightning(ctx, bolt)
 
@@ -4357,6 +5055,20 @@ const drawFloatingTexts = (ctx: CanvasRenderingContext2D, zoom: number): void =>
     ctx.fillText(t.text, x, y)
   }
   ctx.globalAlpha = 1
+}
+
+/**
+ * Drop the drawn transients the renderer owns — flashes, blasts, bolts.
+ *
+ * `resetVfx` only reaches the particle/text/decal pools that live in the VFX
+ * module, so without this a mortar that fired the instant the player died had
+ * its smoke still hanging over the first frame of the next run.
+ */
+export const resetDrawnFx = (): void => {
+  muzzles.length = 0
+  blasts.length = 0
+  lightningBolts.length = 0
+  screenFlash = 0
 }
 
 /** Drop every cached sprite. Called when the block theme changes. */

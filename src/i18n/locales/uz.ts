@@ -71,7 +71,9 @@ export default {
       'bomber': 'Portlatuvchi', 'bat': 'Ko‘rshapalak', 'bulwark': 'Qalqonli', 'golem': 'Qamal golemi',
       'wyvern': 'Vivern',
       'eel': 'Dengiz iloni',
+      'shark': 'Rif akulasi',
       'kraken': 'Kraken',
+      'seadrake': 'Dengiz ajdari',
       'ram': 'Qo‘chqor',
       'ballista': 'Ballista',
       'catapult': 'Katapulta',
@@ -110,7 +112,12 @@ export default {
     'double': 'Tangalarni ikkilantirish',
     'firstRunDouble': '2× — bugungi birinchi qamal!',
     'tripleWave': '3× tanga — {n}',
-    'waveCleared': '{n}-to‘lqin qaytarildi!'
+    'waveCleared': '{n}-to‘lqin qaytarildi!',
+    'scoreLabel': 'Ochko',
+    'bestLabel': 'Eng yaxshi natija',
+    'scoreCurrent': '(bu safar {n})',
+    'rankLabel': 'Oʻrin',
+    'rankOf': '{n} dan'
   },
 
   'tech': {

@@ -129,6 +129,34 @@ export const seaShare = (wave: number): number => {
 }
 
 /**
+ * Scripted PREVIEW spawns — a taste of a threat, waves before it unlocks.
+ *
+ * Air arrives in force at wave 9 and sea at wave 12, and both punish a shape of
+ * tower rather than a weakness in it: a player who spent eight waves building a
+ * wall that only faces the horizon meets flyers with nothing that shoots up, and
+ * the lesson arrives as a wipe rather than as information.
+ *
+ * So each threat is INTRODUCED early, in ones and twos, while the tower is small
+ * enough that losing a block to it costs nothing. Two bats at waves 4-6 and a
+ * single sea serpent at 5 are not a fight — they are a sentence: *these exist,
+ * and your guns need to reach there.*
+ *
+ * These bypass `minWave` on purpose; that gate governs the wave director's
+ * random pool, and a preview is the opposite of random. They are PAID FOR out of
+ * the wave's own budget (see `planWave`), so a preview wave trades chaff for the
+ * new thing instead of simply being harder than its neighbours.
+ */
+const PREVIEWS: Readonly<Record<number, ReadonlyArray<readonly [string, number]>>> = {
+  4: [['bat', 2]],
+  5: [['bat', 2], ['eel', 1]],
+  6: [['bat', 2]]
+}
+
+/** The scripted preview spawns for a wave, as `[typeId, count]` pairs. */
+export const previewsFor = (wave: number): ReadonlyArray<readonly [string, number]> =>
+  PREVIEWS[wave] ?? []
+
+/**
  * Fraction reserved for SIEGE ENGINES.
  *
  * Same reasoning as air and sea: engines that out-range the tower are the whole
@@ -240,6 +268,28 @@ export const planWave = (wave: number, difficulty = 1): WavePlan => {
     return { wave, orders: [], total: 0, boss }
   }
 
+  // ── Scripted previews ──
+  // Laid down before anything is rolled, so they are never crowded out, and
+  // charged to the budget so the wave they land in is not simply bigger. The
+  // floor keeps a preview from ever eating a wave whole, however heavy a future
+  // one gets.
+  let previewCost = 0
+  for (const [typeId, count] of previewsFor(wave)) {
+    const def = ENEMY_DEFS[typeId]
+    if (!def) continue
+    for (let i = 0; i < count; i++) {
+      orders.push({ typeId, side: 1, atMs: 0 })
+      previewCost += def.cost
+    }
+  }
+  // Charged at HALF price. Full price made waves 4-6 smaller than wave 3 — a
+  // preview unit arrives without the support its home wave gives it (two bats
+  // with no bomber above them is not the wave-9 air package), so billing it at
+  // list price over-taxes the wave it is introducing itself in. Free would be
+  // the other error: preview waves would spike above their neighbours and the
+  // introduction would read as a difficulty wall.
+  const budget = Math.max(totalBudget * 0.5, totalBudget - previewCost * 0.5)
+
   /**
    * Spend `budget` on `candidates`, appending spawn orders.
    *
@@ -288,9 +338,9 @@ export const planWave = (wave: number, difficulty = 1): WavePlan => {
   // budget can't be spent twice.
   const groundPool = pool.filter((d) => d.movement === 'ground' && !d.siege)
 
-  const airBudget = airPool.length > 0 ? totalBudget * airShare(wave) : 0
-  const seaBudget = seaPool.length > 0 ? totalBudget * seaShare(wave) : 0
-  const siegeBudget = engines.length > 0 ? totalBudget * siegeShare(wave) : 0
+  const airBudget = airPool.length > 0 ? budget * airShare(wave) : 0
+  const seaBudget = seaPool.length > 0 ? budget * seaShare(wave) : 0
+  const siegeBudget = engines.length > 0 ? budget * siegeShare(wave) : 0
 
   // Split the air budget so bombers are never crowded out by cheap bats — the
   // two are different problems and the player has to meet both.
@@ -302,7 +352,7 @@ export const planWave = (wave: number, difficulty = 1): WavePlan => {
 
   spend(seaBudget, seaPool)
   spend(siegeBudget, engines)
-  spend(totalBudget - airBudget - seaBudget - siegeBudget,
+  spend(budget - airBudget - seaBudget - siegeBudget,
     groundPool.length > 0 ? groundPool : pool)
 
   // ── Schedule ──

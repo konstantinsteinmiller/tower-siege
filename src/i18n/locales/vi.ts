@@ -71,7 +71,9 @@ export default {
       'bomber': 'Lính đánh bom', 'bat': 'Dơi', 'bulwark': 'Lính khiên', 'golem': 'Golem công thành',
       'wyvern': 'Phi long',
       'eel': 'Rắn biển',
+      'shark': 'Cá mập rạn',
       'kraken': 'Kraken',
+      'seadrake': 'Rồng biển',
       'ram': 'Cỗ phá thành',
       'ballista': 'Nỏ bắn đá',
       'catapult': 'Máy bắn đá',
@@ -110,7 +112,12 @@ export default {
     'double': 'Nhân đôi xu',
     'firstRunDouble': '2× — cuộc vây hãm đầu tiên hôm nay!',
     'tripleWave': '3× vàng — {n}',
-    'waveCleared': 'Đã chặn đợt {n}!'
+    'waveCleared': 'Đã chặn đợt {n}!',
+    'scoreLabel': 'Điểm',
+    'bestLabel': 'Điểm cao nhất',
+    'scoreCurrent': '({n} lần này)',
+    'rankLabel': 'Hạng',
+    'rankOf': 'trên {n}'
   },
 
   'tech': {

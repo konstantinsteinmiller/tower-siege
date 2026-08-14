@@ -71,7 +71,9 @@ export default {
       'bomber': 'Bommenwerper', 'bat': 'Vleermuis', 'bulwark': 'Bolwerk', 'golem': 'Belegeringsgolem',
       'wyvern': 'Wyvern',
       'eel': 'Zeeslang',
+      'shark': 'Rifhaai',
       'kraken': 'Kraken',
+      'seadrake': 'Zeedraak',
       'ram': 'Stormram',
       'ballista': 'Ballista',
       'catapult': 'Katapult',
@@ -110,7 +112,12 @@ export default {
     'double': 'Munten verdubbelen',
     'firstRunDouble': '2× — eerste beleg vandaag!',
     'tripleWave': '3× munten — {n}',
-    'waveCleared': 'Golf {n} gehouden!'
+    'waveCleared': 'Golf {n} gehouden!',
+    'scoreLabel': 'Score',
+    'bestLabel': 'Beste score',
+    'scoreCurrent': '({n} deze ronde)',
+    'rankLabel': 'Rang',
+    'rankOf': 'van {n}'
   },
 
   'tech': {

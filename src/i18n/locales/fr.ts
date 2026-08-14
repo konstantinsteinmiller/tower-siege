@@ -71,7 +71,9 @@ export default {
       'bomber': 'Bombardier', 'bat': 'Chauve-souris', 'bulwark': 'Rempart', 'golem': 'Golem de siège',
       'wyvern': 'Vouivre',
       'eel': 'Serpent de mer',
+      'shark': 'Requin de récif',
       'kraken': 'Kraken',
+      'seadrake': 'Dragon des mers',
       'ram': 'Bélier',
       'ballista': 'Baliste',
       'catapult': 'Catapulte',
@@ -110,7 +112,12 @@ export default {
     'double': 'Doubler les pièces',
     'firstRunDouble': '2× — premier siège du jour !',
     'tripleWave': '3× pièces — {n}',
-    'waveCleared': 'Vague {n} repoussée !'
+    'waveCleared': 'Vague {n} repoussée !',
+    'scoreLabel': 'Score',
+    'bestLabel': 'Record',
+    'scoreCurrent': '({n} cette partie)',
+    'rankLabel': 'Rang',
+    'rankOf': 'sur {n}'
   },
 
   'tech': {

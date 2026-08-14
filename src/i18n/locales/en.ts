@@ -128,7 +128,9 @@ export default {
       'golem': 'Siege Golem',
       'wyvern': 'Wyvern',
       'eel': 'Sea Serpent',
+      'shark': 'Reefshark',
       'kraken': 'Kraken',
+      'seadrake': 'Sea Drake',
       'ram': 'Battering Ram',
       'ballista': 'Ballista',
       'catapult': 'Catapult',
@@ -168,7 +170,12 @@ export default {
     'double': 'Double coins',
     'firstRunDouble': '2× — first siege today!',
     'tripleWave': '3× coins — {n}',
-    'waveCleared': 'Wave {n} held!'
+    'waveCleared': 'Wave {n} held!',
+    'scoreLabel': 'Score',
+    'bestLabel': 'Best score',
+    'scoreCurrent': '({n} this run)',
+    'rankLabel': 'Rank',
+    'rankOf': 'of {n}'
   },
 
   // ─── Tech tree ────────────────────────────────────────────────────────────

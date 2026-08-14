@@ -71,7 +71,9 @@ export default {
       'bomber': 'มือระเบิด', 'bat': 'ค้างคาว', 'bulwark': 'ทหารโล่', 'golem': 'โกเลมล้อมเมือง',
       'wyvern': 'ไวเวิร์น',
       'eel': 'งูทะเล',
+      'shark': 'ฉลามแนวปะการัง',
       'kraken': 'คราเคน',
+      'seadrake': 'มังกรทะเล',
       'ram': 'ไม้กระทุ้ง',
       'ballista': 'บัลลิสตา',
       'catapult': 'เครื่องยิงหิน',
@@ -110,7 +112,12 @@ export default {
     'double': 'เหรียญสองเท่า',
     'firstRunDouble': '2× — การล้อมครั้งแรกของวันนี้!',
     'tripleWave': '3× เหรียญ — {n}',
-    'waveCleared': 'ป้องกันเวฟ {n} สำเร็จ!'
+    'waveCleared': 'ป้องกันเวฟ {n} สำเร็จ!',
+    'scoreLabel': 'คะแนน',
+    'bestLabel': 'คะแนนสูงสุด',
+    'scoreCurrent': '(รอบนี้ {n})',
+    'rankLabel': 'อันดับ',
+    'rankOf': 'จาก {n}'
   },
 
   'tech': {

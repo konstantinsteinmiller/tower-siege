@@ -71,7 +71,9 @@ export default {
       'bomber': 'Pengebom', 'bat': 'Kelelawar', 'bulwark': 'Pemanggul Perisai', 'golem': 'Golem Pengepung',
       'wyvern': 'Wyvern',
       'eel': 'Ular laut',
+      'shark': 'Hiu karang',
       'kraken': 'Kraken',
+      'seadrake': 'Naga laut',
       'ram': 'Pendobrak',
       'ballista': 'Balista',
       'catapult': 'Katapel',
@@ -110,7 +112,12 @@ export default {
     'double': 'Gandakan koin',
     'firstRunDouble': '2× — pengepungan pertama hari ini!',
     'tripleWave': '3× koin — {n}',
-    'waveCleared': 'Gelombang {n} berhasil ditahan!'
+    'waveCleared': 'Gelombang {n} berhasil ditahan!',
+    'scoreLabel': 'Skor',
+    'bestLabel': 'Skor terbaik',
+    'scoreCurrent': '({n} ronde ini)',
+    'rankLabel': 'Peringkat',
+    'rankOf': 'dari {n}'
   },
 
   'tech': {

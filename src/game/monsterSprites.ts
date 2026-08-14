@@ -141,6 +141,10 @@ export const monsterFrame = (id: string, cycle01: number): HTMLCanvasElement | n
 export const monsterFaces = (id: string): 'left' | 'right' | 'front' =>
   DEFS.get(id)?.faces ?? 'front'
 
+/** How a design hangs off its position — by the feet, or by the body's middle. */
+export const monsterAnchor = (id: string): 'feet' | 'centre' =>
+  DEFS.get(id)?.anchor ?? 'feet'
+
 /**
  * Pick one design for a unit from its type's binding.
  *
