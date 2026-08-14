@@ -30,7 +30,7 @@ import {
 import useTowerEconomy from '@/use/useTowerEconomy'
 import { difficultyFactor } from '@/use/useUser'
 import { getState, setState, removeState } from '@/use/useTowerState'
-import { RUN_KEY } from '@/keys'
+import { ONBOARDED_KEY, RUN_KEY } from '@/keys'
 import { pushFx } from '@/use/useTowerVfx'
 
 /**
@@ -1736,6 +1736,20 @@ const cacheTechMultipliers = (): void => {
   mCavalry = cavalryMul.value
 }
 
+/**
+ * Is this player still in their very first session?
+ *
+ * `ts_onboarded` is written once the player has reached wave 2 — the point at
+ * which they have seen everything the opening teaches. Until then the scripted
+ * opening is on: a free starter fort (`seedScriptedOpening`) and a softened
+ * first two waves (`firstRunBudgetScale`).
+ *
+ * Read live from the state blob rather than cached, so a cloud hydrate landing
+ * mid-boot cannot hand a veteran on a second device the beginner's opening.
+ */
+export const isFirstSession = (): boolean =>
+  getState<boolean>(ONBOARDED_KEY, false) !== true
+
 /** Start the next wave immediately. Called by the Call Wave button and by the
  *  build timer running out. */
 export const callWave = (): void => {
@@ -1757,7 +1771,10 @@ export const callWave = (): void => {
   // run — which is exactly the player it should be rewarding.
   waveHpMul = difficultyFactor() * Math.pow(dynamic, 0.45)
   lostBlockThisWave = false
-  plan = planWave(next, mul)
+  // The first session's opening waves are priced under the curve. Threaded as
+  // its own flag rather than folded into `mul`, so the discount never reaches
+  // the spawn cadence or the difficulty read-out on the HUD.
+  plan = planWave(next, mul, isFirstSession())
   spawnCursor = 0
   waveClock = 0
   wave.value = next
@@ -2069,6 +2086,45 @@ export const startRun = (): void => {
   saveRunSnapshot()
 }
 
+/**
+ * The scripted opening's free starter fort, as `[typeId, c, r]`.
+ *
+ * A wall either side of the Gate and a cannon on top of it: the smallest thing
+ * that is recognisably a TOWER rather than a door on some grass. It shoots, it
+ * has flanks, and it survives wave 1 untouched — which is the entire point.
+ */
+const OPENING_FORT: ReadonlyArray<readonly [string, number, number]> = [
+  ['wood', -1, 0],
+  ['wood', 1, 0],
+  ['cannon', 0, 1]
+]
+
+/**
+ * Seed the first-session scripted opening onto a fresh foundation.
+ *
+ * Wave 1 otherwise starts as an empty foundation under a fifteen-second timer,
+ * facing a player who does not yet know that a cannon beats a crate. They are
+ * asked to invent a tower before they have been shown one. So their first run
+ * starts with one already standing — free — and their job is to EXTEND it,
+ * which is a question they can answer.
+ *
+ * The blocks are spawned, not placed: they cost nothing, and they must not
+ * count towards `blocksPlaced`, which feeds the daily missions and the lifetime
+ * achievements. The player did not place them.
+ *
+ * Only legal on the lone Gate that `startRun` leaves behind — a resumed run
+ * already has its fort in the snapshot, and handing it a second one would drop
+ * blocks into cells the player has since built on. Returns false, changing
+ * nothing, in that case.
+ */
+export const seedScriptedOpening = (): boolean => {
+  if (blocks.size !== 1 || !blocks.has(key(0, 0))) return false
+  for (const [typeId, c, r] of OPENING_FORT) spawnBlock(typeId, c, r)
+  syncTowerStats()
+  saveRunSnapshot()
+  return true
+}
+
 /** Restore the persisted siege. Returns false when there is nothing to resume,
  *  so the caller can fall back to `startRun()`. */
 export const resumeRun = (): boolean => {
@@ -2283,6 +2339,7 @@ export default function useTowerGame() {
     lastWaveReward, isBossIncoming, offers, offerEnhanced,
     rerollReadyIn, allyCount,
     startRun, resumeRun, hasSavedRun, saveRunSnapshot,
+    isFirstSession, seedScriptedOpening,
     placeBlock, placeShape, sellBlock, canPlaceAt, canPlaceShapeAt,
     canAfford, canAffordShape, rerollOffer, manualReroll, canManualReroll,
     dealEnhancedOffers, summonCavalry, cavalryCost,

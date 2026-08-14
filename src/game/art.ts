@@ -117,6 +117,21 @@ export const themedPalette = (key: string): Palette => paletteFor(key)
 // Probing is lazy and one-shot per id: the first `spriteFor()` call kicks off an
 // `Image` load; until (and unless) it decodes, the renderer's procedural path
 // runs. A 404 marks the id as "procedural forever" so we never re-request it.
+//
+// OFF BY DEFAULT. The probe's whole design assumes a miss is free — and for the
+// game it is, since the procedural path draws either way. It is not free for a
+// PORTAL: CrazyGames' QA console reports every 404 as
+// `Missing resource detected: …/images/blocks/wood.webp`, one line per block
+// and per enemy, which reads as a broken build to a reviewer. With no override
+// art shipping, every one of those requests was guaranteed to miss.
+//
+// Flip `VITE_ENABLE_ART_OVERRIDES=true` when there is art in `public/images` to
+// find; until then nothing is requested at all.
+
+const OVERRIDES_ENABLED = import.meta.env.VITE_ENABLE_ART_OVERRIDES === 'true'
+
+/** Whether drop-in bitmap art is being looked for. Exposed for diagnostics. */
+export const artOverridesEnabled = OVERRIDES_ENABLED
 
 type ProbeState = 'idle' | 'loading' | 'ready' | 'missing'
 
@@ -142,6 +157,10 @@ export type ArtKind = keyof typeof ART_FOLDERS
  * Never throws, never blocks — a missing file simply means "keep drawing it".
  */
 export const spriteFor = (kind: ArtKind, id: string): HTMLImageElement | null => {
+  // Before the cache, before the `Image` — with the feature off, not one
+  // request is made and the renderer simply keeps drawing.
+  if (!OVERRIDES_ENABLED) return null
+
   const cacheKey = `${kind}/${id}`
   let probe = probes.get(cacheKey)
 
@@ -165,6 +184,7 @@ export const spriteFor = (kind: ArtKind, id: string): HTMLImageElement | null =>
 /** Kick off override probing for everything the scene might draw, on an idle
  *  slot after first paint. Purely opportunistic — nothing waits on it. */
 export const warmSpriteProbes = (blockIds: string[], enemyIds: string[]): void => {
+  if (!OVERRIDES_ENABLED) return
   for (const id of blockIds) spriteFor('block', id)
   for (const id of enemyIds) spriteFor('enemy', id)
 }

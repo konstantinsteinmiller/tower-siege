@@ -88,8 +88,10 @@ export default {
   // ─── First-stage tutorial ─────────────────────────────────────────────────
   'tutorial': {
     'gate': 'Bescherm de Poort. Valt hij, dan is het voorbij.',
+    'gateSeeded': 'We bouwden alvast een fort voor je. Bescherm de Poort: valt hij, dan is het voorbij.',
     'pick': 'Kies een stuk.',
     'place': 'Plaats het naast de Poort.',
+    'placeSeeded': 'Zet een stuk op je muur.',
     'call': 'Roep de golf als je klaar bent.',
     'next': 'Volgende',
     'offer': 'Uitleg nodig?',

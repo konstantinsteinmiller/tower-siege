@@ -9,7 +9,14 @@ and any zoom level.
 **But every drawable already has a drop-in override slot.** `spriteFor()` probes
 for a bitmap at the paths below on first draw; if the image decodes, the
 renderer blits it instead of drawing. No code change is needed to adopt art —
-drop the file in and reload.
+drop the file in, set the flag below, and reload.
+
+> **The probe is OFF by default.** Set `VITE_ENABLE_ART_OVERRIDES=true` in `.env`
+> to turn it on. With no override art shipping, every probe missed — and a miss
+> is only free for the game, not for the portal: CrazyGames' QA console reports
+> each one as `Missing resource detected: …/images/blocks/wood.webp`, one line
+> per block and per enemy, which reads as a broken build to a reviewer. Turn it
+> on when there is art in these folders to find.
 
 ---
 
@@ -17,6 +24,7 @@ drop the file in and reload.
 
 ```
 src/game/art.ts → spriteFor(kind, id)
+  → VITE_ENABLE_ART_OVERRIDES !== 'true'?  return null, request nothing
   → probes  /public/images/<folder>/<id>.webp
   → decodes?  use the bitmap
   → 404?      keep drawing procedurally, forever (never re-requested)

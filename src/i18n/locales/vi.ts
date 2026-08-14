@@ -88,8 +88,10 @@ export default {
   // ─── First-stage tutorial ─────────────────────────────────────────────────
   'tutorial': {
     'gate': 'Bảo vệ Cổng. Cổng đổ là kết thúc.',
+    'gateSeeded': 'Chúng tôi đã dựng sẵn pháo đài khởi đầu cho bạn. Bảo vệ Cổng — Cổng đổ là kết thúc.',
     'pick': 'Chọn một mảnh.',
     'place': 'Đặt nó cạnh Cổng.',
+    'placeSeeded': 'Xếp một mảnh lên tường của bạn.',
     'call': 'Gọi đợt tấn công khi đã sẵn sàng.',
     'next': 'Tiếp',
     'offer': 'Cần hướng dẫn?',

@@ -43,6 +43,28 @@ export const waveBudget = (wave: number, difficulty = 1): number =>
   Math.round((30 * Math.pow(Math.max(1, wave), 1.06) + 30) * difficulty)
 
 /**
+ * Budget scale for a brand-new player's opening waves.
+ *
+ * Wave 1 is the only wave a player meets before they know anything: not that a
+ * cannon beats a crate, not that the Gate is the loss condition, not that the
+ * build timer is a resource. The wave that teaches them is the one they
+ * SURVIVE — a wipe thirty seconds in teaches nothing and costs the install.
+ *
+ * So the opening is priced ~40 % under the curve and eased back to full over
+ * two waves. The ramp matters as much as the discount: a straight jump from 60 %
+ * to 100 % at wave 2 reads as the game turning on them, which is the same
+ * failure with an extra wave of setup.
+ *
+ * Applied ONLY while `ts_onboarded` is false — the player's very first session —
+ * and only to waves 1-2, so nothing learned here is a lie about the game that
+ * follows.
+ *
+ *   w1 → 0.6    w2 → 0.8    w3+ → 1
+ */
+export const firstRunBudgetScale = (wave: number): number =>
+  wave <= 1 ? 0.6 : wave === 2 ? 0.8 : 1
+
+/**
  * How much tougher one individual enemy is at `wave` than at wave 1.
  *
  * Enemy HP used to be a per-type constant scaled only by the player's chosen
@@ -252,8 +274,13 @@ export const waveReward = (wave: number): { coins: number; wood: number; stone: 
  * keeping a healthy baseline of the cheap fodder that makes splash damage feel
  * good. Anything that doesn't fit the remaining budget is skipped, and the loop
  * bails once nothing affordable is left.
+ *
+ * `firstRun` softens the opening for a player in their very first session (see
+ * `firstRunBudgetScale`). It is a separate flag rather than a smaller
+ * `difficulty` on purpose: difficulty also compresses the spawn cadence, and a
+ * first wave that arrives SLOWER than normal is the opposite of the lesson.
  */
-export const planWave = (wave: number, difficulty = 1): WavePlan => {
+export const planWave = (wave: number, difficulty = 1, firstRun = false): WavePlan => {
   const rng = makeRng(wave * 2654435761)
   const boss = isBossWave(wave)
   const pool = enemyPool(wave)
@@ -261,7 +288,9 @@ export const planWave = (wave: number, difficulty = 1): WavePlan => {
 
   // A boss soaks most of the wave's threat; the escort is deliberately thin so
   // the fight reads as "one huge thing" rather than a soup.
-  const totalBudget = waveBudget(wave, difficulty) * (boss ? 0.6 : 1)
+  const totalBudget = waveBudget(wave, difficulty)
+    * (boss ? 0.6 : 1)
+    * (firstRun ? firstRunBudgetScale(wave) : 1)
 
   // Guard against a pathological pool (shouldn't happen — grunt is minWave 1).
   if (pool.length === 0) {

@@ -88,8 +88,10 @@ export default {
   // ─── First-stage tutorial ─────────────────────────────────────────────────
   'tutorial': {
     'gate': 'Darvozani himoya qil. Qulasa, o‘yin tugaydi.',
+    'gateSeeded': 'Senga boshlang‘ich qal‘a qurib berdik. Darvozani himoya qil — qulasa, o‘yin tugaydi.',
     'pick': 'Bo‘lak tanla.',
     'place': 'Uni Darvoza yoniga qo‘y.',
+    'placeSeeded': 'Devoring ustiga bo‘lak qo‘y.',
     'call': 'Tayyor bo‘lsang, to‘lqinni chaqir.',
     'next': 'Keyingi',
     'offer': 'Qo‘llanma kerakmi?',

@@ -88,8 +88,10 @@ export default {
   // ─── First-stage tutorial ─────────────────────────────────────────────────
   'tutorial': {
     'gate': 'Broń Bramy. Gdy padnie, koniec gry.',
+    'gateSeeded': 'Zbudowaliśmy ci fort na start. Broń Bramy — gdy padnie, koniec gry.',
     'pick': 'Wybierz element.',
     'place': 'Postaw go obok Bramy.',
+    'placeSeeded': 'Postaw element na swoim murze.',
     'call': 'Wezwij falę, gdy będziesz gotów.',
     'next': 'Dalej',
     'offer': 'Potrzebujesz samouczka?',

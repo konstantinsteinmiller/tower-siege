@@ -88,8 +88,10 @@ export default {
   // ─── First-stage tutorial ─────────────────────────────────────────────────
   'tutorial': {
     'gate': 'Kapıyı koru. Düşerse tur biter.',
+    'gateSeeded': 'Sana bir başlangıç kalesi kurduk. Kapıyı koru — düşerse tur biter.',
     'pick': 'Bir parça seç.',
     'place': 'Kapının yanına yerleştir.',
+    'placeSeeded': 'Duvarının üstüne bir parça koy.',
     'call': 'Hazır olunca dalgayı çağır.',
     'next': 'İleri',
     'offer': 'Eğitim ister misin?',

@@ -146,8 +146,13 @@ export default {
   // ─── First-stage tutorial ─────────────────────────────────────────────────
   'tutorial': {
     'gate': 'Protect the Gate. If it falls, the run ends.',
+    // The `*Seeded` variants are shown when the first-session scripted opening
+    // has already put a free starter fort on the foundation — the plain lines
+    // describe a bare board the player is not looking at.
+    'gateSeeded': 'We built you a starter fort. Protect the Gate — if it falls, the run ends.',
     'pick': 'Pick a piece.',
     'place': 'Place it next to the Gate.',
+    'placeSeeded': 'Stack a piece on your wall.',
     'call': 'Call the wave when you are ready.',
     'next': 'Next',
     'offer': 'Need a tutorial?',

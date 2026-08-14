@@ -88,8 +88,10 @@ export default {
   // ─── First-stage tutorial ─────────────────────────────────────────────────
   'tutorial': {
     'gate': 'Proteggi il Cancello. Se cade, la partita finisce.',
+    'gateSeeded': 'Ti abbiamo costruito un forte iniziale. Proteggi il Cancello: se cade, la partita finisce.',
     'pick': 'Scegli un pezzo.',
     'place': 'Mettilo accanto al Cancello.',
+    'placeSeeded': 'Metti un pezzo sopra il tuo muro.',
     'call': 'Chiama l’ondata quando sei pronto.',
     'next': 'Avanti',
     'offer': 'Serve un tutorial?',

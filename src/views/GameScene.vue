@@ -10,7 +10,8 @@ import useTowerGame, {
   startRun, resumeRun, placeShape, sellBlock, canPlaceShapeAt,
   canAffordShape, callWave, toggleSpeed, step, runSummary, saveRunSnapshot,
   manualReroll, canManualReroll, dealEnhancedOffers, summonCavalry, cavalryCost,
-  halfWidthAt, speedBuffLeft, grantSpeedBuff, graceAvailable, continueRun
+  halfWidthAt, speedBuffLeft, grantSpeedBuff, graceAvailable, continueRun,
+  isFirstSession, seedScriptedOpening
 } from '@/use/useTowerGame'
 import {
   setViewport, snapToFit, screenToCell, panBy, zoomAt,
@@ -582,6 +583,19 @@ const consumeFirstRunBonus = (): void => {
   setState(DAILY_BONUS_DAY_KEY, todayKey())
 }
 
+/**
+ * Begin a brand-new siege.
+ *
+ * A player who has not yet finished a first session gets the scripted opening:
+ * a free starter fort on the foundation. It stays on offer until they clear
+ * wave 2 — a run that ended on wave 1 is exactly the run that needed it, and
+ * taking the help away after the first failure is the wrong lesson.
+ */
+const beginRun = (): void => {
+  startRun()
+  if (isFirstSession()) seedScriptedOpening()
+}
+
 /** Wipe the battlefield and start a fresh siege. */
 const startFreshRun = (): void => {
   beginMissionRun()
@@ -590,7 +604,7 @@ const startFreshRun = (): void => {
   inspected.value = null
   resetVfx()
   resetDrawnFx()
-  startRun()
+  beginRun()
   progress.recordRunStart()
   snapToFit()
   startBattleMusic()
@@ -696,6 +710,36 @@ const inFirstStage = computed(() =>
   && !isAnyModalOpen.value
 )
 
+/**
+ * Is the scripted opening's free starter fort standing?
+ *
+ * Read off the TOWER rather than off a flag, so it survives a reload mid-first
+ * run — `ts_run` restores the fort, and the coach marks have to agree with what
+ * is on screen, not with what the boot path happened to do.
+ */
+const starterFort = computed(() => {
+  void towerVersion.value
+  return getBlocks().has('-1,0') && getBlocks().has('1,0')
+})
+
+/**
+ * The row the `place` beat points at: the first one with a free cell beside the
+ * Gate's column.
+ *
+ * An empty foundation means the cells flanking the Gate. With the starter fort
+ * standing those are taken, and pointing a "place it here" spotlight at two
+ * occupied cells is worse than not pointing at all — so it moves up to the
+ * shoulders.
+ */
+const placeRow = computed(() => {
+  void towerVersion.value
+  const blocks = getBlocks()
+  for (let r = 0; r < 6; r++) {
+    if (!blocks.has(`-1,${r}`) || !blocks.has(`1,${r}`)) return r
+  }
+  return 0
+})
+
 const tutorialStep = computed<TutorialStep | null>(() => {
   if (!inFirstStage.value || !tutorialActive.value) return null
   return TUTORIAL_STEPS[tutorialIndex.value] ?? null
@@ -796,11 +840,12 @@ const measureTutorialTarget = (): void => {
     tutorialRect.value = { x: gx - size / 2, y: gy - size / 2, w: size, h: size }
     return
   }
-  // `place`: the two cells flanking the Gate, which is where the first piece
-  // can actually go.
+  // `place`: the cells flanking the Gate's column on the lowest row that still
+  // has room — the foundation on an empty start, the fort's shoulders once the
+  // scripted opening has filled it.
   tutorialRect.value = {
     x: worldToScreenX(-1.5),
-    y: gy - size / 2,
+    y: worldToScreenY(placeRow.value + 0.5) - size / 2,
     w: size * 3,
     h: size
   }
@@ -1088,7 +1133,7 @@ const boot = async (): Promise<void> => {
     // it; a no-op fast path everywhere else.
     await playFirstStartInterstitial()
     if (!resumeRun()) {
-      startRun()
+      beginRun()
       progress.recordRunStart()
     }
     beginMissionRun()
@@ -1417,6 +1462,7 @@ onUnmounted(() => {
     TutorialOverlay(
       :step="tutorialStep"
       :target="tutorialRect"
+      :seeded="starterFort"
       @next="advanceTutorial"
       @skip="finishTutorial"
     )

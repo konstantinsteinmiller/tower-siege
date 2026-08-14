@@ -88,8 +88,10 @@ export default {
   // ─── First-stage tutorial ─────────────────────────────────────────────────
   'tutorial': {
     'gate': 'Schütze das Tor. Fällt es, ist der Lauf vorbei.',
+    'gateSeeded': 'Wir haben dir eine Startfeste gebaut. Schütze das Tor – fällt es, ist der Lauf vorbei.',
     'pick': 'Wähle ein Teil.',
     'place': 'Setze es neben das Tor.',
+    'placeSeeded': 'Setze ein Teil auf deine Mauer.',
     'call': 'Ruf die Welle, wenn du bereit bist.',
     'next': 'Weiter',
     'offer': 'Tutorial gefällig?',

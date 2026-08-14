@@ -88,8 +88,10 @@ export default {
   // ─── First-stage tutorial ─────────────────────────────────────────────────
   'tutorial': {
     'gate': 'Protege la Puerta. Si cae, la partida termina.',
+    'gateSeeded': 'Te construimos un fuerte inicial. Protege la Puerta: si cae, la partida termina.',
     'pick': 'Elige una pieza.',
     'place': 'Colócala junto a la Puerta.',
+    'placeSeeded': 'Coloca una pieza sobre tu muro.',
     'call': 'Llama a la oleada cuando estés listo.',
     'next': 'Siguiente',
     'offer': '¿Necesitas un tutorial?',

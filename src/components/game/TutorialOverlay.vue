@@ -30,12 +30,32 @@ interface Props {
   step: TutorialStep | null
   /** Screen-space rect to cut out of the dim layer. */
   target: { x: number; y: number; w: number; h: number } | null
+  /** The scripted opening put a free starter fort on the foundation. */
+  seeded?: boolean
 }
 
 const props = defineProps<Props>()
 const emit = defineEmits<{ (e: 'next'): void; (e: 'skip'): void }>()
 
 const { t } = useI18n()
+
+/**
+ * Beats whose line changes when the player did not start from bare ground.
+ *
+ * "Place it next to the Gate" is a lie once those cells hold the free starter
+ * wall, and a tutorial that describes a board other than the one on screen is
+ * worse than no tutorial — the player concludes they misread it and stops
+ * reading.
+ */
+const SEEDED_VARIANTS: ReadonlyArray<TutorialStep> = ['gate', 'place']
+
+const textKey = computed(() => {
+  const step = props.step
+  if (!step) return ''
+  return props.seeded && SEEDED_VARIANTS.includes(step)
+    ? `tutorial.${step}Seeded`
+    : `tutorial.${step}`
+})
 
 /** Padding around the highlighted element, so the hole never crops it. */
 const PAD = 10
@@ -104,7 +124,7 @@ onUnmounted(() => window.removeEventListener('resize', onResize))
       div.tutorial__dim.is-full(v-else)
 
       div.tutorial__card(:style="cardStyle")
-        span.tutorial__text {{ t(`tutorial.${step}`) }}
+        span.tutorial__text {{ t(textKey) }}
         div.tutorial__actions
           button.tutorial__skip(type="button" @click="emit('skip')") {{ t('tutorial.skip') }}
           button.tutorial__next(v-if="!autoAdvance" type="button" @click="emit('next')") {{ t('tutorial.next') }}

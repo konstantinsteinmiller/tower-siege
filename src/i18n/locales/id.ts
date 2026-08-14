@@ -88,8 +88,10 @@ export default {
   // ─── First-stage tutorial ─────────────────────────────────────────────────
   'tutorial': {
     'gate': 'Lindungi Gerbang. Kalau jatuh, ronde berakhir.',
+    'gateSeeded': 'Kami bangunkan benteng awal untukmu. Lindungi Gerbang — kalau jatuh, ronde berakhir.',
     'pick': 'Pilih satu bagian.',
     'place': 'Letakkan di samping Gerbang.',
+    'placeSeeded': 'Susun satu bagian di atas dindingmu.',
     'call': 'Panggil gelombang saat siap.',
     'next': 'Lanjut',
     'offer': 'Butuh tutorial?',

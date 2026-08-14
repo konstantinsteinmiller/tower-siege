@@ -88,8 +88,10 @@ export default {
   // ─── First-stage tutorial ─────────────────────────────────────────────────
   'tutorial': {
     'gate': 'Protège la Porte. Si elle tombe, la partie est finie.',
+    'gateSeeded': 'On t’a construit un fort de départ. Protège la Porte : si elle tombe, la partie est finie.',
     'pick': 'Choisis une pièce.',
     'place': 'Pose-la à côté de la Porte.',
+    'placeSeeded': 'Pose une pièce sur ton mur.',
     'call': 'Lance la vague quand tu es prêt.',
     'next': 'Suivant',
     'offer': 'Besoin d’un tutoriel ?',
