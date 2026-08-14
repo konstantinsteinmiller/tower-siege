@@ -3127,7 +3127,10 @@ const consumeFx = (ev: FxEvent): void => {
       // A soft additive bloom UNDER the drawn fireball. Kept small: it is there
       // to make the drawing glow, not to be the effect.
       emit({
-        x: ev.x, y: ev.y, life: 130, size: r * 0.5,
+        // Trimmed with the drawing it sits under: a glow that keeps its old
+        // radius around a smaller fireball stops being a glow and becomes the
+        // effect, which is the thing being cut back.
+        x: ev.x, y: ev.y, life: 130, size: r * 0.5 * BLAST_SCALE,
         color: cold ? [212, 246, 255] : [255, 250, 220], alpha: 0.45, additive: true
       })
       for (let i = 0; i < Math.round(26 * density); i++) {
@@ -3840,6 +3843,18 @@ const BLAST_R: Record<string, number> = {
 const blasts: Blast[] = []
 let blastSeq = 0
 
+/**
+ * Global size trim for every drawn blast.
+ *
+ * The hits were sized to read on their own and, in a fight, read as a wall:
+ * a splash detonation covered its whole neighbourhood and hid the monster it
+ * had just landed on — and a hit you cannot see land is feedback lost, not
+ * feedback delivered. Applied here rather than at the three call sites so the
+ * relative sizes of an arrow, a cannonball and a mortar shell stay exactly as
+ * authored, and there is one number to tune.
+ */
+const BLAST_SCALE = 0.7
+
 const spawnBlast = (
   x: number, y: number, r: number, kind: string, angle: number,
   o: { life?: number; radial?: boolean; dust?: boolean } = {}
@@ -3852,7 +3867,7 @@ const spawnBlast = (
   const life = o.life ?? 340
   blastSeq = (blastSeq + 1) % 997
   blasts.push({
-    x, y, r,
+    x, y, r: r * BLAST_SCALE,
     life, maxLife: life,
     seed: blastSeq * 7.13,
     // World angles run y-up, the canvas runs y-down.

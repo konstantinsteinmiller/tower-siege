@@ -49,7 +49,8 @@ import {
   claimReward, canOfferReward, adInFlight, isRewardGated,
   canShowInterstitial, markInterstitialShown
 } from '@/use/useAdGate'
-import { signalGameplayLoaded, syncGameplayLifecycle } from '@/use/useCrazyGames'
+import { signalGameplayLoaded } from '@/use/useCrazyGames'
+import { syncGameplayLifecycle } from '@/use/useGameplayLifecycle'
 import { isAnyModalOpen } from '@/use/useModalState'
 import { playFirstStartInterstitial } from '@/use/useFirstStartInterstitial'
 
@@ -462,6 +463,15 @@ const coinBadgeEl = computed<HTMLElement | null>(() => coinBadgeRef.value?.rootE
 
 const todayKey = (): string => new Date().toISOString().slice(0, 10)
 
+/**
+ * What the rewarded video multiplies the run's coin payout to.
+ *
+ * One source of truth: the button's own label renders this number, so the offer
+ * and the payout cannot drift apart the way a hard-coded "2×" in a translated
+ * string silently did.
+ */
+const RESULT_COIN_MULTIPLIER = 3
+
 const twoXAvailable = computed(() =>
   !twoXUsed.value && summary.value.coins > 0 && canOfferReward.value
 )
@@ -553,7 +563,9 @@ const grantRunCoins = async (): Promise<void> => {
 
 const onTwoX = async (): Promise<void> => {
   if (adInFlight.value || !twoXAvailable.value) return
-  const bonus = summary.value.coins
+  // `grantRunCoins` has already paid the run out once, so the ad tops the
+  // payout up to the full multiple rather than paying it again.
+  const bonus = summary.value.coins * (RESULT_COIN_MULTIPLIER - 1)
   await claimReward(() => {
     addCoins(bonus)
     twoXUsed.value = true
@@ -1350,12 +1362,21 @@ onUnmounted(() => {
             span.result__stat-note(v-if="playerTotal > 0") {{ t('result.rankOf', { n: playerTotal.toLocaleString() }) }}
 
         //- 2× rewarded video.
+        //- The offer reads as "3× 🪙" rather than as a sentence: it is the
+        //- loudest button on the screen and the number is the whole message.
+        //- The accessible name still spells it out.
         FRewardButton(
           v-if="twoXAvailable"
           tone="gold"
-          :label="firstRunBonusActive ? t('result.firstRunDouble') : t('result.double')"
+          label=""
+          :aria-label="firstRunBonusActive ? t('result.firstRunBonus') : t('result.tripleCoins')"
           @click="onTwoX"
         )
+          span.result__twox
+            span(v-if="firstRunBonusActive") {{ t('result.firstRunBonus') }}
+            template(v-else)
+              span {{ RESULT_COIN_MULTIPLIER }}×
+              IconCoin(class="result__twox-icon")
 
         //- One grace continue per run. Offered ABOVE the restart CTAs so it
         //- reads as the alternative to ending the run rather than a variant of
@@ -1876,10 +1897,17 @@ onUnmounted(() => {
   display: inline-flex
   align-items: center
   gap: 0.35em
+  white-space: nowrap
 
 .result__twox-icon
-  width: 1.1em
-  height: 1.1em
+  // `flex: none` and the explicit ratio are both load-bearing: as a flex item
+  // the coin was being squashed to 18x13 from a square source, which reads as
+  // a slightly wrong coin rather than as an obvious bug.
+  flex: 0 0 auto
+  width: 1.25em
+  height: 1.25em
+  aspect-ratio: 1
+  object-fit: contain
 
 .result__actions
   display: flex
@@ -1895,7 +1923,12 @@ onUnmounted(() => {
 // row of buttons falls past the edge. Drive the same values off the short axis.
 @media (orientation: landscape) and (max-height: 500px)
   .result
-    gap: 0.3rem
+    // 0.3rem left the dialog ~9px taller than a 764x385 Chromebook embed, which
+    // is not a cut-off button but IS a scrollbar over the defeat screen. The
+    // gap is the cheapest place to find it: the alternative was dropping the
+    // "(137 this run)" note, which is the half of the strip that tells the
+    // player why to press Defend Again.
+    gap: 0.08rem
 
   .result__wave
     font-size: clamp(0.95rem, 4vh, 1.3rem)
@@ -1910,7 +1943,7 @@ onUnmounted(() => {
   // Same reasoning as everything above it: drive the strip off the SHORT axis
   // in landscape, or it opens up widest exactly where there is least room.
   .result__stats
-    padding: 0.2rem 0.6rem
+    padding: 0.14rem 0.6rem
     border-radius: 0.55rem
 
   .result__stat-label

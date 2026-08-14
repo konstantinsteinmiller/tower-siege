@@ -1,4 +1,3 @@
-import { isPlaygama } from '@/use/useUser'
 
 /**
  * ─── The portal's own leaderboard ───────────────────────────────────────────
@@ -53,9 +52,13 @@ export const submitNativeScore = async (score: number): Promise<NativeSubmitResu
     return r
   }
 
-  // `isPlaygama` is inlined from `import.meta.env` at build time, so for every
-  // other platform this whole module tree-shakes out of the bundle.
-  if (!isPlaygama || !Number.isFinite(score) || score <= 0) return done('unsupported')
+  // Gated on the inline `import.meta.env` literal, NOT the `isPlaygama`
+  // re-export: cross-module constant propagation is not reliable enough for the
+  // re-exported const to read as a build-time literal, and without that every
+  // other platform's bundle picks up a lazy `playgamaPlugin` chunk it never
+  // loads. Same pattern in `main.ts` and `FLogoProgress.vue`.
+  if (import.meta.env.VITE_APP_PLAYGAMA !== 'true') return done('unsupported')
+  if (!Number.isFinite(score) || score <= 0) return done('unsupported')
 
   try {
     const { getPlaygamaBridge } = await import('@/utils/playgamaPlugin')
