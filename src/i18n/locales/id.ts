@@ -27,18 +27,25 @@ export default {
 
   'blocks': {
     'sell': 'Jual',
+    'upgrade': 'Tingkatkan',
+    'upgradeMax': 'Sudah maksimal',
+    'rank': 'Lv {n}/{max}',
+    'reinforced': 'Diperkuat',
+    'roofed': 'Beratap',
     'roofNote': 'Beratap — HP dua kali lipat, pertahanan tiga kali lipat dari atas. Butuh langit terbuka.',
-    'enhancedNote': 'Diperkuat — HP dan damage lebih besar.',
+    'enhancedNote': 'Diperkuat — +{hp}% HP, +{dmg}% kerusakan.',
     'enhancedHand': 'Set diperkuat',
     'reroll': 'Tukar bagian ini',
-    'kinds': { 'core': 'Inti', 'structure': 'Struktur', 'weapon': 'Senjata', 'economy': 'Ekonomi', 'utility': 'Utilitas' },
+    'kinds': { 'core': 'Inti', 'structure': 'Struktur', 'weapon': 'Senjata', 'economy': 'Ekonomi', 'utility': 'Utilitas', 'ship': 'Kapal' },
     'stats': {
+      'topDefense': 'Pertahanan atas',
       'hp': 'HP', 'armor': 'Armor', 'dmg': 'Kerusakan', 'cooldown': 'Jeda', 'range': 'Jangkauan',
       'splash': 'Area', 'yieldWood': 'Kayu / gelombang', 'yieldStone': 'Batu / gelombang', 'yieldCoins': 'Koin / gelombang',
       'repair': 'Perbaikan / gelombang', 'blast': 'Ledakan',
       'thorns': 'Duri'
     },
     'names': {
+      'skiff': 'Sekoci penjaga', 'longship': 'Kapal panjang', 'galley': 'Galai perang',
       'gate': 'Gerbang', 'wood': 'Peti Kayu', 'brace': 'Peti Diperkuat', 'stone': 'Blok Batu',
       'archer': 'Menara Pemanah', 'cannon': 'Meriam', 'mortar': 'Mortir', 'tesla': 'Kumparan Petir',
       'frost': 'Menara Es', 'repair': 'Bengkel',
@@ -47,6 +54,9 @@ export default {
       'bombard': 'Bombardir'
     },
     'descriptions': {
+      'skiff': 'Ditambat di air. Mengenai musuh di bawah permukaan.',
+      'longship': 'Harpun berat. Berperisai dan jangkauannya melebihi pantai.',
+      'galley': 'Pendobrak perunggu dan bombarde geladak. Danau ini milikmu.',
       'gate': 'Jantung menaramu. Jika jatuh, pengepungan berakhir.',
       'wood': 'Pengisi murah. Tulang punggung setiap menara awal.',
       'brace': 'Dua kali lipat kayu, lebih dari dua kali lipat ketahanan.',
@@ -132,6 +142,10 @@ export default {
     'requires': 'Butuh {n}',
     'spotlight': 'Belanjakan!',
     'names': {
+      'harbour': 'Pelabuhan', 'dockWorks': 'Pekerjaan dermaga',
+      'unlockLongship': 'Kapal panjang', 'seasonedHulls': 'Lambung matang',
+      'navalGunnery': 'Meriam laut', 'unlockGalley': 'Galai perang',
+      'admiralty': 'Kelaksamanaan',
       'foundations': 'Fondasi', 'sharpBolts': 'Anak Panah Tajam', 'unlockBrace': 'Peti Diperkuat',
       'lumberStock': 'Stok Kayu', 'longSight': 'Penglihatan Jauh', 'rapidFire': 'Tembakan Cepat',
       'reinforced': 'Balok Diperkuat', 'unlockSawmill': 'Penggergajian', 'quarryStock': 'Stok Batu',
@@ -149,6 +163,13 @@ export default {
       'artilleryDoctrine': 'Doktrin Artileri'
     },
     'descriptions': {
+      'harbour': 'Tambatkan kapal di air. Hanya kapal yang mengenai musuh menyelam.',
+      'dockWorks': 'Dermaga {n} petak lebih lebar per peringkat.',
+      'unlockLongship': 'Lambung berperisai dengan harpun berat.',
+      'seasonedHulls': 'Kapal mulai dengan +{n}% HP.',
+      'navalGunnery': 'Senjata kapal memberi +{n}% kerusakan.',
+      'unlockGalley': 'Pendobrak perunggu, bombarde, dan menara tempur.',
+      'admiralty': 'Senjata kapal memberi +{n}% kerusakan lagi.',
       'foundations': 'Setiap blok mulai dengan +{n}% HP.',
       'sharpBolts': 'Semua senjata memberi +{n}% kerusakan per peringkat.',
       'unlockBrace': 'Membuka Peti Diperkuat — dua kali HP kayu.',
@@ -188,7 +209,7 @@ export default {
   'resources': {
     'wood': 'kayu',
     'stone': 'batu',
-    'coins': 'koin'
+    'gold': 'emas'
   },
 
   'ads': {

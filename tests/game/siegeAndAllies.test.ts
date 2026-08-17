@@ -105,10 +105,26 @@ describe('cavalry', () => {
 })
 
 describe('the build hand', () => {
-  it('caps the foundation at four cells either side of the Gate', async () => {
+  it('starts the foundation at four cells either side of the Gate', async () => {
     const g = await loadGame()
     g.startRun()
-    expect(g.halfWidthAt(0)).toBeLessThanOrEqual(4)
+    expect(g.halfWidthAt(0)).toBe(4)
+  })
+
+  it('widens the foundation a column per foundation rank', async () => {
+    // Regression: the ground floor was `min(4, buildHalfWidth)`, so both the
+    // Wide and the Great Foundation nodes were bought and did nothing at all.
+    vi.resetModules()
+    localStorage.clear()
+    localStorage.setItem('tower_state', JSON.stringify({
+      ts_tech: { levels: { wideFoundation: 2, greatFoundation: 1 } }
+    }))
+    const g = await import('@/use/useTowerGame')
+    g.startRun()
+    expect(g.halfWidthAt(0)).toBe(7)
+    // ...and the widened footing is actually buildable, not merely reported.
+    expect(g.canPlaceAt(7, 0)).toBe(true)
+    expect(g.canPlaceAt(8, 0)).toBe(false)
   })
 
   it('never gives the foundation a wider span than the floors above it', async () => {
@@ -119,31 +135,41 @@ describe('the build hand', () => {
     expect(g.halfWidthAt(0)).toBeLessThanOrEqual(g.halfWidthAt(1))
   })
 
-  it('starts with the manual reroll ready and puts it on cooldown once used', async () => {
+  it('starts every slot ready and cools down only the slot that was used', async () => {
     const g = await loadGame()
     g.startRun()
-    expect(g.canManualReroll()).toBe(true)
+    expect([0, 1, 2, 3].every((i) => g.canManualReroll(i))).toBe(true)
 
     const before = [...g.offers.value]
     expect(g.manualReroll(0)).toBe(true)
-    expect(g.canManualReroll()).toBe(false)
-    expect(g.rerollReadyIn.value).toBeGreaterThan(0)
+    expect(g.canManualReroll(0)).toBe(false)
+    expect(g.rerollReadyIn.value[0]).toBeGreaterThan(0)
 
     // Only the targeted slot changes; the rest of the hand is untouched.
     expect(g.offers.value.slice(1)).toEqual(before.slice(1))
 
-    // A second attempt inside the cooldown is refused rather than silently
-    // consuming the charge.
-    expect(g.manualReroll(1)).toBe(false)
+    // A second attempt on the SAME slot is refused rather than silently
+    // consuming the charge...
+    expect(g.manualReroll(0)).toBe(false)
+    // ...but the other three are still theirs to spend. A shared charge meant
+    // fixing one bad piece froze the whole hand.
+    expect(g.canManualReroll(1)).toBe(true)
+    expect(g.manualReroll(1)).toBe(true)
+    expect(g.rerollReadyIn.value[2]).toBe(0)
   })
 
-  it('recharges the reroll after the cooldown elapses', async () => {
+  it('recharges a slot after its five seconds elapse', async () => {
     const g = await loadGame()
     g.startRun()
     g.manualReroll(0)
-    expect(g.canManualReroll()).toBe(false)
-    for (let i = 0; i < 700; i++) g.step(16.67)
-    expect(g.canManualReroll()).toBe(true)
+    expect(g.canManualReroll(0)).toBe(false)
+    // Four seconds in: still cooling.
+    for (let i = 0; i < 240; i++) g.step(16.67)
+    expect(g.canManualReroll(0)).toBe(false)
+    // Past five: ready again.
+    for (let i = 0; i < 120; i++) g.step(16.67)
+    expect(g.canManualReroll(0)).toBe(true)
+    expect(g.rerollReadyIn.value[0]).toBe(0)
   })
 
   it('deals a full hand of reinforced shapes', async () => {

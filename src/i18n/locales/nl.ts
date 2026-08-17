@@ -27,18 +27,25 @@ export default {
 
   'blocks': {
     'sell': 'Verkopen',
+    'upgrade': 'Upgraden',
+    'upgradeMax': 'Volledig geüpgraded',
+    'rank': 'Niv {n}/{max}',
+    'reinforced': 'Versterkt',
+    'roofed': 'Overdekt',
     'roofNote': 'Overdekt — dubbele HP, drievoudige verdediging van bovenaf. Vereist vrije hemel.',
-    'enhancedNote': 'Versterkt — meer HP en meer schade.',
+    'enhancedNote': 'Versterkt — +{hp}% HP, +{dmg}% schade.',
     'enhancedHand': 'Versterkte hand',
     'reroll': 'Dit stuk ruilen',
-    'kinds': { 'core': 'Kern', 'structure': 'Structuur', 'weapon': 'Wapen', 'economy': 'Economie', 'utility': 'Speciaal' },
+    'kinds': { 'core': 'Kern', 'structure': 'Structuur', 'weapon': 'Wapen', 'economy': 'Economie', 'utility': 'Speciaal', 'ship': 'Schip' },
     'stats': {
+      'topDefense': 'Verdediging boven',
       'hp': 'HP', 'armor': 'Pantser', 'dmg': 'Schade', 'cooldown': 'Afkoeling', 'range': 'Bereik',
       'splash': 'Gebied', 'yieldWood': 'Hout / golf', 'yieldStone': 'Steen / golf', 'yieldCoins': 'Munten / golf',
       'repair': 'Reparatie / golf', 'blast': 'Explosie',
       'thorns': 'Stekels'
     },
     'names': {
+      'skiff': 'Wachtsloep', 'longship': 'Langschip', 'galley': 'Oorlogsgalei',
       'gate': 'Poort', 'wood': 'Houten kist', 'brace': 'Verstevigde kist', 'stone': 'Stenen blok',
       'archer': 'Boogschuttertoren', 'cannon': 'Kanon', 'mortar': 'Mortier', 'tesla': 'Bliksemspoel',
       'frost': 'Vorstspits', 'repair': 'Werkplaats',
@@ -47,6 +54,9 @@ export default {
       'bombard': 'Bombarde'
     },
     'descriptions': {
+      'skiff': 'Ligt op het water. Raakt vijanden onder de oppervlakte.',
+      'longship': 'Zware harpoen. Geschild en verder dan de oever.',
+      'galley': 'Bronzen ram en dekbombarde. Het meer is van jou.',
       'gate': 'Het hart van je toren. Valt hij, dan is het beleg voorbij.',
       'wood': 'Goedkope vulling. De ruggengraat van elke beginnende toren.',
       'brace': 'Twee keer zoveel hout, meer dan twee keer zo sterk.',
@@ -132,6 +142,10 @@ export default {
     'requires': 'Vereist {n}',
     'spotlight': 'Uitgeven!',
     'names': {
+      'harbour': 'Haven', 'dockWorks': 'Havenwerken',
+      'unlockLongship': 'Langschip', 'seasonedHulls': 'Geharde rompen',
+      'navalGunnery': 'Scheepsgeschut', 'unlockGalley': 'Oorlogsgalei',
+      'admiralty': 'Admiraliteit',
       'foundations': 'Fundering', 'sharpBolts': 'Gescherpte pijlen', 'unlockBrace': 'Verstevigde kisten',
       'lumberStock': 'Houtvoorraad', 'longSight': 'Verrekijker', 'rapidFire': 'Snelvuur',
       'reinforced': 'Versterkte balken', 'unlockSawmill': 'Zagerij', 'quarryStock': 'Steenvoorraad',
@@ -149,6 +163,13 @@ export default {
       'artilleryDoctrine': 'Artilleriedoctrine'
     },
     'descriptions': {
+      'harbour': 'Meer schepen af op het water. Alleen zij raken duikers.',
+      'dockWorks': 'Meer {n} vak verder af per rang.',
+      'unlockLongship': 'Een geschilde romp met een zware harpoen.',
+      'seasonedHulls': 'Schepen starten met +{n}% HP.',
+      'navalGunnery': 'Scheepswapens doen +{n}% schade.',
+      'unlockGalley': 'Bronzen ram, dekbombarde en gevechtskasteel.',
+      'admiralty': 'Scheepswapens doen nog eens +{n}% schade.',
       'foundations': 'Elk blok begint met +{n} % HP.',
       'sharpBolts': 'Alle wapens doen +{n} % schade per rang.',
       'unlockBrace': 'Ontgrendelt de verstevigde kist: twee keer de HP van hout.',
@@ -188,7 +209,7 @@ export default {
   'resources': {
     'wood': 'hout',
     'stone': 'steen',
-    'coins': 'munten'
+    'gold': 'goud'
   },
 
   'ads': {

@@ -2,7 +2,11 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { prependBaseUrl } from '@/utils/function'
-import { isRewardGated, canOfferReward, adInFlight } from '@/use/useAdGate'
+import {
+  isRewardGated, canOfferReward, adInFlight, REWARD_COIN_COST
+} from '@/use/useAdGate'
+import { coins as walletCoins } from '@/use/useTowerEconomy'
+import IconCoin from '@/components/icons/IconCoin.vue'
 
 /**
  * The Call Wave button (reference image 1).
@@ -75,8 +79,18 @@ const buffClock = computed(() => {
 /** Show the movie badge only when tapping really will play a video. */
 const showMovie = computed(() => isRewardGated && !buffOwned.value)
 
-/** A gated build with no ad ready cannot honour the offer. */
-const offerDisabled = computed(() => adInFlight.value || !canOfferReward.value)
+/**
+ * Where no video plays, the buff is priced in wallet coins like every other
+ * perk — so the badge becomes a coin and a number rather than disappearing and
+ * leaving an unlimited free button.
+ */
+const showPrice = computed(() => !isRewardGated && !buffOwned.value)
+const tooPoor = computed(() => showPrice.value && walletCoins.value < REWARD_COIN_COST)
+
+/** A gated build with no ad ready — or an empty wallet — cannot honour it. */
+const offerDisabled = computed(
+  () => adInFlight.value || tooPoor.value || !canOfferReward.value
+)
 </script>
 
 <template lang="pug">
@@ -113,6 +127,9 @@ const offerDisabled = computed(() => adInFlight.value || !canOfferReward.value)
         span.call-wave__stack
           span.call-wave__label 2×
           span.call-wave__sub {{ t('hud.speedFor', { n: 5 }) }}
+        span.call-wave__price(v-if="showPrice")
+          IconCoin.call-wave__price-icon
+          | {{ REWARD_COIN_COST }}
 
     //- BATTLE, buff owned: a plain toggle with the time left on it.
     button.call-wave__btn.is-speed(
@@ -229,6 +246,22 @@ const offerDisabled = computed(() => adInFlight.value || !canOfferReward.value)
   flex-direction: column
   align-items: center
   line-height: 1
+
+// The price sits AFTER the label, reading "2× for five minutes — 30 coins".
+.call-wave__price
+  display: inline-flex
+  align-items: center
+  gap: 0.15em
+  color: #ffe066
+  font-weight: 900
+  font-variant-numeric: tabular-nums
+  font-size: clamp(0.62rem, 2.6vw, 0.85rem)
+  text-shadow: 2px 2px 0 #000
+
+.call-wave__price-icon
+  width: 1.05em
+  height: 1.05em
+  flex-shrink: 0
 
 .call-wave__sub
   color: #ffeec0

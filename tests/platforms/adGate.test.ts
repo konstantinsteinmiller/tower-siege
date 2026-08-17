@@ -11,8 +11,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
  *      worst possible moment for one.
  */
 
-const loadGate = async (opts: { crazy?: boolean; fullRelease?: boolean; rewardedReady?: boolean } = {}) => {
+const loadGate = async (opts: {
+  crazy?: boolean; fullRelease?: boolean; rewardedReady?: boolean
+  /** Starting wallet balance, for the coin-priced (ungated) path. */
+  wallet?: number
+} = {}) => {
   vi.resetModules()
+  localStorage.clear()
+  // Seed the wallet through the persisted blob rather than by adding coins:
+  // `addCoins(0)` is a deliberate no-op, so a zero-balance case would inherit
+  // whatever another test file left in this worker's storage.
+  localStorage.setItem('tower_state', JSON.stringify({ ts_coins: opts.wallet ?? 1000 }))
   vi.doMock('@/use/useUser', () => ({ isCrazyWeb: opts.crazy ?? false }))
   vi.doMock('@/use/useMatch', () => ({ isCrazyGamesFullRelease: opts.fullRelease ?? false }))
   const showRewardedAd = vi.fn(async () => true)
@@ -20,8 +29,9 @@ const loadGate = async (opts: { crazy?: boolean; fullRelease?: boolean; rewarded
     const { ref } = await import('vue')
     return { isRewardedReady: ref(opts.rewardedReady ?? true), showRewardedAd }
   })
+  const economy = await import('@/use/useTowerEconomy')
   const mod = await import('@/use/useAdGate')
-  return { ...mod, showRewardedAd }
+  return { ...mod, showRewardedAd, wallet: economy.coins }
 }
 
 beforeEach(() => {
@@ -30,24 +40,50 @@ beforeEach(() => {
 })
 
 describe('reward gating', () => {
-  it('grants the perk for free off the CrazyGames full release', async () => {
-    const gate = await loadGate({ crazy: false, fullRelease: false })
+  it('charges wallet coins instead of a video off the CG full release', async () => {
+    const gate = await loadGate({ crazy: false, fullRelease: false, wallet: 100 })
     const grant = vi.fn()
     expect(gate.isRewardGated).toBe(false)
     await expect(gate.claimReward(grant)).resolves.toBe(true)
     expect(grant).toHaveBeenCalledTimes(1)
     expect(gate.showRewardedAd).not.toHaveBeenCalled()
+    expect(gate.wallet.value).toBe(100 - gate.REWARD_COIN_COST)
   })
 
-  it('grants for free on a CrazyGames build that is not the full release', async () => {
-    // The pre-release QA build has no ad inventory, so a gate there would make
-    // every perk untestable AND unusable.
-    const gate = await loadGate({ crazy: true, fullRelease: false })
+  it('charges coins on a CrazyGames build that is not the full release', async () => {
+    // The pre-release QA build has no ad inventory. Granting for free there
+    // made every perk an unlimited button and left QA testing a build that
+    // behaved nothing like the one players get — so it pays in coins instead.
+    const gate = await loadGate({ crazy: true, fullRelease: false, wallet: 100 })
     const grant = vi.fn()
     expect(gate.isRewardGated).toBe(false)
     await gate.claimReward(grant)
     expect(grant).toHaveBeenCalledTimes(1)
     expect(gate.showRewardedAd).not.toHaveBeenCalled()
+    expect(gate.wallet.value).toBe(100 - gate.REWARD_COIN_COST)
+  })
+
+  it('refuses, and grants nothing, when the coins are not there', async () => {
+    const gate = await loadGate({ crazy: true, fullRelease: false, wallet: 5 })
+    const grant = vi.fn()
+    await expect(gate.claimReward(grant)).resolves.toBe(false)
+    expect(grant).not.toHaveBeenCalled()
+    expect(gate.wallet.value).toBe(5)
+  })
+
+  it('never charges coins where the video IS the price', async () => {
+    const gate = await loadGate({ crazy: true, fullRelease: true, wallet: 100 })
+    await gate.claimReward(vi.fn())
+    expect(gate.showRewardedAd).toHaveBeenCalledTimes(1)
+    expect(gate.wallet.value).toBe(100)
+  })
+
+  it('leaves an explicitly free perk free — it is the way out of a run', async () => {
+    const gate = await loadGate({ crazy: true, fullRelease: false, wallet: 0 })
+    const grant = vi.fn()
+    await expect(gate.claimReward(grant, { free: true })).resolves.toBe(true)
+    expect(grant).toHaveBeenCalledTimes(1)
+    expect(gate.wallet.value).toBe(0)
   })
 
   it('plays a rewarded video on the CrazyGames full release', async () => {

@@ -1,4 +1,4 @@
-import { blockDef, GATE_ID } from '@/game/blocks'
+import { blockDef, GATE_ID, isShip } from '@/game/blocks'
 import { enemyDef } from '@/game/enemies'
 import { themedPalette, spriteFor, withAlpha, mixHex, type Palette } from '@/game/art'
 import { isBossWave } from '@/game/waves'
@@ -8,6 +8,9 @@ import {
 } from '@/game/monsterSprites'
 import { blob, fillShape, ink, noise2, shrink, stroke as inkStroke, type Pt } from '@/game/inkArt'
 import { SHAPE_BY_ID } from '@/game/shapes'
+import { drawSiegeMachine } from '@/game/siegeArt'
+import { drawShip } from '@/game/shipArt'
+import { drawCavalry } from '@/game/cavalryArt'
 import { ALLY_DEFS } from '@/game/allies'
 import { GRASS_DEPTH, SEA_LEVEL } from '@/game/world'
 import type { Ally, Block, Enemy, EnemyDef, Projectile } from '@/game/types'
@@ -1050,9 +1053,16 @@ const drawEnemy = (target: CanvasRenderingContext2D, e: Enemy, t: number): void 
   ctx.scale(facing, 1)
 
   // Siege engines are machines, not people: no torso, no legs, no walk cycle.
-  // They get a bespoke body and their own contact shadow.
+  // They get their own module, drawn from the same ink/cel kit as the monsters.
   if (def.siege) {
-    drawSiegeEngine(ctx, e, def, p, s, t)
+    // Wheels turn with distance travelled, not with time, so a halted engine's
+    // wheels stop — the clearest signal that it has set up to fire.
+    const engaged = e.targetUid >= 0
+    drawSiegeMachine(ctx, def.id, s, p, {
+      spin: engaged ? 0 : e.x * 1.6,
+      engaged,
+      t
+    })
     ctx.restore()
     stamp()
     if (e.hp < e.maxHp && e.dying <= 0) {
@@ -1201,399 +1211,13 @@ const drawEnemy = (target: CanvasRenderingContext2D, e: Enemy, t: number): void 
   }
 }
 
-/**
- * Siege engines.
- *
- * All five share a chassis-and-wheels base so they read as one family of
- * threat, then diverge on the part the player actually has to answer: a ram
- * aimed at the Gate, a ballista firing flat, a catapult and a trebuchet
- * lobbing over the wall, and a tower delivering troops onto it.
- *
- * They are drawn much larger than an infantryman on purpose — the point of the
- * cavalry counter is that an engine is a big, slow, obviously valuable target.
- */
-const drawSiegeEngine = (
-  ctx: CanvasRenderingContext2D, e: Enemy, def: EnemyDef,
-  p: Palette, s: number, t: number
-): void => {
-  const rolling = e.targetUid < 0
-  // Wheels turn with distance travelled, not with time, so a halted engine's
-  // wheels stop — the clearest signal that it has set up to fire.
-  const spin = rolling ? e.x * 1.6 : 0
-
-  // Contact shadow.
-  ctx.fillStyle = 'rgba(0,0,0,0.32)'
-  ctx.beginPath()
-  ctx.ellipse(0, s * 0.56, s * 0.6, s * 0.11, 0, 0, Math.PI * 2)
-  ctx.fill()
-
-  /** Timber beam with a lit top edge and a dark underside. */
-  const beam = (x: number, y: number, len: number, thick: number, ang: number): void => {
-    ctx.save()
-    ctx.translate(x, y)
-    ctx.rotate(ang)
-    const g = ctx.createLinearGradient(0, -thick / 2, 0, thick / 2)
-    g.addColorStop(0, p.light)
-    g.addColorStop(0.45, p.mid)
-    g.addColorStop(1, p.dark)
-    ctx.fillStyle = g
-    roundRect(ctx, -len / 2, -thick / 2, len, thick, thick * 0.35)
-    ctx.fill()
-    ctx.strokeStyle = withAlpha('#000', 0.45)
-    ctx.lineWidth = Math.max(1, s * 0.016)
-    ctx.stroke()
-    ctx.restore()
-  }
-
-  /** Spoked cart wheel. */
-  const wheel = (x: number, y: number, r: number): void => {
-    ctx.save()
-    ctx.translate(x, y)
-    ctx.fillStyle = '#2b1f14'
-    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill()
-    ctx.strokeStyle = p.accent
-    ctx.lineWidth = Math.max(1, r * 0.22)
-    ctx.beginPath(); ctx.arc(0, 0, r * 0.86, 0, Math.PI * 2); ctx.stroke()
-    ctx.rotate(spin)
-    ctx.strokeStyle = withAlpha(p.light, 0.85)
-    ctx.lineWidth = Math.max(1, r * 0.14)
-    for (let i = 0; i < 6; i++) {
-      const a = (i / 6) * Math.PI * 2
-      ctx.beginPath()
-      ctx.moveTo(0, 0)
-      ctx.lineTo(Math.cos(a) * r * 0.8, Math.sin(a) * r * 0.8)
-      ctx.stroke()
-    }
-    ctx.fillStyle = p.accent2
-    ctx.beginPath(); ctx.arc(0, 0, r * 0.2, 0, Math.PI * 2); ctx.fill()
-    ctx.restore()
-  }
-
-  switch (def.id) {
-    case 'ram': {
-      // Roofed shed on wheels with an iron-headed log swinging inside it.
-      wheel(-s * 0.32, s * 0.44, s * 0.14)
-      wheel(s * 0.3, s * 0.44, s * 0.14)
-      beam(0, s * 0.3, s * 1.0, s * 0.1, 0)
-
-      // The log, swinging on its ropes when it is hammering something.
-      const swing = e.targetUid >= 0 ? Math.sin(t / 220) * s * 0.14 : 0
-      ctx.strokeStyle = withAlpha('#c8b48a', 0.9)
-      ctx.lineWidth = Math.max(1, s * 0.022)
-      for (const rx of [-0.2, 0.16]) {
-        ctx.beginPath()
-        ctx.moveTo(rx * s, -s * 0.26)
-        ctx.lineTo(rx * s + swing, s * 0.06)
-        ctx.stroke()
-      }
-      beam(swing, s * 0.08, s * 0.9, s * 0.17, 0)
-      // Iron ram head.
-      ctx.fillStyle = '#8a8f96'
-      ctx.beginPath()
-      ctx.moveTo(s * 0.44 + swing, -s * 0.02)
-      ctx.lineTo(s * 0.66 + swing, s * 0.08)
-      ctx.lineTo(s * 0.44 + swing, s * 0.18)
-      ctx.closePath()
-      ctx.fill()
-      ctx.strokeStyle = withAlpha('#000', 0.5)
-      ctx.lineWidth = Math.max(1, s * 0.02)
-      ctx.stroke()
-
-      // Pitched roof shielding the crew.
-      ctx.fillStyle = withAlpha(p.dark, 0.95)
-      ctx.beginPath()
-      ctx.moveTo(-s * 0.52, -s * 0.24)
-      ctx.lineTo(0, -s * 0.52)
-      ctx.lineTo(s * 0.52, -s * 0.24)
-      ctx.closePath()
-      ctx.fill()
-      ctx.strokeStyle = withAlpha(p.accent, 0.7)
-      ctx.lineWidth = Math.max(1, s * 0.025)
-      ctx.stroke()
-      break
-    }
-    case 'ironRam': {
-      // Everything about this silhouette says "arrows will not help": a shallow
-      // iron-plated roof with no gaps, riveted bands, and a blunt ram head. It
-      // is deliberately the only engine drawn in cold grey.
-      wheel(-s * 0.34, s * 0.44, s * 0.13)
-      wheel(s * 0.32, s * 0.44, s * 0.13)
-      beam(0, s * 0.3, s * 1.02, s * 0.1, 0)
-
-      // The ram log, swinging when it is hammering something.
-      const hit = e.targetUid >= 0 ? Math.sin(t / 200) * s * 0.13 : 0
-      ctx.strokeStyle = withAlpha('#8f9aa8', 0.9)
-      ctx.lineWidth = Math.max(1, s * 0.02)
-      for (const rx of [-0.22, 0.14]) {
-        ctx.beginPath()
-        ctx.moveTo(rx * s, -s * 0.18)
-        ctx.lineTo(rx * s + hit, s * 0.08)
-        ctx.stroke()
-      }
-      // The log runs well past the casemate, so the thing that does the damage
-      // is visible rather than tucked away inside the armour.
-      beam(hit + s * 0.16, s * 0.1, s * 1.0, s * 0.16, 0)
-      // Blunt iron head with a bright chamfer.
-      const headX = s * 0.62 + hit
-      const head = ctx.createLinearGradient(headX, -s * 0.06, headX, s * 0.28)
-      head.addColorStop(0, p.accent2)
-      head.addColorStop(0.5, p.accent)
-      head.addColorStop(1, p.dark)
-      ctx.fillStyle = head
-      roundRect(ctx, headX, -s * 0.03, s * 0.3, s * 0.26, s * 0.05)
-      ctx.fill()
-      ctx.strokeStyle = withAlpha('#000', 0.6)
-      ctx.lineWidth = Math.max(1, s * 0.022)
-      ctx.stroke()
-      // Banded collar where the head is lashed to the log.
-      ctx.fillStyle = withAlpha(p.light, 0.9)
-      ctx.fillRect(headX - s * 0.06, -s * 0.01, s * 0.05, s * 0.22)
-
-      // Plated casemate: a boxy shed with a shallow sloped lid, walled all the
-      // way down to the chassis. The earlier version was a free-floating dome,
-      // which read as an umbrella rather than as armour.
-      const shell = ctx.createLinearGradient(0, -s * 0.62, 0, s * 0.3)
-      shell.addColorStop(0, p.light)
-      shell.addColorStop(0.4, p.mid)
-      shell.addColorStop(1, p.dark)
-      ctx.fillStyle = shell
-      ctx.beginPath()
-      ctx.moveTo(-s * 0.56, s * 0.26)
-      ctx.lineTo(-s * 0.56, -s * 0.24)
-      ctx.lineTo(-s * 0.34, -s * 0.52)
-      ctx.lineTo(s * 0.34, -s * 0.52)
-      ctx.lineTo(s * 0.56, -s * 0.24)
-      ctx.lineTo(s * 0.56, s * 0.26)
-      ctx.closePath()
-      ctx.fill()
-      ctx.strokeStyle = withAlpha('#000', 0.6)
-      ctx.lineWidth = Math.max(1, s * 0.026)
-      ctx.stroke()
-
-      // Sloped-lid highlight, so the roof plate separates from the side wall.
-      ctx.fillStyle = withAlpha('#ffffff', 0.16)
-      ctx.beginPath()
-      ctx.moveTo(-s * 0.56, -s * 0.24)
-      ctx.lineTo(-s * 0.34, -s * 0.52)
-      ctx.lineTo(s * 0.34, -s * 0.52)
-      ctx.lineTo(s * 0.56, -s * 0.24)
-      ctx.closePath()
-      ctx.fill()
-
-      // Vertical plate seams + a riveted band along the eaves.
-      ctx.strokeStyle = withAlpha(p.dark, 0.8)
-      ctx.lineWidth = Math.max(1, s * 0.022)
-      for (const px of [-0.28, 0, 0.28]) {
-        ctx.beginPath()
-        ctx.moveTo(px * s, s * 0.26)
-        ctx.lineTo(px * s, -s * 0.5)
-        ctx.stroke()
-      }
-      ctx.fillStyle = withAlpha(p.accent2, 0.85)
-      for (const rx of [-0.46, -0.16, 0.16, 0.46]) {
-        ctx.beginPath(); ctx.arc(rx * s, -s * 0.19, s * 0.028, 0, Math.PI * 2); ctx.fill()
-      }
-
-      // A narrow vision slit, which is what makes it read as crewed armour
-      // rather than as a crate on wheels.
-      ctx.fillStyle = '#0a0d12'
-      roundRect(ctx, s * 0.16, -s * 0.42, s * 0.3, s * 0.07, s * 0.03)
-      ctx.fill()
-
-      // Arrows stuck uselessly in the plating — the story of this unit, told
-      // without a tooltip.
-      ctx.strokeStyle = '#c9b28a'
-      ctx.lineWidth = Math.max(1, s * 0.02)
-      ctx.lineCap = 'round'
-      for (const [ax, ay, aa] of [[-0.4, -0.1, -0.8], [-0.1, -0.5, -1.4], [0.5, 0.02, -0.35]] as const) {
-        const tx = ax * s - Math.cos(aa) * s * 0.19
-        const ty = ay * s - Math.sin(aa) * s * 0.19
-        ctx.beginPath()
-        ctx.moveTo(ax * s, ay * s)
-        ctx.lineTo(tx, ty)
-        ctx.stroke()
-        // Fletching, so the stuck arrows read as arrows and not as scratches.
-        ctx.fillStyle = '#b8443a'
-        ctx.beginPath()
-        ctx.arc(tx, ty, s * 0.028, 0, Math.PI * 2)
-        ctx.fill()
-      }
-      break
-    }
-    case 'ballista': {
-      // Flat-trajectory bolt thrower: a horizontal bow across a wheeled frame.
-      wheel(-s * 0.26, s * 0.42, s * 0.13)
-      wheel(s * 0.26, s * 0.42, s * 0.13)
-      beam(0, s * 0.26, s * 0.82, s * 0.1, 0)
-      beam(0, -s * 0.02, s * 0.2, s * 0.09, -0.5)
-
-      // Prod arms + string, drawn back between shots.
-      const draw = e.targetUid >= 0 ? 0.55 + 0.45 * Math.sin(t / 380) : 0.2
-      ctx.strokeStyle = p.mid
-      ctx.lineWidth = Math.max(1.6, s * 0.06)
-      ctx.lineCap = 'round'
-      ctx.beginPath()
-      ctx.moveTo(s * 0.18, -s * 0.42)
-      ctx.quadraticCurveTo(s * 0.34, -s * 0.16, s * 0.18, -s * 0.02)
-      ctx.stroke()
-      ctx.beginPath()
-      ctx.moveTo(s * 0.18, -s * 0.02)
-      ctx.quadraticCurveTo(s * 0.34, s * 0.12, s * 0.18, s * 0.24)
-      ctx.stroke()
-      ctx.strokeStyle = withAlpha('#ffffff', 0.8)
-      ctx.lineWidth = Math.max(1, s * 0.02)
-      const nockX = s * (0.18 - draw * 0.3)
-      ctx.beginPath()
-      ctx.moveTo(s * 0.18, -s * 0.42)
-      ctx.lineTo(nockX, -s * 0.09)
-      ctx.lineTo(s * 0.18, s * 0.24)
-      ctx.stroke()
-      // Loaded bolt.
-      ctx.strokeStyle = '#d8cdb0'
-      ctx.lineWidth = Math.max(1, s * 0.032)
-      ctx.beginPath()
-      ctx.moveTo(nockX, -s * 0.09)
-      ctx.lineTo(nockX + s * 0.5, -s * 0.09)
-      ctx.stroke()
-      ctx.fillStyle = p.accent2
-      ctx.beginPath()
-      ctx.moveTo(nockX + s * 0.56, -s * 0.09)
-      ctx.lineTo(nockX + s * 0.46, -s * 0.15)
-      ctx.lineTo(nockX + s * 0.46, -s * 0.03)
-      ctx.closePath()
-      ctx.fill()
-      break
-    }
-    case 'catapult': {
-      // Single-arm onager. The arm cocks back over its cycle and snaps forward.
-      wheel(-s * 0.3, s * 0.44, s * 0.14)
-      wheel(s * 0.28, s * 0.44, s * 0.14)
-      beam(0, s * 0.3, s * 0.92, s * 0.11, 0)
-      beam(-s * 0.1, s * 0.06, s * 0.44, s * 0.09, -1.1)
-
-      const cycle = (t / 1900) % 1
-      const arm = e.targetUid >= 0
-        ? (cycle < 0.75 ? -0.5 - cycle * 1.1 : -0.5 + (cycle - 0.75) * 4.2)
-        : -0.8
-      ctx.save()
-      ctx.translate(-s * 0.06, -s * 0.06)
-      ctx.rotate(arm)
-      beam(s * 0.26, 0, s * 0.62, s * 0.09, 0)
-      // Bucket and its stone.
-      ctx.fillStyle = p.dark
-      ctx.beginPath()
-      ctx.arc(s * 0.54, 0, s * 0.11, Math.PI, 0)
-      ctx.closePath()
-      ctx.fill()
-      ctx.fillStyle = '#7d7a74'
-      ctx.beginPath(); ctx.arc(s * 0.54, -s * 0.04, s * 0.075, 0, Math.PI * 2); ctx.fill()
-      ctx.restore()
-
-      // Torsion bundle at the pivot — the thing that stores the energy.
-      ctx.fillStyle = withAlpha(p.accent, 0.85)
-      ctx.beginPath(); ctx.arc(-s * 0.06, -s * 0.06, s * 0.09, 0, Math.PI * 2); ctx.fill()
-      break
-    }
-    case 'siegeTower': {
-      // Rolling tower with a drop-ramp: the only engine that puts enemies ON
-      // the wall, so it is drawn tall enough to be an obvious priority target.
-      wheel(-s * 0.3, s * 0.5, s * 0.12)
-      wheel(s * 0.28, s * 0.5, s * 0.12)
-
-      const bodyG = ctx.createLinearGradient(-s * 0.4, 0, s * 0.4, 0)
-      bodyG.addColorStop(0, p.light)
-      bodyG.addColorStop(0.5, p.mid)
-      bodyG.addColorStop(1, p.dark)
-      ctx.fillStyle = bodyG
-      roundRect(ctx, -s * 0.38, -s * 0.95, s * 0.76, s * 1.4, s * 0.06)
-      ctx.fill()
-      ctx.strokeStyle = withAlpha('#000', 0.5)
-      ctx.lineWidth = Math.max(1, s * 0.022)
-      ctx.stroke()
-
-      // Plank seams and cross-bracing.
-      ctx.strokeStyle = withAlpha(p.dark, 0.6)
-      ctx.lineWidth = Math.max(1, s * 0.02)
-      for (const yy of [-0.62, -0.28, 0.06]) {
-        ctx.beginPath(); ctx.moveTo(-s * 0.38, s * yy); ctx.lineTo(s * 0.38, s * yy); ctx.stroke()
-      }
-      ctx.beginPath()
-      ctx.moveTo(-s * 0.34, s * 0.4); ctx.lineTo(s * 0.34, -s * 0.24)
-      ctx.moveTo(s * 0.34, s * 0.4); ctx.lineTo(-s * 0.34, -s * 0.24)
-      ctx.stroke()
-
-      // Drop ramp — hinged down once it is in contact with the tower.
-      const drop = e.targetUid >= 0 ? 1 : 0
-      ctx.save()
-      ctx.translate(s * 0.36, -s * 0.86)
-      ctx.rotate(-1.15 + drop * 1.15)
-      beam(s * 0.28, 0, s * 0.6, s * 0.1, 0)
-      ctx.restore()
-
-      // Crenellated fighting top with a banner.
-      ctx.fillStyle = p.dark
-      for (const mx of [-0.36, -0.12, 0.12]) {
-        ctx.fillRect(mx * s, -s * 1.1, s * 0.18, s * 0.16)
-      }
-      ctx.fillStyle = p.accent
-      const wave = Math.sin(t / 260) * s * 0.05
-      ctx.beginPath()
-      ctx.moveTo(0, -s * 1.1)
-      ctx.lineTo(0, -s * 1.5)
-      ctx.lineTo(s * 0.3 + wave, -s * 1.42)
-      ctx.lineTo(s * 0.24, -s * 1.28)
-      ctx.lineTo(s * 0.3 + wave, -s * 1.14)
-      ctx.closePath()
-      ctx.fill()
-      break
-    }
-    case 'trebuchet': {
-      // Counterweight machine: a tall A-frame, a long throwing arm and a heavy
-      // box on the short end. The biggest silhouette on the field.
-      beam(-s * 0.34, s * 0.16, s * 0.86, s * 0.1, -1.05)
-      beam(s * 0.34, s * 0.16, s * 0.86, s * 0.1, 1.05)
-      beam(0, s * 0.5, s * 0.9, s * 0.1, 0)
-
-      const cycle = (t / 2600) % 1
-      const arm = e.targetUid >= 0
-        ? (cycle < 0.8 ? 0.6 - cycle * 0.9 : 0.6 - 0.72 + (cycle - 0.8) * 5.4)
-        : 0.4
-      ctx.save()
-      ctx.translate(0, -s * 0.5)
-      ctx.rotate(arm)
-      beam(s * 0.3, 0, s * 1.5, s * 0.085, 0)
-      // Counterweight box on the short arm.
-      ctx.fillStyle = p.dark
-      roundRect(ctx, -s * 0.58, -s * 0.1, s * 0.26, s * 0.3, s * 0.04)
-      ctx.fill()
-      ctx.strokeStyle = withAlpha(p.accent, 0.8)
-      ctx.lineWidth = Math.max(1, s * 0.02)
-      ctx.stroke()
-      // Sling trailing off the long end.
-      ctx.strokeStyle = withAlpha('#d8cdb0', 0.85)
-      ctx.lineWidth = Math.max(1, s * 0.018)
-      ctx.beginPath()
-      ctx.moveTo(s * 1.02, 0)
-      ctx.quadraticCurveTo(s * 1.12, s * 0.2, s * 0.94, s * 0.3)
-      ctx.stroke()
-      ctx.fillStyle = '#7d7a74'
-      ctx.beginPath(); ctx.arc(s * 0.94, s * 0.32, s * 0.08, 0, Math.PI * 2); ctx.fill()
-      ctx.restore()
-
-      // Pivot pin.
-      ctx.fillStyle = p.accent
-      ctx.beginPath(); ctx.arc(0, -s * 0.5, s * 0.07, 0, Math.PI * 2); ctx.fill()
-      break
-    }
-  }
-}
 
 /**
  * Cavalry — the player's own units.
  *
- * Drawn in a cool blue with a gold pennant so they never get confused with the
- * warm-toned enemies, and with a dust plume behind them so a charge reads as
- * fast even at a glance. `life` fades them out as their contract expires.
+ * The body itself lives in `cavalryArt`; this handles only what the battlefield
+ * owns: where the rider sits, which way it faces, the hit flash, and the fade
+ * as its contract expires (`life`), so a rider vanishing never looks like a bug.
  */
 const drawAlly = (target: CanvasRenderingContext2D, a: Ally, t: number): void => {
   const def = ALLY_DEFS[a.typeId]
@@ -1620,105 +1244,13 @@ const drawAlly = (target: CanvasRenderingContext2D, a: Ally, t: number): void =>
   ctx.translate(cx, cy)
   ctx.scale(a.dir, 1)
 
-  const gallop = Math.sin(a.phase * 6)
-  ctx.translate(0, -Math.abs(gallop) * s * 0.06)
-
-  // Dust plume trailing the charge.
-  ctx.fillStyle = 'rgba(196,182,150,0.3)'
-  for (let i = 0; i < 3; i++) {
-    const d = 0.4 + i * 0.28
-    ctx.beginPath()
-    ctx.arc(-s * d, s * 0.5, s * (0.16 - i * 0.03) * (0.7 + 0.3 * Math.sin(t / 120 + i)), 0, Math.PI * 2)
-    ctx.fill()
-  }
-
-  // Contact shadow.
-  ctx.fillStyle = 'rgba(0,0,0,0.28)'
-  ctx.beginPath()
-  ctx.ellipse(0, s * 0.55, s * 0.42, s * 0.1, 0, 0, Math.PI * 2)
-  ctx.fill()
-
-  // Legs, alternating in a four-beat gallop.
-  ctx.strokeStyle = p.dark
-  ctx.lineWidth = Math.max(1.4, s * 0.075)
-  ctx.lineCap = 'round'
-  for (const [ox, ph] of [[-0.22, 0], [-0.14, 1.6], [0.18, 3.1], [0.26, 4.7]] as const) {
-    const sw = Math.sin(a.phase * 6 + ph) * s * 0.16
-    ctx.beginPath()
-    ctx.moveTo(ox * s, s * 0.18)
-    ctx.lineTo(ox * s + sw, s * 0.5)
-    ctx.stroke()
-  }
-
-  // Horse body.
-  const horse = ctx.createLinearGradient(0, -s * 0.25, 0, s * 0.3)
-  horse.addColorStop(0, p.light)
-  horse.addColorStop(0.55, p.mid)
-  horse.addColorStop(1, p.dark)
-  ctx.fillStyle = horse
-  ctx.beginPath()
-  ctx.ellipse(0, s * 0.06, s * 0.34, s * 0.19, 0, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.strokeStyle = withAlpha('#000', 0.45)
-  ctx.lineWidth = Math.max(1, s * 0.03)
-  ctx.stroke()
-
-  // Neck and head.
-  ctx.fillStyle = p.mid
-  ctx.beginPath()
-  ctx.moveTo(s * 0.2, -s * 0.02)
-  ctx.lineTo(s * 0.44, -s * 0.32)
-  ctx.lineTo(s * 0.56, -s * 0.26)
-  ctx.lineTo(s * 0.34, s * 0.1)
-  ctx.closePath()
-  ctx.fill()
-  ctx.stroke()
-
-  // Tail.
-  ctx.strokeStyle = p.dark
-  ctx.lineWidth = Math.max(1.2, s * 0.06)
-  ctx.beginPath()
-  ctx.moveTo(-s * 0.32, -s * 0.02)
-  ctx.quadraticCurveTo(-s * 0.5, s * 0.06 + gallop * s * 0.05, -s * 0.46, s * 0.24)
-  ctx.stroke()
-
-  // Rider: torso, helm, and a couched lance that thrusts on the attack beat.
-  ctx.fillStyle = p.accent
-  ctx.beginPath()
-  ctx.ellipse(-s * 0.02, -s * 0.26, s * 0.11, s * 0.15, 0, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.strokeStyle = withAlpha('#000', 0.45)
-  ctx.lineWidth = Math.max(1, s * 0.025)
-  ctx.stroke()
-  ctx.fillStyle = p.accent2
-  ctx.beginPath()
-  ctx.arc(s * 0.02, -s * 0.46, s * 0.1, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.stroke()
-  // Plume.
-  ctx.fillStyle = '#ff5a5a'
-  ctx.beginPath()
-  ctx.moveTo(s * 0.02, -s * 0.56)
-  ctx.quadraticCurveTo(-s * 0.1, -s * 0.72, -s * 0.16, -s * 0.5)
-  ctx.quadraticCurveTo(-s * 0.06, -s * 0.54, s * 0.02, -s * 0.5)
-  ctx.closePath()
-  ctx.fill()
-
-  const thrust = a.targetUid >= 0 ? Math.max(0, Math.sin(t / 110)) * s * 0.16 : 0
-  ctx.strokeStyle = '#cbb894'
-  ctx.lineWidth = Math.max(1.2, s * 0.045)
-  ctx.beginPath()
-  ctx.moveTo(-s * 0.2, -s * 0.16)
-  ctx.lineTo(s * 0.62 + thrust, -s * 0.3)
-  ctx.stroke()
-  ctx.fillStyle = '#e2e8f0'
-  ctx.beginPath()
-  ctx.moveTo(s * 0.74 + thrust, -s * 0.32)
-  ctx.lineTo(s * 0.6 + thrust, -s * 0.36)
-  ctx.lineTo(s * 0.6 + thrust, -s * 0.24)
-  ctx.closePath()
-  ctx.fill()
-
+  // The whole rider is drawn by its own module, from the same ink/cel kit as
+  // the monster cast — see `cavalryArt`.
+  drawCavalry(ctx, s, p, {
+    phase: a.phase,
+    striking: a.targetUid >= 0,
+    t
+  })
   ctx.restore()
   stamp()
 
@@ -4652,6 +4184,42 @@ export const setBuildOverlay = (next: Partial<BuildOverlay>): void => {
   overlay = { ...overlay, ...next }
 }
 
+/**
+ * The "nothing may go here" cross, drawn in the cell ABOVE a gable.
+ *
+ * A roofed cell seals its column, and until this existed the only feedback was
+ * the ghost outline turning red once the player had already aimed at the dead
+ * slot — which reads as "the game refused my tap", not as a rule. Marking the
+ * sealed cell itself, before the tap, turns the same rule into something the
+ * player can see and plan around.
+ *
+ * Drawn as a disc plus a thick cross so it survives being 14 px wide on a
+ * zoomed-out phone, where a bare stroked ✕ dissolves into the sky.
+ */
+const drawSealMark = (
+  ctx: CanvasRenderingContext2D, cx: number, cy: number, size: number, alpha: number
+): void => {
+  const r = size * 0.3
+  ctx.save()
+  ctx.globalAlpha = alpha
+  ctx.fillStyle = 'rgba(24, 6, 10, 0.55)'
+  ctx.beginPath()
+  ctx.arc(cx, cy, r, 0, Math.PI * 2)
+  ctx.fill()
+
+  ctx.strokeStyle = '#ff4d4d'
+  ctx.lineWidth = Math.max(1.5, size * 0.09)
+  ctx.lineCap = 'round'
+  const a = r * 0.62
+  ctx.beginPath()
+  ctx.moveTo(cx - a, cy - a)
+  ctx.lineTo(cx + a, cy + a)
+  ctx.moveTo(cx + a, cy - a)
+  ctx.lineTo(cx - a, cy + a)
+  ctx.stroke()
+  ctx.restore()
+}
+
 const drawBuildOverlay = (ctx: CanvasRenderingContext2D, t: number): void => {
   const zoom = getZoom()
   const pulse = 0.5 + 0.5 * Math.sin(t / 420)
@@ -4684,6 +4252,24 @@ const drawBuildOverlay = (ctx: CanvasRenderingContext2D, t: number): void => {
     }
   }
 
+  // Cells already sealed by a gable somewhere in the standing tower.
+  //
+  // Only while a piece is armed — outside build mode these would be pure noise —
+  // and faded with distance from the pointer, on the same falloff as the
+  // sockets, so a tower with a dozen roofs doesn't turn into a field of crosses.
+  if (shape) {
+    const hasHover = overlay.hoverC != null && overlay.hoverR != null
+    for (const b of getBlocks().values()) {
+      if (!b.roof) continue
+      let near = 0.55
+      if (hasHover) {
+        const d = Math.hypot(b.c - overlay.hoverC!, b.r + 1 - overlay.hoverR!)
+        near = Math.max(0.14, 0.85 - d / 7)
+      }
+      drawSealMark(ctx, worldToScreenX(b.c), worldToScreenY(b.r + 1.5), zoom, near)
+    }
+  }
+
   // Ghost preview — the WHOLE shape, drawn from the anchor under the pointer,
   // so the player sees the exact footprint they are committing to.
   if (shape && overlay.hoverC != null && overlay.hoverR != null) {
@@ -4708,6 +4294,20 @@ const drawBuildOverlay = (ctx: CanvasRenderingContext2D, t: number): void => {
       roundRect(ctx, x, y, zoom, zoom, zoom * 0.12)
       ctx.stroke()
     }
+
+    // What THIS piece would seal if the player commits, at full strength — the
+    // cost of a roofed shape is the cell it takes off the board above itself,
+    // and that has to be visible before the tap, not after.
+    const own = new Set(shape.cells.map(([dx, dy]) => `${dx},${dy}`))
+    shape.cells.forEach(([dx, dy], i) => {
+      if (!roofs.has(i)) return
+      // A gable under another cell of the same piece is already illegal and is
+      // flagged by the red footprint outline; a second marker there is noise.
+      if (own.has(`${dx},${dy + 1}`)) return
+      const cx = worldToScreenX(overlay.hoverC! + dx)
+      const cy = worldToScreenY(overlay.hoverR! + dy + 1.5)
+      drawSealMark(ctx, cx, cy, zoom, 0.75 + pulse * 0.25)
+    })
   }
 
   // Range circle for the inspected turret — the clearest way to teach reach.
@@ -4757,6 +4357,21 @@ const drawBlock = (ctx: CanvasRenderingContext2D, b: Block, t: number, fallOffse
   ctx.translate(cx, cy)
   if (fallRot !== 0) ctx.rotate(fallRot)
   ctx.scale(sx, sy)
+
+  // A hull is not a cube of material: it has its own module, it is clipped at
+  // the waterline, and it rolls. It also skips the pop-in squash, the damage
+  // stages and the roof cap, none of which mean anything for a boat.
+  if (isShip(b.typeId)) {
+    drawShip(ctx, b.typeId, size, themedPalette(blockDef(b.typeId).palette), {
+      aim: b.aim, t, seed: b.uid
+    })
+    ctx.restore()
+    if (b.hp < b.maxHp && fallOffset === 0) {
+      drawHpBar(ctx, cx, cy - size * 0.72, size * 0.72, Math.max(2, size * 0.07),
+        b.hp / b.maxHp, false)
+    }
+    return
+  }
 
   const override = spriteFor('block', b.typeId)
   if (override) {
@@ -4860,6 +4475,33 @@ const drawBlock = (ctx: CanvasRenderingContext2D, b: Block, t: number, fallOffse
     drawHpBar(ctx, cx, cy - size * 0.6, size * 0.72, Math.max(2, size * 0.07),
       b.hp / b.maxHp, b.typeId === GATE_ID)
   }
+
+  // Upgrade rank — one gold chevron per rank bought with run gold.
+  //
+  // Stacked in the bottom-left corner rather than written as a number: at 20 px
+  // a cell no digit is legible, but "how many notches" is, and that is the only
+  // question the marker has to answer from across the tower.
+  const rank = b.level ?? 0
+  if (rank > 0 && fallOffset === 0) {
+    ctx.save()
+    ctx.translate(cx - size * 0.36, cy + size * 0.36)
+    ctx.strokeStyle = '#ffd93c'
+    ctx.lineWidth = Math.max(1, size * 0.055)
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.shadowColor = 'rgba(0,0,0,0.75)'
+    ctx.shadowBlur = Math.max(1, size * 0.05)
+    const w = size * 0.11
+    for (let i = 0; i < rank; i++) {
+      const y = -i * size * 0.11
+      ctx.beginPath()
+      ctx.moveTo(-w, y)
+      ctx.lineTo(0, y - w * 0.8)
+      ctx.lineTo(w, y)
+      ctx.stroke()
+    }
+    ctx.restore()
+  }
 }
 
 // ─── Reflection ─────────────────────────────────────────────────────────────
@@ -4889,6 +4531,9 @@ const drawReflection = (ctx: CanvasRenderingContext2D, t: number): void => {
   ctx.transform(1, 0, Math.sin(t / 900) * 0.02, 1, 0, 0)
 
   for (const b of getBlocks().values()) {
+    // Hulls are already sitting ON the surface; mirroring one would print a
+    // second boat upside-down through the one the player is looking at.
+    if (isShip(b.typeId)) continue
     const size = zoom
     const cx = worldToScreenX(b.c)
     const cy = worldToScreenY(b.r + 0.5)

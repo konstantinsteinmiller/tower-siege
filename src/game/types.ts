@@ -11,7 +11,7 @@
 
 // ─── Blocks ─────────────────────────────────────────────────────────────────
 
-export type BlockKind = 'core' | 'structure' | 'weapon' | 'economy' | 'utility'
+export type BlockKind = 'core' | 'structure' | 'weapon' | 'economy' | 'utility' | 'ship'
 
 /** `bomb` and `fire` are dropped BY enemies onto the tower, not fired at them. */
 export type ProjectileKind = 'bolt' | 'ball' | 'shell' | 'zap' | 'frost' | 'bomb' | 'fire'
@@ -38,6 +38,15 @@ export interface WeaponSpec {
   targeting: TargetingMode
   /** Can this weapon hit flying enemies? Mortars cannot (they arc to ground). */
   hitsAir: boolean
+  /**
+   * Can this weapon hit a sea creature that has NOT surfaced?
+   *
+   * Everything on land is refused a submerged target — that is the sea lane's
+   * whole threat. A hull sitting on the water is the exception: it is the one
+   * platform with anything pointed downward, which is the entire reason to buy
+   * a harbour.
+   */
+  hitsSubmerged?: boolean
 }
 
 export interface EconomySpec {
@@ -75,6 +84,12 @@ export interface BlockDef {
   utility?: UtilitySpec
   /** Tech-tree node id that unlocks this block. Absent = available at start. */
   unlockNode?: string
+  /**
+   * Floats: may ONLY be placed on the water row, needs no support under it,
+   * and holds nothing up. The tower's structural rules simply do not apply to
+   * a hull, so it is flagged rather than special-cased at every call site.
+   */
+  waterOnly?: boolean
   /** Ordering weight in the build tray (lower = further left). */
   order: number
   /** Base palette key — the active theme remaps these. */
@@ -94,6 +109,9 @@ export interface Block {
   /** Reinforced variant from the rewarded-ad hand: more HP, more damage, and a
    *  moving sheen so it is obvious which parts of the tower are the good ones. */
   enhanced?: boolean
+  /** Ranks bought with run gold from the inspector. Raises HP, output and
+   *  armour; dies with the run. Absent is the same as 0. */
+  level?: number
   hp: number
   maxHp: number
   /** Weapon cooldown remaining, ms. */
@@ -371,9 +389,10 @@ export interface RunSnapshot {
   runCoins: number
   kills: number
   killsByType: KillTally
-  /** Compact tuples keep the blob small: `[c, r, typeId, hp, roof, enhanced]`.
-   *  The trailing flags are optional so older snapshots still load. */
-  blocks: Array<[number, number, string, number, (0 | 1)?, (0 | 1)?]>
+  /** Compact tuples keep the blob small:
+   *  `[c, r, typeId, hp, roof, enhanced, level]`.
+   *  The trailing fields are optional so older snapshots still load. */
+  blocks: Array<[number, number, string, number, (0 | 1)?, (0 | 1)?, number?]>
   /** The four shape ids currently on offer. Persisted so a reload cannot be
    *  used to reroll a hand the player doesn't like. */
   offers: string[]
@@ -400,6 +419,9 @@ export type TechEffect =
   | { kind: 'waveRepair'; pct: number }
   | { kind: 'thorns'; pct: number }
   | { kind: 'cavalryPower'; pct: number }
+  | { kind: 'navalDamage'; pct: number }
+  | { kind: 'navalHp'; pct: number }
+  | { kind: 'dockWidth'; add: number }
 
 export interface TechNode {
   id: string

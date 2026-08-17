@@ -49,6 +49,17 @@ const box = (c: GlyphCtx, x: number, y: number, w: number, h: number): void => {
   c.fill()
 }
 
+/** A boat hull seen from the side: flat sheer, raked stem, rounded forefoot. */
+const hull = (c: GlyphCtx, halfW: number): void => {
+  c.beginPath()
+  c.moveTo(-halfW, 0.1)
+  c.lineTo(halfW, 0.06)
+  c.lineTo(halfW * 0.72, 0.4)
+  c.lineTo(-halfW * 0.72, 0.4)
+  c.closePath()
+  c.fill()
+}
+
 const tri = (c: GlyphCtx, ax: number, ay: number, bx: number, by: number, cx: number, cy: number): void => {
   c.beginPath()
   c.moveTo(ax, ay)
@@ -235,6 +246,33 @@ export const BLOCK_GLYPHS: Record<string, GlyphFn> = {
       c.ellipse(0, 0.26 - i * 0.24, 0.36, 0.13, 0, 0, Math.PI * 2)
       c.fill()
     }
+  },
+
+  // ── Ships ──
+  // All three read as a hull on a waterline; the rig above it is what
+  // separates them, which is the same cue the in-world art uses.
+  skiff: (c) => {
+    hull(c, 0.34)
+    c.beginPath()
+    c.moveTo(-0.02, 0.06); c.lineTo(-0.02, -0.36); c.lineTo(0.26, -0.12); c.closePath()
+    c.fill()
+  },
+  longship: (c) => {
+    hull(c, 0.44)
+    box(c, -0.04, -0.44, 0.08, 0.48)
+    c.beginPath()
+    c.moveTo(-0.3, -0.38); c.lineTo(0.3, -0.38); c.lineTo(0.22, -0.06); c.lineTo(-0.22, -0.06)
+    c.closePath(); c.fill()
+  },
+  galley: (c) => {
+    hull(c, 0.46)
+    box(c, -0.04, -0.5, 0.08, 0.5)
+    c.beginPath()
+    c.moveTo(-0.34, -0.44); c.lineTo(0.34, -0.44); c.lineTo(0.24, -0.04); c.lineTo(-0.24, -0.04)
+    c.closePath(); c.fill()
+    // Ram at the bow.
+    c.beginPath()
+    c.moveTo(0.46, 0.14); c.lineTo(0.62, 0.2); c.lineTo(0.46, 0.26); c.closePath(); c.fill()
   }
 }
 
@@ -244,7 +282,8 @@ const KIND_FALLBACK: Record<BlockKind, GlyphFn> = {
   structure: BLOCK_GLYPHS.wood!,
   weapon: BLOCK_GLYPHS.cannon!,
   economy: BLOCK_GLYPHS.mint!,
-  utility: BLOCK_GLYPHS.repair!
+  utility: BLOCK_GLYPHS.repair!,
+  ship: BLOCK_GLYPHS.skiff!
 }
 
 export const blockGlyph = (typeId: string, kind: BlockKind): GlyphFn =>

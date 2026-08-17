@@ -25,7 +25,12 @@ export const ALLY_DEFS: Record<string, AllyDef> = {
     reach: 0.9,
     cost: 40,
     lifeMs: 22_000,
-    scale: 0.8,
+    // Bigger than a Brute (0.85) and short of a Siege Golem (1.45). A horse
+    // and an armoured rider are simply larger than the infantry they ride
+    // through, and at 0.8 the barding, the shield device and the lance pennon
+    // were all detail nobody could resolve — the player was paying forty gold
+    // for something smaller than the thing it was killing.
+    scale: 1.1,
     palette: 'cavalry'
   }
 }

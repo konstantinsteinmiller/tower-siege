@@ -27,18 +27,25 @@ export default {
 
   'blocks': {
     'sell': '売却',
+    'upgrade': 'アップグレード',
+    'upgradeMax': '最大強化済み',
+    'rank': 'Lv {n}/{max}',
+    'reinforced': '強化済み',
+    'roofed': '屋根付き',
     'roofNote': '屋根付き — HP2倍、上からの攻撃に防御3倍。上に空きが必要。',
-    'enhancedNote': '強化済み — HPもダメージも上乗せ。',
+    'enhancedNote': '強化済み — HP +{hp}%、ダメージ +{dmg}%。',
     'enhancedHand': '強化ブロック',
     'reroll': 'このピースを交換',
-    'kinds': { 'core': 'コア', 'structure': '構造', 'weapon': '兵器', 'economy': '経済', 'utility': '特殊' },
+    'kinds': { 'core': 'コア', 'structure': '構造', 'weapon': '兵器', 'economy': '経済', 'utility': '特殊', 'ship': '艦船' },
     'stats': {
+      'topDefense': '上面防御',
       'hp': 'HP', 'armor': '装甲', 'dmg': 'ダメージ', 'cooldown': 'クールダウン', 'range': '射程',
       'splash': '範囲', 'yieldWood': '木材 / ウェーブ', 'yieldStone': '石材 / ウェーブ', 'yieldCoins': 'コイン / ウェーブ',
       'repair': '修理 / ウェーブ', 'blast': '爆発',
       'thorns': '棘'
     },
     'names': {
+      'skiff': '哨戒艇', 'longship': 'ロングシップ', 'galley': '戦闘ガレー',
       'gate': 'ゲート', 'wood': '木箱', 'brace': '補強木箱', 'stone': '石ブロック',
       'archer': '弓塔', 'cannon': 'キャノン', 'mortar': '迫撃砲', 'tesla': '雷コイル',
       'frost': '氷塔', 'repair': '修理場',
@@ -47,6 +54,9 @@ export default {
       'bombard': '臼砲'
     },
     'descriptions': {
+      'skiff': '水上に係留。水面下の敵にも当たる。',
+      'longship': '重銛。盾を並べ、岸より射程が長い。',
+      'galley': '青銅の衝角と甲板砲。湖はあなたのものだ。',
       'gate': 'タワーの心臓部。失えば包囲戦は終了です。',
       'wood': '安価な埋め草。序盤のタワーの背骨。',
       'brace': '木材2倍、耐久はそれ以上。',
@@ -132,6 +142,10 @@ export default {
     'requires': '必要：{n}',
     'spotlight': '使おう！',
     'names': {
+      'harbour': '港', 'dockWorks': '埠頭工事',
+      'unlockLongship': 'ロングシップ', 'seasonedHulls': '熟成船体',
+      'navalGunnery': '艦砲術', 'unlockGalley': '戦闘ガレー',
+      'admiralty': '海軍本部',
       'foundations': '基礎', 'sharpBolts': '鋭利な矢', 'unlockBrace': '補強木箱',
       'lumberStock': '木材備蓄', 'longSight': '遠見', 'rapidFire': '速射',
       'reinforced': '補強梁', 'unlockSawmill': '製材所', 'quarryStock': '石材備蓄',
@@ -149,6 +163,13 @@ export default {
       'artilleryDoctrine': '砲兵ドクトリン'
     },
     'descriptions': {
+      'harbour': '水上に艦を係留。潜行中の敵を撃てるのは艦だけ。',
+      'dockWorks': 'ランクごとに係留域が{n}マス広がる。',
+      'unlockLongship': '盾を並べた船体に重銛を搭載。',
+      'seasonedHulls': '艦船のHPが+{n}%で始まる。',
+      'navalGunnery': '艦載兵器のダメージ+{n}%。',
+      'unlockGalley': '青銅の衝角、甲板砲、戦闘楼。',
+      'admiralty': '艦載兵器のダメージがさらに+{n}%。',
       'foundations': 'すべてのブロックのHPが +{n}% で始まります。',
       'sharpBolts': '全兵器のダメージがランクごとに +{n}%。',
       'unlockBrace': '補強木箱を解放——木材の2倍のHP。',
@@ -188,7 +209,7 @@ export default {
   'resources': {
     'wood': '木材',
     'stone': '石材',
-    'coins': 'コイン'
+    'gold': '金貨'
   },
 
   'ads': {

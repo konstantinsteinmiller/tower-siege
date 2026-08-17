@@ -1,13 +1,16 @@
 import { ref, computed, shallowRef, triggerRef, watch, type ComputedRef, type Ref } from 'vue'
 import {
-  BLOCK_DEFS, blockDef, GATE_ID, sellRefund, ENHANCED_HP_MUL, ENHANCED_DAMAGE_MUL
+  BLOCK_DEFS, blockDef, GATE_ID, isShip, sellRefund, ENHANCED_HP_MUL, ENHANCED_DAMAGE_MUL,
+  ROOF_HP_MUL, ROOF_TOP_DEFENSE_DIV,
+  MAX_BLOCK_LEVEL, blockUpgradeCost, upgradeHpMul, upgradePowerMul, upgradeArmorBonus
 } from '@/game/blocks'
 import { ENEMY_DEFS, enemyDef } from '@/game/enemies'
 import { monsterGore } from '@/game/monsters'
 import { pickMonster } from '@/game/monsterSprites'
 import { ALLY_DEFS, allyDef, CAVALRY_SQUAD } from '@/game/allies'
 import {
-  OFFER_SLOTS, shapeDef, shapeCost, rollOffer, rollOffers, SHAPE_BY_ID
+  OFFER_SLOTS, shapeDef, shapeCost, rollOffer, rollOffers, SHAPE_BY_ID,
+  WEAPON_SLOT, pickAffordableWeapon
 } from '@/game/shapes'
 import { SEA_SWIM_Y, SEA_STRIKE_Y } from '@/game/world'
 import {
@@ -25,7 +28,7 @@ import {
   damageMul, fireRateMul, rangeMul, splashMul, chainBonus,
   blockHpMul, gateHpMul, armorBonus, waveRewardMul, coinDropMul,
   waveRepairPct, startWood, startStone, buildHalfWidth, availableBlocks,
-  thornsMul, cavalryMul
+  thornsMul, cavalryMul, navalDamageMul, navalHpMul, dockHalfWidth
 } from '@/use/useTowerProgress'
 import useTowerEconomy from '@/use/useTowerEconomy'
 import { difficultyFactor } from '@/use/useUser'
@@ -73,19 +76,27 @@ const KNOCKBACK_SPEED = 11
 const BOSS_CRUSH_PCT = 0.14
 /** Radius around the impact point that gets caught, in cells. */
 const CRUSH_RADIUS = 0.95
+/** Practical bound on how far ANY floor may reach out from the centre. */
+export const UPPER_HALF_WIDTH = 22
+
 /**
- * Half-width of the GROUND FLOOR, in cells.
+ * The one row hulls live on.
  *
- * Fixed at 4 either side of the Gate regardless of the foundation tech, which
- * only widens the rows above. A tower has to be built UP from a bounded
- * footing rather than smeared into a flat wall along the whole ground lane —
- * that is what makes height, collapse and structural support matter at all.
+ * A cell `(c, r)` spans `y ∈ [r, r+1]`, so row −1 spans `[−1, 0]` and its
+ * centre lands exactly on `SEA_LEVEL` (−0.5). A ship placed there sits ON the
+ * waterline with its deck above and its hull below, for free — no offset, no
+ * special case in the renderer.
  */
-const FOUNDATION_HALF_WIDTH = 4
-/** Practical bound on how far an upper floor may reach out from the centre. */
-const UPPER_HALF_WIDTH = 22
-/** How often the player may swap one offer for a fresh piece, ms. */
-const REROLL_COOLDOWN_MS = 10_000
+export const WATER_ROW = -1
+/**
+ * How long a slot waits before it may be swapped again, ms.
+ *
+ * PER SLOT, not shared. A single shared charge meant swapping one bad piece
+ * locked the other three as well, so the cost of fixing a dead slot was three
+ * more dead slots — the opposite of what a reroll is for. Four independent
+ * timers let the player fix the hand they were dealt and still have the hand.
+ */
+const REROLL_COOLDOWN_MS = 5_000
 
 // ─── Live state (plain, non-reactive) ───────────────────────────────────────
 
@@ -124,6 +135,7 @@ let mArmor = 0
 let mCoinDrop = 1
 let mThorns = 1
 let mCavalry = 1
+let mNavalDamage = 1
 
 // ─── Reactive HUD surface (scalars only) ────────────────────────────────────
 
@@ -191,8 +203,27 @@ export const offers = shallowRef<string[]>([])
  *  the rewarded-ad button. */
 export const offerEnhanced = shallowRef<boolean[]>([false, false, false, false])
 
-/** Milliseconds until the free manual reroll is available again. */
-export const rerollReadyIn = ref(0)
+/**
+ * Whole SECONDS left on each slot's reroll cooldown; 0 means ready.
+ *
+ * The millisecond countdown lives in a plain array below and is ticked every
+ * frame. Only this whole-second projection is reactive, and it is replaced only
+ * when one of the displayed numbers actually changes — otherwise the build tray
+ * would re-render sixty times a second to show the same "3".
+ */
+export const rerollReadyIn = shallowRef<number[]>([0, 0, 0, 0])
+
+/** Live per-slot cooldowns in ms. Plain: ticked every frame, never rendered. */
+const rerollTimers: number[] = [0, 0, 0, 0]
+
+/** Push the whole-second projection out to the HUD if it changed. */
+const syncRerollClocks = (): void => {
+  const next = rerollTimers.map((ms) => Math.ceil(ms / 1000))
+  const cur = rerollReadyIn.value
+  for (let i = 0; i < next.length; i++) {
+    if (next[i] !== cur[i]) { rerollReadyIn.value = next; return }
+  }
+}
 
 /** Live cavalry count, for the HUD button's badge. */
 export const allyCount = ref(0)
@@ -222,7 +253,10 @@ export const measureTower = (): TowerStrength => {
     if (b.r + 1 > height) height = b.r + 1
     const w = blockDef(b.typeId).weapon
     if (!w) continue
-    const dmg = w.damage * mDamage * (b.enhanced ? ENHANCED_DAMAGE_MUL : 1)
+    const dmg = w.damage
+      * (blockDef(b.typeId).waterOnly ? mNavalDamage : mDamage)
+      * (b.enhanced ? ENHANCED_DAMAGE_MUL : 1)
+      * upgradePowerMul(b.level)
     const cd = Math.max(120, w.cooldownMs / mFireRate)
     // Splash weapons hit more than one thing, so their real contribution is
     // higher than a naive damage/cooldown suggests.
@@ -262,19 +296,6 @@ const blockAt = (c: number, r: number): Block | undefined => blocks.get(key(c, r
 
 /** Effective max HP for a block type, after tech. The Gate gets its own
  *  multiplier on top so investing in it is a distinct, legible choice. */
-/** A gable is structure, not decoration: a roofed block is twice the block. */
-const ROOF_HP_MUL = 2
-
-/**
- * Damage divisor for hits that land on the roof itself.
- *
- * Expressed as a divisor rather than as triple flat armour on purpose. Armour
- * here is SUBTRACTED, and the wooden roofed shapes carry none at all — tripling
- * zero would have given the player a roof that does nothing against the one
- * thing a roof is for, which is bombers.
- */
-const ROOF_TOP_DEFENSE_DIV = 3
-
 /**
  * Is this hit coming down on top of the block?
  *
@@ -285,16 +306,21 @@ const ROOF_TOP_DEFENSE_DIV = 3
 const isTopSide = (b: Block, fromY: number | undefined): boolean =>
   fromY !== undefined && fromY >= b.r + 0.85
 
-const maxHpFor = (typeId: string, enhanced = false, roof = false): number => {
+export const maxHpFor = (
+  typeId: string, enhanced = false, roof = false, level = 0
+): number => {
   const def = blockDef(typeId)
-  let base = def.hp * blockHpMul.value
+  // A hull is timber on water, not masonry on rock: the tower's structural
+  // tech does nothing for it, and the harbour's own line does everything.
+  let base = def.hp * (def.waterOnly ? navalHpMul.value : blockHpMul.value)
   if (typeId === GATE_ID) base *= gateHpMul.value
   if (enhanced) base *= ENHANCED_HP_MUL
   if (roof) base *= ROOF_HP_MUL
-  return Math.round(base)
+  return Math.round(base * upgradeHpMul(level))
 }
 
-const armorFor = (b: Block): number => (blockDef(b.typeId).armor ?? 0) + mArmor
+const armorFor = (b: Block): number =>
+  (blockDef(b.typeId).armor ?? 0) + mArmor + upgradeArmorBonus(b.level)
 
 /** Bounds of the standing tower — drives camera auto-fit and the run summary. */
 export const towerBounds = (): { minC: number; maxC: number; maxR: number } => {
@@ -327,8 +353,12 @@ const syncTowerStats = (): void => {
 /**
  * Buildable half-width for a given row.
  *
- * ONLY the ground floor is capped — at four cells either side of the Gate,
- * widened from there by the foundation tech. Every floor above it is free.
+ * ONLY the ground floor is capped — at `buildHalfWidth`, which starts at four
+ * cells either side of the Gate and is widened a column per rank by the Wide /
+ * Great Foundation tech. Every floor above it is free.
+ *
+ * The cap USED to be `min(4, buildHalfWidth)`, which pinned the foundation at
+ * its starting width forever and made both foundation nodes buy nothing.
  *
  * That asymmetry is the whole point. Capping every row produced exactly one
  * shape, a rectangle that grew straight up, because there was never a reason to
@@ -346,9 +376,26 @@ const syncTowerStats = (): void => {
  * infinity if someone sets out to build a mile-wide shelf.
  */
 export const halfWidthAt = (r: number): number =>
-  r === 0 ? Math.min(FOUNDATION_HALF_WIDTH, buildHalfWidth.value) : UPPER_HALF_WIDTH
+  r === WATER_ROW
+    ? Math.min(dockHalfWidth.value, UPPER_HALF_WIDTH)
+    : r === 0
+      ? Math.min(buildHalfWidth.value, UPPER_HALF_WIDTH)
+      : UPPER_HALF_WIDTH
 
-export const canPlaceAt = (c: number, r: number): boolean => {
+/**
+ * Is `(c, r)` a legal berth for a hull?
+ *
+ * Hulls obey none of the tower's structural rules — they float. No support, no
+ * neighbour, nothing above or below: just an empty berth inside the dock's
+ * width, on the one row that is water.
+ */
+export const canMoorAt = (c: number, r: number): boolean =>
+  r === WATER_ROW && Math.abs(c) <= halfWidthAt(WATER_ROW) && !blocks.has(key(c, r))
+
+export const canPlaceAt = (c: number, r: number, typeId?: string): boolean => {
+  // A hull and a crate are placed by completely different rules, so the type
+  // decides which set applies before anything else is checked.
+  if (typeId !== undefined && isShip(typeId)) return canMoorAt(c, r)
   if (r < 0) return false
   if (Math.abs(c) > halfWidthAt(r)) return false
   if (blocks.has(key(c, r))) return false
@@ -377,6 +424,12 @@ export const canPlaceShapeAt = (shapeId: string, c: number, r: number): boolean 
   const def = SHAPE_BY_ID[shapeId]
   if (!def) return false
   if (phase.value === 'defeat') return false
+
+  // A naval piece is a single hull in a berth. It shares none of the tower's
+  // placement rules, so it is answered here rather than threaded through them.
+  if (def.cells.every(([, , typeId]) => isShip(typeId))) {
+    return def.cells.every(([dx, dy]) => canMoorAt(c + dx, r + dy))
+  }
 
   const own = new Set<string>()
   for (const [dx, dy] of def.cells) own.add(key(c + dx, r + dy))
@@ -440,6 +493,34 @@ export const placeShape = (slotIndex: number, c: number, r: number): boolean => 
   return true
 }
 
+/**
+ * Guarantee the hand always holds a gun the player can pay for.
+ *
+ * The weapon lane already guarantees a gun is OFFERED; this guarantees it is
+ * BUYABLE, which is the thing that actually matters. Without it a player can be
+ * handed a wave with four pieces they cannot afford and no way to raise a
+ * defence — a loss with no decision in it. Most acutely on wave 1, where a run
+ * is decided before the player has done anything.
+ *
+ * Deliberately quiet: it only fires when NO offered gun is affordable, so a
+ * hand the player can already act on is never rearranged under them.
+ *
+ * The swapped slot keeps whatever enhanced flag it had. If the reinforced piece
+ * the rewarded ad dealt was the unaffordable one, the player paid for that
+ * reinforcement and should keep it on the piece that replaces it.
+ */
+const ensureAffordableWeapon = (): void => {
+  const armed = offers.value.some(
+    (id) => SHAPE_BY_ID[id]?.lane === 'weapon' && canAffordShape(id)
+  )
+  if (armed) return
+  const gun = pickAffordableWeapon(wave.value, availableBlocks.value, canAffordShape)
+  if (!gun || offers.value[WEAPON_SLOT] === gun) return
+  const next = offers.value.slice()
+  next[WEAPON_SLOT] = gun
+  offers.value = next
+}
+
 /** Reroll one offer slot, avoiding duplicates with the other three. */
 export const rerollOffer = (slotIndex: number): void => {
   const next = offers.value.slice()
@@ -451,22 +532,26 @@ export const rerollOffer = (slotIndex: number): void => {
   const flags = offerEnhanced.value.slice()
   flags[slotIndex] = false
   offerEnhanced.value = flags
+  ensureAffordableWeapon()
 }
 
 /**
- * The player's own reroll, on a 10 s cooldown.
+ * The player's own reroll: one independent five-second timer per slot.
  *
- * Without it a bad hand is a dead ten seconds: four structure pieces you can't
+ * Without it a bad hand is a dead build phase — four structure pieces you can't
  * afford, or a fourth wooden domino when what you need is a gun. The cooldown
- * keeps it from becoming a slot machine you spin until you get the piece you
- * wanted — you get one swap, so it has to be the right one.
+ * keeps it from becoming a slot machine you spin until the piece you wanted
+ * comes up, but it is charged to the SLOT you spun, so fixing one dead offer no
+ * longer freezes the three that were fine.
  */
-export const canManualReroll = (): boolean => rerollReadyIn.value <= 0
+export const canManualReroll = (slotIndex: number): boolean =>
+  slotIndex >= 0 && slotIndex < OFFER_SLOTS && (rerollTimers[slotIndex] ?? 0) <= 0
+
 export const manualReroll = (slotIndex: number): boolean => {
-  if (!canManualReroll()) return false
-  if (slotIndex < 0 || slotIndex >= OFFER_SLOTS) return false
+  if (!canManualReroll(slotIndex)) return false
   rerollOffer(slotIndex)
-  rerollReadyIn.value = REROLL_COOLDOWN_MS
+  rerollTimers[slotIndex] = REROLL_COOLDOWN_MS
+  syncRerollClocks()
   return true
 }
 
@@ -474,12 +559,14 @@ export const manualReroll = (slotIndex: number): boolean => {
 export const dealEnhancedOffers = (): void => {
   offers.value = rollOffers(wave.value, availableBlocks.value)
   offerEnhanced.value = [true, true, true, true]
+  ensureAffordableWeapon()
 }
 
 /** Deal a fresh hand of four. */
 const dealOffers = (): void => {
   offers.value = rollOffers(wave.value, availableBlocks.value)
   offerEnhanced.value = [false, false, false, false]
+  ensureAffordableWeapon()
 }
 
 /**
@@ -515,15 +602,17 @@ export const canAfford = (typeId: string): boolean => {
 /** Create a block in the grid. Shared by shape placement, the gate and the
  *  snapshot restore, so every path produces identically-shaped instances. */
 const spawnBlock = (
-  typeId: string, c: number, r: number, roof = false, hp?: number, enhanced = false
+  typeId: string, c: number, r: number, roof = false, hp?: number, enhanced = false,
+  level = 0
 ): Block => {
-  const maxHp = maxHpFor(typeId, enhanced, roof)
+  const maxHp = maxHpFor(typeId, enhanced, roof, level)
   const block: Block = {
     uid: uidCounter++,
     c, r,
     typeId,
     roof,
     enhanced,
+    level,
     hp: hp ?? maxHp,
     maxHp,
     cd: 0,
@@ -541,7 +630,7 @@ const spawnBlock = (
  *  tests; the player always goes through `placeShape`. */
 export const placeBlock = (typeId: string, c: number, r: number): boolean => {
   if (phase.value === 'defeat') return false
-  if (!canPlaceAt(c, r) || !canAfford(typeId)) return false
+  if (!canPlaceAt(c, r, typeId) || !canAfford(typeId)) return false
 
   const def = blockDef(typeId)
   wood.value -= def.cost.wood ?? 0
@@ -570,6 +659,57 @@ export const sellBlock = (c: number, r: number): { wood: number; stone: number; 
   return refund
 }
 
+// ─── In-run block upgrades ──────────────────────────────────────────────────
+
+/** Gold price of the next rank on the block at `(c, r)`, or `Infinity`. */
+export const upgradeCostAt = (c: number, r: number): number => {
+  const b = blockAt(c, r)
+  return b ? blockUpgradeCost(b.typeId, b.level ?? 0) : Infinity
+}
+
+/** Is the next rank both available and affordable right now? */
+export const canUpgradeBlock = (c: number, r: number): boolean => {
+  const b = blockAt(c, r)
+  if (!b || (b.level ?? 0) >= MAX_BLOCK_LEVEL) return false
+  return runCoins.value >= blockUpgradeCost(b.typeId, b.level ?? 0)
+}
+
+/**
+ * Spend run gold to add one rank to a placed block.
+ *
+ * The HP the rank buys is granted as CURRENT hit points too, not just ceiling.
+ * An upgrade bought at half health that only raised `maxHp` would read to the
+ * player as their block getting more damaged, which is the opposite of what
+ * they just paid for.
+ *
+ * The Gate is upgradeable on purpose: it is the one block the player cannot
+ * replace, and "spend gold on the thing you are defending" is the most obvious
+ * use of the currency there is.
+ */
+export const upgradeBlock = (c: number, r: number): boolean => {
+  const b = blockAt(c, r)
+  if (!b) return false
+  const level = b.level ?? 0
+  if (level >= MAX_BLOCK_LEVEL) return false
+  const cost = blockUpgradeCost(b.typeId, level)
+  if (runCoins.value < cost) return false
+
+  runCoins.value -= cost
+  // Gold just left the purse, which can put the offered gun out of reach.
+  ensureAffordableWeapon()
+  b.level = level + 1
+  const before = b.maxHp
+  b.maxHp = maxHpFor(b.typeId, b.enhanced, b.roof, b.level)
+  b.hp = Math.min(b.maxHp, b.hp + Math.max(0, b.maxHp - before))
+  if (b.uid === gateUid) syncGateRefs()
+  // Bumped so the inspector — which holds a plain, non-reactive block — knows
+  // its numbers just changed.
+  towerVersion.value++
+  pushFx({ kind: 'place', x: b.c, y: b.r + 0.5, palette: blockDef(b.typeId).palette })
+  if (phase.value === 'build') saveRunSnapshot()
+  return true
+}
+
 /** Remove a block from the grid. `violent` routes it through the destruction
  *  VFX + TNT detonation; a sale is quiet. */
 const removeBlock = (b: Block, violent: boolean): void => {
@@ -586,7 +726,7 @@ const removeBlock = (b: Block, violent: boolean): void => {
     // a large area denial. Damages enemies only — chaining through the player's
     // own tower would make it a trap rather than a tool.
     pushFx({ kind: 'explosion', x: b.c, y: b.r + 0.5, radius: boom.radius })
-    damageEnemiesInRadius(b.c, b.r + 0.5, boom.radius, boom.damage)
+    damageEnemiesInRadius(b.c, b.r + 0.5, boom.radius, boom.damage * upgradePowerMul(b.level))
   }
 }
 
@@ -622,6 +762,10 @@ const resolveOrphans = (): void => {
     ]
     for (const n of neighbours) {
       if (!n) continue
+      // A moored hull is not structure. It must never conduct support up into
+      // the tower, or a player could hold a cantilever together with a rowing
+      // boat tied to the bottom of it.
+      if (isShip(n.typeId)) continue
       const k = key(n.c, n.r)
       if (reachable.has(k)) continue
       reachable.add(k)
@@ -631,7 +775,7 @@ const resolveOrphans = (): void => {
 
   let collapsed = 0
   for (const b of [...blocks.values()]) {
-    if (b.r === 0) continue // resting on the ground; nowhere to fall
+    if (b.r <= 0) continue // on the ground or afloat; nowhere to fall
     if (reachable.has(key(b.c, b.r))) continue
     blocks.delete(key(b.c, b.r))
     blocksByUid.delete(b.uid)
@@ -816,6 +960,34 @@ const groundFrontier = (e: Enemy): Block | undefined => {
 }
 
 /**
+ * A sea creature's target: the first HULL in its path, or the shore if there
+ * is none.
+ *
+ * This is what makes a harbour a real commitment rather than a free turret
+ * platform. Ships stand between the lake and the tower, so anything swimming
+ * in meets them first — a fleet that out-damages the sea lane never gets
+ * touched, and one that does not is eaten before the tower is.
+ *
+ * Ground infantry never see hulls at all (`groundFrontier` only looks at row
+ * zero), so a harbour buys nothing against a wave that walks. That asymmetry
+ * is deliberate: it is an answer to ONE lane, bought from its own tree.
+ */
+const seaTarget = (e: Enemy): Block | undefined => {
+  let best: Block | undefined
+  for (const b of blocks.values()) {
+    if (b.r !== WATER_ROW) continue
+    if (e.dir === 1) {
+      if (b.c + 0.5 < e.x) continue
+      if (!best || b.c < best.c) best = b
+    } else {
+      if (b.c - 0.5 > e.x) continue
+      if (!best || b.c > best.c) best = b
+    }
+  }
+  return best ?? groundFrontier(e)
+}
+
+/**
  * Flyers pick the HIGHEST block they can reach, biased toward the side they
  * came from. That's their whole design purpose: a player who stacks all their
  * defence at ground level has nothing pointed at the roof.
@@ -823,10 +995,15 @@ const groundFrontier = (e: Enemy): Block | undefined => {
 /**
  * A siege engine's target.
  *
- * `targetsGate` engines (the ram) drive past the frontier and swing at the Gate
- * itself — a tower that walled its flanks but left the centre thin has no
- * answer. `ladderHeight` engines let their crew strike blocks several rows up,
- * so height alone stops being safety.
+ * `targetsGate` engines drive past the frontier and swing at the Gate itself.
+ * No enemy currently carries it: the rams did, and the result was a machine
+ * parked bodily inside the wall it was supposedly breaking. The flag is kept
+ * because the behaviour is a legitimate one to give something later — but
+ * anything that uses it needs art that can survive standing in a stone block.
+ *
+ * `ladderHeight` engines let their crew strike blocks several rows up, so
+ * height alone stops being safety. The siege tower's archers are drawn in its
+ * fighting top for exactly that reason.
  */
 const siegeTarget = (e: Enemy): Block | undefined => {
   const def = enemyDef(e.typeId)
@@ -935,11 +1112,13 @@ const stepEnemies = (dt: number): void => {
 
     if (def.siege) e.spin = (e.spin ?? 0) + dtSec * def.speed * 2.6
 
-    const target = def.movement === 'air'
-      ? airTarget(e)
-      : def.siege
-        ? siegeTarget(e)
-        : groundFrontier(e)
+    const target = def.movement === 'sea'
+      ? seaTarget(e)
+      : def.movement === 'air'
+        ? airTarget(e)
+        : def.siege
+          ? siegeTarget(e)
+          : groundFrontier(e)
     if (!target) { e.targetUid = -1; continue }
 
     // ── Bombers ──
@@ -1106,7 +1285,7 @@ const applyThorns = (block: Block, attacker: Enemy): void => {
   const thorns = blockDef(block.typeId).utility?.thorns
   if (!thorns) return
   if (enemyDef(attacker.typeId).reach > 2) return
-  damageEnemy(attacker, thorns * mThorns, block.c)
+  damageEnemy(attacker, thorns * mThorns * upgradePowerMul(block.level), block.c)
   pushFx({ kind: 'thorns', x: attacker.x, y: attacker.y })
 }
 
@@ -1238,6 +1417,8 @@ export const summonCavalry = (): boolean => {
     })
   }
   allyCount.value = allies.length
+  // A sortie is paid for in gold, which can put the offered gun out of reach.
+  ensureAffordableWeapon()
   pushFx({ kind: 'cavalryOut', x: 0, y: 0.5, dir })
   return true
 }
@@ -1336,7 +1517,8 @@ const stepAllyCombat = (dt: number): void => {
 // ─── Turrets ────────────────────────────────────────────────────────────────
 
 const pickTarget = (
-  b: Block, range: number, hitsAir: boolean, mode: string, kind?: ProjectileKind
+  b: Block, range: number, hitsAir: boolean, mode: string, kind?: ProjectileKind,
+  hitsSubmerged = false
 ): Enemy | null => {
   const bx = b.c
   const by = b.r + 0.5
@@ -1354,7 +1536,9 @@ const pickTarget = (
     if (kind && def.immuneTo?.includes(kind)) continue
     // A submerged sea creature is under the water and cannot be shot. It only
     // becomes a target once it has broken the surface to strike.
-    if (def.movement === 'sea' && (e.surfaced ?? 0) < 0.35) continue
+    // Submerged sea creatures are under the water and cannot be shot — unless
+    // the weapon is standing ON the water, which is the harbour's whole point.
+    if (def.movement === 'sea' && (e.surfaced ?? 0) < 0.35 && !hitsSubmerged) continue
     const dx = e.x - bx
     const dy = e.y - by
     const d2 = dx * dx + dy * dy
@@ -1384,7 +1568,9 @@ const stepTurrets = (dt: number): void => {
     }
 
     const range = w.range * mRange
-    const target = pickTarget(b, range, w.hitsAir, w.targeting, w.projectile)
+    const target = pickTarget(
+      b, range, w.hitsAir, w.targeting, w.projectile, w.hitsSubmerged === true
+    )
     if (!target) continue
 
     const bx = b.c
@@ -1392,7 +1578,10 @@ const stepTurrets = (dt: number): void => {
     b.aim = Math.atan2(target.y - by, target.x - bx)
     b.cd = w.cooldownMs / mFireRate
     b.recoil = 1
-    const damage = w.damage * mDamage * (b.enhanced ? ENHANCED_DAMAGE_MUL : 1)
+    const damage = w.damage
+      * (def.waterOnly ? mNavalDamage : mDamage)
+      * (b.enhanced ? ENHANCED_DAMAGE_MUL : 1)
+      * upgradePowerMul(b.level)
 
     if (w.projectile === 'zap') {
       fireLightning(b, target, damage, (w.chain ?? 0) + mChain, range)
@@ -1734,6 +1923,7 @@ const cacheTechMultipliers = (): void => {
   mCoinDrop = coinDropMul.value
   mThorns = thornsMul.value
   mCavalry = cavalryMul.value
+  mNavalDamage = navalDamageMul.value
 }
 
 /**
@@ -1883,12 +2073,15 @@ const completeWave = (): void => {
   // move the moment the field clears.
   for (const b of blocks.values()) {
     const def = blockDef(b.typeId)
+    // An upgraded producer produces more — the inspector advertises the raised
+    // figure, so the payout has to match it.
+    const power = upgradePowerMul(b.level)
     if (def.economy) {
-      gainedWood += def.economy.wood ?? 0
-      gainedStone += def.economy.stone ?? 0
-      coins += def.economy.coins ?? 0
+      gainedWood += Math.round((def.economy.wood ?? 0) * power)
+      gainedStone += Math.round((def.economy.stone ?? 0) * power)
+      coins += Math.round((def.economy.coins ?? 0) * power)
     }
-    const repair = def.utility?.repairPerWave
+    const repair = Math.round((def.utility?.repairPerWave ?? 0) * power)
     if (repair) {
       for (const n of [blockAt(b.c - 1, b.r), blockAt(b.c + 1, b.r), blockAt(b.c, b.r - 1), blockAt(b.c, b.r + 1)]) {
         if (n) n.hp = Math.min(n.maxHp, n.hp + repair)
@@ -1935,6 +2128,9 @@ const completeWave = (): void => {
   phase.value = 'build'
   buildTimeLeft.value = buildTimeMs(wave.value + 1)
   buildDeadline = buildTimeLeft.value
+  // Entering a build phase is the moment the guarantee matters most: whatever
+  // the player does next, they must be able to put a gun on the tower.
+  ensureAffordableWeapon()
   syncGateRefs()
   saveRunSnapshot()
   pushFx({ kind: 'waveClear', x: 0, y: 0, wave: wave.value })
@@ -2013,8 +2209,9 @@ export const saveRunSnapshot = (): void => {
     killsByType: { ...killsByType.value },
     blocks: [...blocks.values()].map(
       (b) => [
-        b.c, b.r, b.typeId, Math.round(b.hp), b.roof ? 1 : 0, b.enhanced ? 1 : 0
-      ] as [number, number, string, number, 0 | 1, 0 | 1]
+        b.c, b.r, b.typeId, Math.round(b.hp), b.roof ? 1 : 0, b.enhanced ? 1 : 0,
+        b.level ?? 0
+      ] as [number, number, string, number, 0 | 1, 0 | 1, number]
     ),
     // Persisted so a reload can't be used to reroll a hand the player dislikes.
     offers: offers.value.slice(),
@@ -2043,8 +2240,8 @@ const clearWorld = (): void => {
   plan = { wave: 0, orders: [], total: 0, boss: false }
 }
 
-const spawnGate = (hp?: number): void => {
-  const gate = spawnBlock(GATE_ID, 0, 0, false, hp)
+const spawnGate = (hp?: number, level = 0): void => {
+  const gate = spawnBlock(GATE_ID, 0, 0, false, hp, false, level)
   gateUid = gate.uid
   syncGateRefs()
 }
@@ -2079,7 +2276,8 @@ export const startRun = (): void => {
   spawnGate()
   syncTowerStats()
   dealOffers()
-  rerollReadyIn.value = 0
+  rerollTimers.fill(0)
+  rerollReadyIn.value = [0, 0, 0, 0]
   phase.value = 'build'
   buildTimeLeft.value = buildTimeMs(1)
   buildDeadline = buildTimeLeft.value
@@ -2153,22 +2351,24 @@ export const resumeRun = (): boolean => {
   let gateRestored = false
   for (const tuple of snap.blocks) {
     if (!Array.isArray(tuple) || tuple.length < 4) continue
-    const [c, r, typeId, hp, roof, enhanced] = tuple
+    const [c, r, typeId, hp, roof, enhanced, level] = tuple
     if (typeof c !== 'number' || typeof r !== 'number' || typeof typeId !== 'string') continue
     if (!BLOCK_DEFS[typeId]) continue
+    // Older snapshots have no rank field at all, so an absent one is rank 0.
+    const rank = Math.max(0, Math.min(MAX_BLOCK_LEVEL, Math.floor(Number(level) || 0)))
     if (typeId === GATE_ID) {
-      spawnGate(Math.max(1, Number(hp) || 1))
+      spawnGate(Math.max(1, Number(hp) || 1), rank)
       gateRestored = true
       continue
     }
     const isEnhanced = enhanced === 1
-    const maxHp = maxHpFor(typeId, isEnhanced, roof === 1)
+    const maxHp = maxHpFor(typeId, isEnhanced, roof === 1, rank)
     // Clamp HP to the CURRENT max: a tech purchase between sessions should
     // raise the ceiling, never leave a block sitting above it.
     const restored = spawnBlock(
       typeId, c, r, roof === 1,
       Math.max(1, Math.min(maxHp, Number(hp) || maxHp)),
-      isEnhanced
+      isEnhanced, rank
     )
     restored.bornAt = -9999 // skip the pop-in animation for restored blocks
   }
@@ -2187,6 +2387,7 @@ export const resumeRun = (): boolean => {
   const saved = Array.isArray(snap.offers) ? snap.offers : []
   const restoredOffers = saved.filter((id) => typeof id === 'string' && SHAPE_BY_ID[id])
   offers.value = restoredOffers.length === OFFER_SLOTS ? restoredOffers : rollOffers(wave.value, availableBlocks.value)
+  ensureAffordableWeapon()
 
   phase.value = 'build'
   buildTimeLeft.value = buildTimeMs(wave.value + 1)
@@ -2217,7 +2418,13 @@ export const runSummary = () => ({
 
 const fixedStep = (dt: number): void => {
   clock += dt
-  if (rerollReadyIn.value > 0) rerollReadyIn.value = Math.max(0, rerollReadyIn.value - dt)
+  let cooling = false
+  for (let i = 0; i < rerollTimers.length; i++) {
+    if (rerollTimers[i]! <= 0) continue
+    rerollTimers[i] = Math.max(0, rerollTimers[i]! - dt)
+    cooling = true
+  }
+  if (cooling) syncRerollClocks()
 
   if (phase.value === 'build') {
     buildDeadline -= dt
@@ -2341,6 +2548,7 @@ export default function useTowerGame() {
     startRun, resumeRun, hasSavedRun, saveRunSnapshot,
     isFirstSession, seedScriptedOpening,
     placeBlock, placeShape, sellBlock, canPlaceAt, canPlaceShapeAt,
+    upgradeBlock, canUpgradeBlock, upgradeCostAt,
     canAfford, canAffordShape, rerollOffer, manualReroll, canManualReroll,
     dealEnhancedOffers, summonCavalry, cavalryCost,
     callWave, toggleSpeed, step, runSummary, towerBounds, blockAt, halfWidthAt

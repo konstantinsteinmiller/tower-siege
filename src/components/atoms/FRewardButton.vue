@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { prependBaseUrl } from '@/utils/function'
-import { isRewardGated, canOfferReward, adInFlight } from '@/use/useAdGate'
+import {
+  isRewardGated, canOfferReward, adInFlight, REWARD_COIN_COST
+} from '@/use/useAdGate'
+import { coins as walletCoins } from '@/use/useTowerEconomy'
 import IconCoin from '@/components/icons/IconCoin.vue'
 
 /**
@@ -13,12 +16,12 @@ import IconCoin from '@/components/icons/IconCoin.vue'
  * portals, CG pre-release) the perk is free and the icon is dropped, because
  * showing a video badge for something that never plays a video is a lie.
  *
- * `coinCost` gives an ungated build something to charge instead of nothing.
- * A perk that is free and unlimited off-portal is not the same perk — it stops
- * being a decision — so where a price makes sense the button shows a coin and
- * an amount in place of the video badge, and disables itself when the player
- * cannot pay. On a gated build the video is the price and `coinCost` is
- * ignored, so the two never stack.
+ * Where no video plays the perk is priced in WALLET coins instead — see
+ * `REWARD_COIN_COST`. A perk that is free and unlimited off-portal is not the
+ * same perk, it stops being a decision, so the button shows a coin and an
+ * amount in place of the video badge and disables itself when the player cannot
+ * pay. On a gated build the video is the price and the coins are never touched,
+ * so the two can never stack.
  */
 
 interface Props {
@@ -26,11 +29,12 @@ interface Props {
   tone?: 'gold' | 'green' | 'blue'
   size?: 'sm' | 'md'
   isDisabled?: boolean
-  /** Force-hide the movie badge even on a gated build (for a free retry, say). */
+  /** Force-hide the badge entirely: no video, no price (for a free retry). */
   free?: boolean
-  /** Price in run coins on UNGATED builds only. Omit for "free off-portal". */
+  /** Override the coin price. Defaults to the shared `REWARD_COIN_COST`. */
   coinCost?: number
-  /** The player's current run coins, for the affordability state. */
+  /** Override the balance the price is checked against. Defaults to the
+   *  wallet, which is what the price is actually taken from. */
   coins?: number
 }
 
@@ -39,9 +43,11 @@ const props = withDefaults(defineProps<Props>(), {
   size: 'md',
   isDisabled: false,
   free: false,
-  coinCost: 0,
-  coins: 0
+  coinCost: REWARD_COIN_COST,
+  coins: undefined
 })
+
+const purse = computed(() => props.coins ?? walletCoins.value)
 
 defineEmits(['click'])
 
@@ -53,7 +59,7 @@ const showMovie = computed(() => isRewardGated && !props.free)
 /** A coin price applies only where there is no video to charge instead. */
 const showCoin = computed(() => !isRewardGated && !props.free && props.coinCost > 0)
 
-const tooPoor = computed(() => showCoin.value && props.coins < props.coinCost)
+const tooPoor = computed(() => showCoin.value && purse.value < props.coinCost)
 
 /** A gated build with no ad ready cannot honour the perk, so the button is
  *  disabled rather than failing after the tap. */

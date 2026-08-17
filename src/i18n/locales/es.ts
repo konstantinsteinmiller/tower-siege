@@ -27,18 +27,25 @@ export default {
 
   'blocks': {
     'sell': 'Vender',
+    'upgrade': 'Mejorar',
+    'upgradeMax': 'Mejora máxima',
+    'rank': 'Nv {n}/{max}',
+    'reinforced': 'Reforzado',
+    'roofed': 'Con tejado',
     'roofNote': 'Con tejado: el doble de PV y triple defensa desde arriba. Necesita cielo libre.',
-    'enhancedNote': 'Reforzado: más PV y más daño.',
+    'enhancedNote': 'Reforzado: +{hp} % de PV y +{dmg} % de daño.',
     'enhancedHand': 'Mano reforzada',
     'reroll': 'Cambiar esta pieza',
-    'kinds': { 'core': 'Núcleo', 'structure': 'Estructura', 'weapon': 'Arma', 'economy': 'Economía', 'utility': 'Utilidad' },
+    'kinds': { 'core': 'Núcleo', 'structure': 'Estructura', 'weapon': 'Arma', 'economy': 'Economía', 'utility': 'Utilidad', 'ship': 'Barco' },
     'stats': {
+      'topDefense': 'Defensa superior',
       'hp': 'PV', 'armor': 'Armadura', 'dmg': 'Daño', 'cooldown': 'Recarga', 'range': 'Alcance',
       'splash': 'Área', 'yieldWood': 'Madera / oleada', 'yieldStone': 'Piedra / oleada', 'yieldCoins': 'Monedas / oleada',
       'repair': 'Reparación / oleada', 'blast': 'Explosión',
       'thorns': 'Púas'
     },
     'names': {
+      'skiff': 'Esquife de guardia', 'longship': 'Drakkar', 'galley': 'Galera de guerra',
       'gate': 'Portón', 'wood': 'Caja de madera', 'brace': 'Caja reforzada', 'stone': 'Bloque de piedra',
       'archer': 'Arquería', 'cannon': 'Cañón', 'mortar': 'Mortero', 'tesla': 'Bobina eléctrica',
       'frost': 'Aguja de escarcha', 'repair': 'Taller',
@@ -47,6 +54,9 @@ export default {
       'bombard': 'Bombarda'
     },
     'descriptions': {
+      'skiff': 'Amarrado en el agua. Alcanza a los enemigos sumergidos.',
+      'longship': 'Arpón pesado. Blindado y con más alcance que la orilla.',
+      'galley': 'Espolón de bronce y bombarda en cubierta. El lago es tuyo.',
       'gate': 'El corazón de tu torre. Si cae, el asedio termina.',
       'wood': 'Relleno barato. La columna vertebral de toda torre inicial.',
       'brace': 'El doble de madera y más del doble de resistencia.',
@@ -132,6 +142,10 @@ export default {
     'requires': 'Requiere {n}',
     'spotlight': '¡Gasta!',
     'names': {
+      'harbour': 'Puerto', 'dockWorks': 'Obras del muelle',
+      'unlockLongship': 'Drakkar', 'seasonedHulls': 'Cascos curados',
+      'navalGunnery': 'Artillería naval', 'unlockGalley': 'Galera de guerra',
+      'admiralty': 'Almirantazgo',
       'foundations': 'Cimientos', 'sharpBolts': 'Virotes afilados', 'unlockBrace': 'Cajas reforzadas',
       'lumberStock': 'Reserva de madera', 'longSight': 'Vista larga', 'rapidFire': 'Fuego rápido',
       'reinforced': 'Vigas reforzadas', 'unlockSawmill': 'Aserradero', 'quarryStock': 'Reserva de piedra',
@@ -149,6 +163,13 @@ export default {
       'artilleryDoctrine': 'Doctrina de artillería'
     },
     'descriptions': {
+      'harbour': 'Amarra barcos en el agua. Solo ellos alcanzan a los sumergidos.',
+      'dockWorks': 'Amarra barcos {n} casilla más lejos por rango.',
+      'unlockLongship': 'Un casco blindado con un arpón pesado.',
+      'seasonedHulls': 'Los barcos empiezan con +{n} % de PV.',
+      'navalGunnery': 'Las armas navales causan +{n} % de daño.',
+      'unlockGalley': 'Espolón de bronce, bombarda y castillo de combate.',
+      'admiralty': 'Las armas navales causan +{n} % de daño adicional.',
       'foundations': 'Cada bloque empieza con +{n} % de PV.',
       'sharpBolts': 'Todas las armas hacen +{n} % de daño por rango.',
       'unlockBrace': 'Desbloquea la caja reforzada: el doble de PV que la madera.',
@@ -188,7 +209,7 @@ export default {
   'resources': {
     'wood': 'madera',
     'stone': 'piedra',
-    'coins': 'monedas'
+    'gold': 'oro'
   },
 
   'ads': {

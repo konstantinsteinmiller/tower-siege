@@ -27,18 +27,25 @@ export default {
 
   'blocks': {
     'sell': 'Sprzedaj',
+    'upgrade': 'Ulepsz',
+    'upgradeMax': 'W pełni ulepszony',
+    'rank': 'Poz. {n}/{max}',
+    'reinforced': 'Wzmocniony',
+    'roofed': 'Zadaszony',
     'roofNote': 'Zadaszone — podwójne PZ, potrójna obrona z góry. Wymaga wolnego nieba.',
-    'enhancedNote': 'Wzmocnione — więcej PŻ i obrażeń.',
+    'enhancedNote': 'Wzmocniony — +{hp}% PZ, +{dmg}% obrażeń.',
     'enhancedHand': 'Wzmocniona ręka',
     'reroll': 'Wymień ten element',
-    'kinds': { 'core': 'Rdzeń', 'structure': 'Konstrukcja', 'weapon': 'Broń', 'economy': 'Ekonomia', 'utility': 'Wsparcie' },
+    'kinds': { 'core': 'Rdzeń', 'structure': 'Konstrukcja', 'weapon': 'Broń', 'economy': 'Ekonomia', 'utility': 'Wsparcie', 'ship': 'Statek' },
     'stats': {
+      'topDefense': 'Obrona z góry',
       'hp': 'PŻ', 'armor': 'Pancerz', 'dmg': 'Obrażenia', 'cooldown': 'Przeładowanie', 'range': 'Zasięg',
       'splash': 'Obszar', 'yieldWood': 'Drewno / falę', 'yieldStone': 'Kamień / falę', 'yieldCoins': 'Monety / falę',
       'repair': 'Naprawa / falę', 'blast': 'Wybuch',
       'thorns': 'Kolce'
     },
     'names': {
+      'skiff': 'Łódź patrolowa', 'longship': 'Długi okręt', 'galley': 'Galera bojowa',
       'gate': 'Brama', 'wood': 'Drewniana skrzynia', 'brace': 'Wzmocniona skrzynia', 'stone': 'Kamienny blok',
       'archer': 'Wieża łuczników', 'cannon': 'Armata', 'mortar': 'Moździerz', 'tesla': 'Cewka błyskawic',
       'frost': 'Iglica mrozu', 'repair': 'Warsztat',
@@ -47,6 +54,9 @@ export default {
       'bombard': 'Bombarda'
     },
     'descriptions': {
+      'skiff': 'Zacumowana na wodzie. Trafia wrogów pod powierzchnią.',
+      'longship': 'Ciężki harpun. Osłonięty i o większym zasięgu niż brzeg.',
+      'galley': 'Brązowy taran i bombarda na pokładzie. Jezioro jest twoje.',
       'gate': 'Serce twojej wieży. Gdy padnie, oblężenie się kończy.',
       'wood': 'Tanie wypełnienie. Kręgosłup każdej wczesnej wieży.',
       'brace': 'Dwa razy więcej drewna i ponad dwa razy większa wytrzymałość.',
@@ -132,6 +142,10 @@ export default {
     'requires': 'Wymaga: {n}',
     'spotlight': 'Wydaj!',
     'names': {
+      'harbour': 'Port', 'dockWorks': 'Nabrzeże',
+      'unlockLongship': 'Długi okręt', 'seasonedHulls': 'Sezonowane kadłuby',
+      'navalGunnery': 'Artyleria morska', 'unlockGalley': 'Galera bojowa',
+      'admiralty': 'Admiralicja',
       'foundations': 'Fundamenty', 'sharpBolts': 'Ostre bełty', 'unlockBrace': 'Wzmocnione skrzynie',
       'lumberStock': 'Zapas drewna', 'longSight': 'Dalekowzroczność', 'rapidFire': 'Szybki ogień',
       'reinforced': 'Wzmocnione belki', 'unlockSawmill': 'Tartak', 'quarryStock': 'Zapas kamienia',
@@ -149,6 +163,13 @@ export default {
       'artilleryDoctrine': 'Doktryna artyleryjska'
     },
     'descriptions': {
+      'harbour': 'Cumuj statki na wodzie. Tylko one trafiają zanurzonych.',
+      'dockWorks': 'Cumuj {n} pole dalej na rangę.',
+      'unlockLongship': 'Osłonięty kadłub z ciężkim harpunem.',
+      'seasonedHulls': 'Statki zaczynają z +{n}% PZ.',
+      'navalGunnery': 'Broń okrętowa zadaje +{n}% obrażeń.',
+      'unlockGalley': 'Brązowy taran, bombarda i kasztel bojowy.',
+      'admiralty': 'Broń okrętowa zadaje kolejne +{n}% obrażeń.',
       'foundations': 'Każdy blok zaczyna z +{n} % PŻ.',
       'sharpBolts': 'Wszystkie bronie zadają +{n} % obrażeń na rangę.',
       'unlockBrace': 'Odblokowuje wzmocnioną skrzynię — dwukrotność PŻ drewna.',
@@ -188,7 +209,7 @@ export default {
   'resources': {
     'wood': 'drewna',
     'stone': 'kamienia',
-    'coins': 'monet'
+    'gold': 'złoto'
   },
 
   'ads': {

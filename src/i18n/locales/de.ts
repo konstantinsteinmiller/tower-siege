@@ -27,18 +27,25 @@ export default {
 
   'blocks': {
     'sell': 'Verkaufen',
+    'upgrade': 'Ausbauen',
+    'upgradeMax': 'Voll ausgebaut',
+    'rank': 'St. {n}/{max}',
+    'reinforced': 'Verstärkt',
+    'roofed': 'Überdacht',
     'roofNote': 'Überdacht – doppelte TP, dreifache Abwehr von oben. Braucht freien Himmel.',
-    'enhancedNote': 'Verstärkt – mehr TP und mehr Schaden.',
+    'enhancedNote': 'Verstärkt – +{hp} % TP, +{dmg} % Schaden.',
     'enhancedHand': 'Verstärkte Hand',
     'reroll': 'Teil tauschen',
-    'kinds': { 'core': 'Kern', 'structure': 'Struktur', 'weapon': 'Waffe', 'economy': 'Wirtschaft', 'utility': 'Spezial' },
+    'kinds': { 'core': 'Kern', 'structure': 'Struktur', 'weapon': 'Waffe', 'economy': 'Wirtschaft', 'utility': 'Spezial', 'ship': 'Schiff' },
     'stats': {
+      'topDefense': 'Abwehr von oben',
       'hp': 'TP', 'armor': 'Panzerung', 'dmg': 'Schaden', 'cooldown': 'Abklingzeit', 'range': 'Reichweite',
       'splash': 'Splash', 'yieldWood': 'Holz / Welle', 'yieldStone': 'Stein / Welle', 'yieldCoins': 'Münzen / Welle',
       'repair': 'Reparatur / Welle', 'blast': 'Explosion',
       'thorns': 'Dornen'
     },
     'names': {
+      'skiff': 'Wachboot', 'longship': 'Langschiff', 'galley': 'Kriegsgaleere',
       'gate': 'Tor', 'wood': 'Holzkiste', 'brace': 'Verstärkte Kiste', 'stone': 'Steinblock',
       'archer': 'Bogenturm', 'cannon': 'Kanone', 'mortar': 'Mörser', 'tesla': 'Blitzspule',
       'frost': 'Frostspitze', 'repair': 'Werkstatt',
@@ -47,6 +54,9 @@ export default {
       'bombard': 'Bombarde'
     },
     'descriptions': {
+      'skiff': 'Liegt im Wasser. Trifft Gegner unter der Oberfläche.',
+      'longship': 'Schwere Harpune. Beschildet und weiter als das Ufer.',
+      'galley': 'Bronzeramme und Deckbombarde. Der See gehört dir.',
       'gate': 'Das Herz deines Turms. Fällt es, ist die Belagerung vorbei.',
       'wood': 'Günstige Füllung. Das Rückgrat jedes frühen Turms.',
       'brace': 'Doppeltes Holz, mehr als doppelte Haltbarkeit.',
@@ -132,6 +142,10 @@ export default {
     'requires': 'Benötigt {n}',
     'spotlight': 'Ausgeben!',
     'names': {
+      'harbour': 'Hafen', 'dockWorks': 'Hafenanlagen',
+      'unlockLongship': 'Langschiff', 'seasonedHulls': 'Gehärtete Rümpfe',
+      'navalGunnery': 'Seeartillerie', 'unlockGalley': 'Kriegsgaleere',
+      'admiralty': 'Admiralität',
       'foundations': 'Fundamente', 'sharpBolts': 'Geschärfte Bolzen', 'unlockBrace': 'Verstärkte Kisten',
       'lumberStock': 'Holzvorrat', 'longSight': 'Weitsicht', 'rapidFire': 'Schnellfeuer',
       'reinforced': 'Verstärkte Balken', 'unlockSawmill': 'Sägewerk', 'quarryStock': 'Steinvorrat',
@@ -149,6 +163,13 @@ export default {
       'artilleryDoctrine': 'Artilleriedoktrin'
     },
     'descriptions': {
+      'harbour': 'Verankere Schiffe im Wasser. Nur sie treffen getauchte Gegner.',
+      'dockWorks': 'Liegeplätze pro Rang {n} Feld breiter.',
+      'unlockLongship': 'Ein beschildeter Rumpf mit schwerer Harpune.',
+      'seasonedHulls': 'Schiffe starten mit +{n} % TP.',
+      'navalGunnery': 'Schiffswaffen verursachen +{n} % Schaden.',
+      'unlockGalley': 'Bronzeramme, Deckbombarde und Kampfkastell.',
+      'admiralty': 'Schiffswaffen verursachen weitere +{n} % Schaden.',
       'foundations': 'Jeder Block startet mit +{n} % TP.',
       'sharpBolts': 'Alle Waffen verursachen +{n} % Schaden pro Rang.',
       'unlockBrace': 'Schaltet die verstärkte Kiste frei – doppelte TP von Holz.',
@@ -188,7 +209,7 @@ export default {
   'resources': {
     'wood': 'Holz',
     'stone': 'Stein',
-    'coins': 'Münzen'
+    'gold': 'Gold'
   },
 
   'ads': {

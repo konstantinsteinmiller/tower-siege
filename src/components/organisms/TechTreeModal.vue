@@ -147,10 +147,25 @@ const onNodeClick = (id: string): void => {
 }
 
 /** Frame the tree on open: centre it and pick a zoom that fits the width. */
+/** Widest the viewport ever gets, so the fit below never overshoots. */
+const VIEWPORT_HINT_PX = 640
+
+/**
+ * Open on a view that shows BOTH roots.
+ *
+ * The board is pan/zoomable, and at 1× it opens on the tower's root with the
+ * harbour entirely off the right edge — a whole second tree the player has no
+ * reason to suspect exists. Fitting the board's width on open is the cheapest
+ * possible fix: the two roots are visible together, and the relationship
+ * between them (there isn't one) is the first thing the layout says.
+ *
+ * Floored at 0.62 so a wide tree never shrinks the nodes into unreadable dots;
+ * past that the player pans, which they already know how to do.
+ */
 const resetView = (): void => {
   panX.value = 0
   panY.value = 0
-  zoom.value = 1
+  zoom.value = Math.max(0.62, Math.min(1, VIEWPORT_HINT_PX / boardW))
 }
 
 watch(model, (open) => { if (open) { resetView(); selected.value = 'foundations' } })

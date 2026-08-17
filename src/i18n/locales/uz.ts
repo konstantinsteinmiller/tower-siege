@@ -27,18 +27,25 @@ export default {
 
   'blocks': {
     'sell': 'Sotish',
+    'upgrade': 'Yaxshilash',
+    'upgradeMax': 'Toʻliq yaxshilangan',
+    'rank': 'Dar. {n}/{max}',
+    'reinforced': 'Mustahkamlangan',
+    'roofed': 'Tomli',
     'roofNote': 'Tomli — HP ikki barobar, yuqoridan himoya uch barobar. Tepasi bo‘sh bo‘lishi kerak.',
-    'enhancedNote': 'Kuchaytirilgan — ko‘proq HP va zarar.',
+    'enhancedNote': 'Mustahkamlangan — +{hp}% HP, +{dmg}% zarar.',
     'enhancedHand': 'Kuchaytirilgan qo‘l',
     'reroll': 'Bu bo‘lakni almashtirish',
-    'kinds': { 'core': 'Yadro', 'structure': 'Tuzilma', 'weapon': 'Qurol', 'economy': 'Iqtisod', 'utility': 'Yordamchi' },
+    'kinds': { 'core': 'Yadro', 'structure': 'Tuzilma', 'weapon': 'Qurol', 'economy': 'Iqtisod', 'utility': 'Yordamchi', 'ship': 'Kema' },
     'stats': {
+      'topDefense': 'Yuqoridan himoya',
       'hp': 'JS', 'armor': 'Zirh', 'dmg': 'Zarar', 'cooldown': 'Kutish', 'range': 'Masofa',
       'splash': 'Hudud', 'yieldWood': 'Yog‘och / to‘lqin', 'yieldStone': 'Tosh / to‘lqin', 'yieldCoins': 'Tanga / to‘lqin',
       'repair': 'Ta’mir / to‘lqin', 'blast': 'Portlash',
       'thorns': 'Tikanlar'
     },
     'names': {
+      'skiff': 'Qorovul qayigʻi', 'longship': 'Uzun kema', 'galley': 'Jangovar galera',
       'gate': 'Darvoza', 'wood': 'Yog‘och quti', 'brace': 'Mustahkamlangan quti', 'stone': 'Tosh blok',
       'archer': 'Kamonchi minorasi', 'cannon': 'To‘p', 'mortar': 'Minomyot', 'tesla': 'Chaqmoq g‘altagi',
       'frost': 'Sovuq minora', 'repair': 'Ta’mirxona',
@@ -47,6 +54,9 @@ export default {
       'bombard': 'Bombarda'
     },
     'descriptions': {
+      'skiff': 'Suvda turadi. Suv ostidagi dushmanlarga tegadi.',
+      'longship': 'Ogʻir garpun. Qalqonli va qirgʻoqdan uzoqroq otadi.',
+      'galley': 'Bronza qoʻchqor va paluba bombardasi. Koʻl sizniki.',
       'gate': 'Minorangizning yuragi. Qulasa, qamal tugaydi.',
       'wood': 'Arzon to‘ldirgich. Har bir dastlabki minoraning umurtqasi.',
       'brace': 'Ikki barobar yog‘och, ikki barobardan ortiq mustahkamlik.',
@@ -132,6 +142,10 @@ export default {
     'requires': 'Kerak: {n}',
     'spotlight': 'Sarflang!',
     'names': {
+      'harbour': 'Bandargoh', 'dockWorks': 'Bandargoh ishlari',
+      'unlockLongship': 'Uzun kema', 'seasonedHulls': 'Chiniqqan korpuslar',
+      'navalGunnery': 'Dengiz artilleriyasi', 'unlockGalley': 'Jangovar galera',
+      'admiralty': 'Admiralteystvo',
       'foundations': 'Poydevor', 'sharpBolts': 'O‘tkir o‘qlar', 'unlockBrace': 'Mustahkam qutilar',
       'lumberStock': 'Yog‘och zaxirasi', 'longSight': 'Uzoqni ko‘rish', 'rapidFire': 'Tez otish',
       'reinforced': 'Mustahkam to‘sinlar', 'unlockSawmill': 'Arrachilik', 'quarryStock': 'Tosh zaxirasi',
@@ -149,6 +163,13 @@ export default {
       'artilleryDoctrine': 'Artilleriya doktrinasi'
     },
     'descriptions': {
+      'harbour': 'Kemalarni suvga qoʻying. Faqat ular suv ostidagilarga tegadi.',
+      'dockWorks': 'Har daraja uchun bandargoh {n} katak kengroq.',
+      'unlockLongship': 'Ogʻir garpunli qalqonli korpus.',
+      'seasonedHulls': 'Kemalar +{n}% HP bilan boshlanadi.',
+      'navalGunnery': 'Kema qurollari +{n}% zarar yetkazadi.',
+      'unlockGalley': 'Bronza qoʻchqor, bombarda va jang qalʼasi.',
+      'admiralty': 'Kema qurollari yana +{n}% zarar yetkazadi.',
       'foundations': 'Har bir blok +{n} % JS bilan boshlanadi.',
       'sharpBolts': 'Barcha qurollar daraja boshiga +{n} % zarar yetkazadi.',
       'unlockBrace': 'Mustahkam qutini ochadi — yog‘ochdan ikki barobar ko‘p JS.',
@@ -188,7 +209,7 @@ export default {
   'resources': {
     'wood': 'yog‘och',
     'stone': 'tosh',
-    'coins': 'tanga'
+    'gold': 'oltin'
   },
 
   'ads': {

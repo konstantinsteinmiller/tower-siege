@@ -27,18 +27,25 @@ export default {
 
   'blocks': {
     'sell': 'बेचें',
+    'upgrade': 'अपग्रेड',
+    'upgradeMax': 'पूरी तरह अपग्रेड',
+    'rank': 'स्तर {n}/{max}',
+    'reinforced': 'प्रबलित',
+    'roofed': 'छत वाला',
     'roofNote': 'छत वाला — दोगुना HP, ऊपर से तिगुना बचाव। ऊपर जगह खाली चाहिए।',
-    'enhancedNote': 'प्रबलित — ज़्यादा HP और ज़्यादा नुक़सान।',
+    'enhancedNote': 'प्रबलित — +{hp}% HP, +{dmg}% क्षति।',
     'enhancedHand': 'प्रबलित हाथ',
     'reroll': 'यह टुकड़ा बदलें',
-    'kinds': { 'core': 'केंद्र', 'structure': 'संरचना', 'weapon': 'हथियार', 'economy': 'अर्थव्यवस्था', 'utility': 'सहायक' },
+    'kinds': { 'core': 'केंद्र', 'structure': 'संरचना', 'weapon': 'हथियार', 'economy': 'अर्थव्यवस्था', 'utility': 'सहायक', 'ship': 'जहाज़' },
     'stats': {
+      'topDefense': 'ऊपर से बचाव',
       'hp': 'HP', 'armor': 'कवच', 'dmg': 'क्षति', 'cooldown': 'कूलडाउन', 'range': 'रेंज',
       'splash': 'क्षेत्र', 'yieldWood': 'लकड़ी / लहर', 'yieldStone': 'पत्थर / लहर', 'yieldCoins': 'सिक्के / लहर',
       'repair': 'मरम्मत / लहर', 'blast': 'विस्फोट',
       'thorns': 'काँटे'
     },
     'names': {
+      'skiff': 'गश्ती नाव', 'longship': 'लॉन्गशिप', 'galley': 'युद्धपोत गैली',
       'gate': 'द्वार', 'wood': 'लकड़ी का बक्सा', 'brace': 'मज़बूत बक्सा', 'stone': 'पत्थर ब्लॉक',
       'archer': 'धनुर्धर मीनार', 'cannon': 'तोप', 'mortar': 'मोर्टार', 'tesla': 'बिजली कुंडली',
       'frost': 'हिम शिखर', 'repair': 'मरम्मत केंद्र',
@@ -47,6 +54,9 @@ export default {
       'bombard': 'बॉम्बार्ड'
     },
     'descriptions': {
+      'skiff': 'पानी पर लंगर डाले। सतह के नीचे के दुश्मनों को मारती है।',
+      'longship': 'भारी हारपून। ढाल वाली और किनारे से ज़्यादा दूरी।',
+      'galley': 'कांस्य टक्कर और डेक बमबारी। झील आपकी है।',
       'gate': 'आपके टावर का हृदय। यह गिरा तो घेराबंदी खत्म।',
       'wood': 'सस्ता भराव। हर शुरुआती टावर की रीढ़।',
       'brace': 'दोगुनी लकड़ी, दोगुने से ज़्यादा मज़बूती।',
@@ -132,6 +142,10 @@ export default {
     'requires': 'आवश्यक: {n}',
     'spotlight': 'खर्च करें!',
     'names': {
+      'harbour': 'बंदरगाह', 'dockWorks': 'घाट निर्माण',
+      'unlockLongship': 'लॉन्गशिप', 'seasonedHulls': 'पक्के पतवार',
+      'navalGunnery': 'नौसैनिक तोपख़ाना', 'unlockGalley': 'युद्धपोत गैली',
+      'admiralty': 'नौसेना मुख्यालय',
       'foundations': 'नींव', 'sharpBolts': 'तेज़ तीर', 'unlockBrace': 'मज़बूत बक्से',
       'lumberStock': 'लकड़ी भंडार', 'longSight': 'दूरदृष्टि', 'rapidFire': 'तेज़ फ़ायर',
       'reinforced': 'मज़बूत बीम', 'unlockSawmill': 'आरा मिल', 'quarryStock': 'पत्थर भंडार',
@@ -149,6 +163,13 @@ export default {
       'artilleryDoctrine': 'तोपख़ाना सिद्धांत'
     },
     'descriptions': {
+      'harbour': 'पानी पर जहाज़ लगाएँ। केवल वे डूबे दुश्मनों को मारते हैं।',
+      'dockWorks': 'प्रति रैंक घाट {n} खाना चौड़ा।',
+      'unlockLongship': 'भारी हारपून वाला ढाल-युक्त पतवार।',
+      'seasonedHulls': 'जहाज़ +{n}% HP से शुरू होते हैं।',
+      'navalGunnery': 'जहाज़ी हथियार +{n}% क्षति करते हैं।',
+      'unlockGalley': 'कांस्य टक्कर, बमबारी और युद्ध बुर्ज।',
+      'admiralty': 'जहाज़ी हथियार +{n}% और क्षति करते हैं।',
       'foundations': 'हर ब्लॉक +{n}% HP के साथ शुरू होता है।',
       'sharpBolts': 'सभी हथियार प्रति रैंक +{n}% क्षति करते हैं।',
       'unlockBrace': 'मज़बूत बक्सा खोलता है — लकड़ी से दोगुना HP।',
@@ -188,7 +209,7 @@ export default {
   'resources': {
     'wood': 'लकड़ी',
     'stone': 'पत्थर',
-    'coins': 'सिक्के'
+    'gold': 'सोना'
   },
 
   'ads': {

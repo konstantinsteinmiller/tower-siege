@@ -27,18 +27,25 @@ export default {
 
   'blocks': {
     'sell': 'ขาย',
+    'upgrade': 'อัปเกรด',
+    'upgradeMax': 'อัปเกรดเต็มแล้ว',
+    'rank': 'ระดับ {n}/{max}',
+    'reinforced': 'เสริมกำลัง',
+    'roofed': 'มีหลังคา',
     'roofNote': 'มีหลังคา — เลือด 2 เท่า ป้องกันการโจมตีจากด้านบน 3 เท่า ต้องมีที่ว่างด้านบน',
-    'enhancedNote': 'เสริมกำลัง — HP และความเสียหายสูงขึ้น',
+    'enhancedNote': 'เสริมกำลัง — เลือด +{hp}% ความเสียหาย +{dmg}%',
     'enhancedHand': 'ชุดบล็อกเสริมกำลัง',
     'reroll': 'เปลี่ยนชิ้นนี้',
-    'kinds': { 'core': 'แกนกลาง', 'structure': 'โครงสร้าง', 'weapon': 'อาวุธ', 'economy': 'เศรษฐกิจ', 'utility': 'อรรถประโยชน์' },
+    'kinds': { 'core': 'แกนกลาง', 'structure': 'โครงสร้าง', 'weapon': 'อาวุธ', 'economy': 'เศรษฐกิจ', 'utility': 'อรรถประโยชน์', 'ship': 'เรือ' },
     'stats': {
+      'topDefense': 'ป้องกันด้านบน',
       'hp': 'HP', 'armor': 'เกราะ', 'dmg': 'ความเสียหาย', 'cooldown': 'คูลดาวน์', 'range': 'ระยะ',
       'splash': 'พื้นที่', 'yieldWood': 'ไม้ / เวฟ', 'yieldStone': 'หิน / เวฟ', 'yieldCoins': 'เหรียญ / เวฟ',
       'repair': 'ซ่อม / เวฟ', 'blast': 'ระเบิด',
       'thorns': 'หนาม'
     },
     'names': {
+      'skiff': 'เรือตรวจการณ์', 'longship': 'เรือยาว', 'galley': 'เรือรบกาลี',
       'gate': 'ประตู', 'wood': 'ลังไม้', 'brace': 'ลังเสริมแรง', 'stone': 'บล็อกหิน',
       'archer': 'หอธนู', 'cannon': 'ปืนใหญ่', 'mortar': 'ปืนครก', 'tesla': 'ขดลวดสายฟ้า',
       'frost': 'ยอดน้ำแข็ง', 'repair': 'โรงซ่อม',
@@ -47,6 +54,9 @@ export default {
       'bombard': 'ปืนครกสั้น'
     },
     'descriptions': {
+      'skiff': 'จอดอยู่บนน้ำ โจมตีศัตรูใต้ผิวน้ำได้',
+      'longship': 'ฉมวกหนัก มีโล่และยิงไกลกว่าฝั่ง',
+      'galley': 'หัวชนสำริดและปืนบนดาดฟ้า ทะเลสาบเป็นของคุณ',
       'gate': 'หัวใจของหอคอย ถ้าพังลง การล้อมก็จบ',
       'wood': 'วัสดุถูกไว้ถม กระดูกสันหลังของหอคอยยุคแรก',
       'brace': 'ไม้สองเท่า แต่ทนทานกว่าสองเท่า',
@@ -132,6 +142,10 @@ export default {
     'requires': 'ต้องมี {n}',
     'spotlight': 'ใช้เลย!',
     'names': {
+      'harbour': 'ท่าเรือ', 'dockWorks': 'งานท่าเทียบ',
+      'unlockLongship': 'เรือยาว', 'seasonedHulls': 'ตัวเรือชุบแข็ง',
+      'navalGunnery': 'ปืนใหญ่เรือ', 'unlockGalley': 'เรือรบกาลี',
+      'admiralty': 'กองทัพเรือ',
       'foundations': 'รากฐาน', 'sharpBolts': 'ลูกธนูคม', 'unlockBrace': 'ลังเสริมแรง',
       'lumberStock': 'คลังไม้', 'longSight': 'สายตายาว', 'rapidFire': 'ยิงรัว',
       'reinforced': 'คานเสริมแรง', 'unlockSawmill': 'โรงเลื่อย', 'quarryStock': 'คลังหิน',
@@ -149,6 +163,13 @@ export default {
       'artilleryDoctrine': 'หลักนิยมปืนใหญ่'
     },
     'descriptions': {
+      'harbour': 'จอดเรือบนน้ำ มีเพียงเรือที่โจมตีศัตรูใต้น้ำได้',
+      'dockWorks': 'ท่าเทียบกว้างขึ้น {n} ช่องต่อระดับ',
+      'unlockLongship': 'ตัวเรือมีโล่พร้อมฉมวกหนัก',
+      'seasonedHulls': 'เรือเริ่มต้นด้วยเลือด +{n}%',
+      'navalGunnery': 'อาวุธเรือสร้างความเสียหาย +{n}%',
+      'unlockGalley': 'หัวชนสำริด ปืนบนดาดฟ้า และป้อมรบ',
+      'admiralty': 'อาวุธเรือสร้างความเสียหายเพิ่มอีก +{n}%',
       'foundations': 'ทุกบล็อกเริ่มต้นด้วย HP +{n}%',
       'sharpBolts': 'อาวุธทั้งหมดสร้างความเสียหาย +{n}% ต่อระดับ',
       'unlockBrace': 'ปลดล็อกลังเสริมแรง — HP สองเท่าของไม้',
@@ -188,7 +209,7 @@ export default {
   'resources': {
     'wood': 'ไม้',
     'stone': 'หิน',
-    'coins': 'เหรียญ'
+    'gold': 'ทอง'
   },
 
   'ads': {

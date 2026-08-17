@@ -90,6 +90,13 @@ export const PALETTES: Record<string, Palette> = {
   // must never be mistaken for something you are supposed to shoot.
   cavalry: { dark: '#123a5e', mid: '#1f6aa8', light: '#42a3e0', accent: '#ffd93c', accent2: '#fff3b0', debris: [31, 106, 168] },
 
+  // ── Ships ──
+  // Warm timber hulls with a livery sail, so a harbour reads as the player's
+  // even though the tower above it is grey stone.
+  skiff: { dark: '#4a3520', mid: '#7d5c34', light: '#b2874d', accent: '#3f7fbf', accent2: '#cfe4ff', debris: [125, 92, 52] },
+  longship: { dark: '#42301f', mid: '#755331', light: '#a87d49', accent: '#c1543f', accent2: '#ffd0b0', debris: [117, 83, 49] },
+  galley: { dark: '#38301f', mid: '#665534', light: '#96814f', accent: '#d8a12c', accent2: '#ffe6a8', debris: [102, 85, 52] },
+
   // ── Projectiles / effects ────────────────────────────────────────────────
   bolt: { dark: '#5b4326', mid: '#a07a45', light: '#e0c089', accent: '#ffffff', accent2: '#ffe9b0', debris: [224, 192, 137] },
   ball: { dark: '#14161a', mid: '#2c3138', light: '#565c66', accent: '#ffb03a', accent2: '#fff0c0', debris: [44, 49, 56] },

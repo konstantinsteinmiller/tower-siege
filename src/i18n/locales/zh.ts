@@ -27,18 +27,25 @@ export default {
 
   'blocks': {
     'sell': '出售',
+    'upgrade': '升级',
+    'upgradeMax': '已满级',
+    'rank': '等级 {n}/{max}',
+    'reinforced': '强化',
+    'roofed': '带屋顶',
     'roofNote': '带屋顶——生命值翻倍，来自上方的防御提升三倍。上方需留空。',
-    'enhancedNote': '强化 — 生命值与伤害更高。',
+    'enhancedNote': '强化——生命值 +{hp}%，伤害 +{dmg}%。',
     'enhancedHand': '强化积木',
     'reroll': '更换此方块',
-    'kinds': { 'core': '核心', 'structure': '结构', 'weapon': '武器', 'economy': '经济', 'utility': '功能' },
+    'kinds': { 'core': '核心', 'structure': '结构', 'weapon': '武器', 'economy': '经济', 'utility': '功能', 'ship': '战船' },
     'stats': {
+      'topDefense': '顶部防御',
       'hp': '生命', 'armor': '护甲', 'dmg': '伤害', 'cooldown': '冷却', 'range': '射程',
       'splash': '溅射', 'yieldWood': '木材 / 波', 'yieldStone': '石材 / 波', 'yieldCoins': '金币 / 波',
       'repair': '修复 / 波', 'blast': '爆炸',
       'thorns': '尖刺'
     },
     'names': {
+      'skiff': '巡哨小艇', 'longship': '长船', 'galley': '战斗桨帆船',
       'gate': '城门', 'wood': '木箱', 'brace': '加固木箱', 'stone': '石块',
       'archer': '弓箭塔', 'cannon': '加农炮', 'mortar': '迫击炮', 'tesla': '闪电线圈',
       'frost': '寒霜尖塔', 'repair': '维修站',
@@ -47,6 +54,9 @@ export default {
       'bombard': '臼炮'
     },
     'descriptions': {
+      'skiff': '停泊在水面。能打到水下的敌人。',
+      'longship': '重型鱼叉。挂盾防护，射程超过岸上。',
+      'galley': '青铜撞角与甲板臼炮。湖面归你了。',
       'gate': '高塔的核心。它一旦倒下，围攻就结束了。',
       'wood': '廉价填充物，每座早期高塔的骨干。',
       'brace': '两倍木材，超过两倍的坚固度。',
@@ -132,6 +142,10 @@ export default {
     'requires': '需要 {n}',
     'spotlight': '快花掉！',
     'names': {
+      'harbour': '港口', 'dockWorks': '码头工程',
+      'unlockLongship': '长船', 'seasonedHulls': '熟化船体',
+      'navalGunnery': '舰炮术', 'unlockGalley': '战斗桨帆船',
+      'admiralty': '海军部',
       'foundations': '地基', 'sharpBolts': '锐利箭矢', 'unlockBrace': '加固木箱',
       'lumberStock': '木材储备', 'longSight': '远视', 'rapidFire': '速射',
       'reinforced': '加固梁柱', 'unlockSawmill': '锯木厂', 'quarryStock': '石材储备',
@@ -149,6 +163,13 @@ export default {
       'artilleryDoctrine': '炮兵学说'
     },
     'descriptions': {
+      'harbour': '在水面停泊战船。只有它们能打到潜行的敌人。',
+      'dockWorks': '每级停泊区加宽 {n} 格。',
+      'unlockLongship': '挂盾船体，配重型鱼叉。',
+      'seasonedHulls': '战船初始生命值 +{n}%。',
+      'navalGunnery': '舰载武器伤害 +{n}%。',
+      'unlockGalley': '青铜撞角、甲板臼炮与战斗楼。',
+      'admiralty': '舰载武器伤害再 +{n}%。',
       'foundations': '每个方块初始生命值 +{n}%。',
       'sharpBolts': '所有武器每级伤害 +{n}%。',
       'unlockBrace': '解锁加固木箱——生命值是木材的两倍。',
@@ -188,7 +209,7 @@ export default {
   'resources': {
     'wood': '木材',
     'stone': '石材',
-    'coins': '金币'
+    'gold': '黄金'
   },
 
   'ads': {

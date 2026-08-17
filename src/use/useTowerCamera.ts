@@ -34,8 +34,16 @@ const PAD_Y = 2.4
  * base taking damage from something invisible.
  */
 const BELOW_GROUND = Math.abs(SEA_SWIM_Y) + 1.1
-/** Seconds of no input before auto-fit resumes. */
-const IDLE_RETURN_MS = 4000
+/**
+ * Smallest band auto-fit will ever frame, in cells.
+ *
+ * These are floors on the FRAMED WORLD, so they are what decides how far out
+ * the camera sits while the tower is still small — which is every early wave.
+ * Set too high, wave 1 is a three-block fort rendered postage-stamp size in the
+ * middle of an empty sky, and the player is asked to aim taps at it.
+ */
+const MIN_FRAME_HALF_W = 4.5
+const MIN_FRAME_TOP = 5
 /** Spring stiffness — high enough to feel responsive, low enough to read as
  *  motion rather than a teleport. */
 const SPRING = 7.5
@@ -57,27 +65,53 @@ let viewH = 0
 let insetTop = 0
 let insetBottom = 0
 
-let manualUntil = 0
 let pinchStartDist = 0
 let pinchStartZoom = 0
 let lastTowerVersion = -1
 
-/** True while the player has dragged away from the auto-fit framing — drives
- *  the "recenter" button's visibility. */
+/**
+ * True once the player has panned or zoomed for themselves.
+ *
+ * It STAYS true until they tap recenter (or the viewport genuinely changes).
+ * It used to expire on a four-second idle timer, which meant a deliberate zoom
+ * was undone a moment after the player stopped touching — and in practice much
+ * sooner than four seconds, because `setViewport` also cleared it and the HUD
+ * re-measures itself once a second. Zooming in was therefore impossible: the
+ * view sprang back before the player could do anything with it.
+ *
+ * Auto-fit is a convenience, not a rule. Once the player has framed the shot
+ * themselves, that framing is theirs to keep, and the recenter button — which
+ * is on screen for exactly as long as this is true — hands it back.
+ */
 export const isManual = ref(false)
 
 // ─── Viewport ───────────────────────────────────────────────────────────────
 
 export const setViewport = (w: number, h: number, top = 0, bottom = 0): void => {
+  // Called on a 1 s cadence by the scene's HUD-inset re-measure, so what it is
+  // allowed to reset matters a great deal.
+  //
+  // Only a change in the VIEWPORT ITSELF drops the player's manual framing — a
+  // resize or a rotation, where the pan and zoom were chosen for a window that
+  // no longer exists. Inset changes must not, because they are just the HUD
+  // measuring itself: a wrapping wave title, the perk row appearing, a
+  // sub-pixel rect. Treating those as viewport changes is what put the manual
+  // flag back on a one-second fuse after the idle timer was removed.
+  const resized = w !== viewW || h !== viewH
+  const insetsMoved = Math.abs(top - insetTop) > 1 || Math.abs(bottom - insetBottom) > 1
   viewW = w
   viewH = h
   insetTop = top
   insetBottom = bottom
-  // A resize/orientation change invalidates any manual framing — the player's
-  // pan was chosen for a viewport that no longer exists.
-  manualUntil = 0
-  isManual.value = false
-  lastTowerVersion = -1
+
+  if (resized) {
+    isManual.value = false
+    lastTowerVersion = -1
+    return
+  }
+  // Chrome grew or shrank. Auto-fit should re-derive against the new free band
+  // — but only if the player has not taken the camera for themselves.
+  if (insetsMoved && !isManual.value) lastTowerVersion = -1
 }
 
 // ─── World ⇄ screen ─────────────────────────────────────────────────────────
@@ -119,10 +153,10 @@ const computeAutoTarget = (): void => {
 
   // Always frame at least this much horizontally so a one-block tower on wave 1
   // isn't rendered at a comical 120 px/cell.
-  const halfSpan = Math.max(6, Math.max(Math.abs(b.minC), Math.abs(b.maxC)) + PAD_X)
+  const halfSpan = Math.max(MIN_FRAME_HALF_W, Math.max(Math.abs(b.minC), Math.abs(b.maxC)) + PAD_X)
   const worldW = halfSpan * 2
   // The framed band runs from the water below the shoreline up past the crown.
-  const worldTop = Math.max(7, b.maxR + 1 + PAD_Y)
+  const worldTop = Math.max(MIN_FRAME_TOP, b.maxR + 1 + PAD_Y)
   const worldH = worldTop + BELOW_GROUND
 
   // The usable viewport excludes the HUD insets.
@@ -150,7 +184,6 @@ const computeAutoTarget = (): void => {
 // ─── Input ──────────────────────────────────────────────────────────────────
 
 const markManual = (): void => {
-  manualUntil = Date.now() + IDLE_RETURN_MS
   isManual.value = true
 }
 
@@ -198,8 +231,8 @@ export const endPinch = (): void => { pinchStartDist = 0 }
 
 /** Return to auto-fit immediately (the recenter button). */
 export const recenter = (): void => {
-  manualUntil = 0
   isManual.value = false
+  lastTowerVersion = towerVersion.value
   computeAutoTarget()
 }
 
@@ -225,9 +258,7 @@ const clampTarget = (): void => {
 // ─── Per-frame update ───────────────────────────────────────────────────────
 
 export const updateCamera = (dtMs: number): void => {
-  const now = Date.now()
-  if (now >= manualUntil) {
-    if (isManual.value) isManual.value = false
+  if (!isManual.value) {
     // Recompute only when the tower actually changed — auto-fit is otherwise a
     // stable target and re-deriving it every frame is wasted work.
     if (lastTowerVersion !== towerVersion.value) {
@@ -246,6 +277,7 @@ export const updateCamera = (dtMs: number): void => {
 /** Force the camera to its auto-fit target with no animation. Used on scene
  *  mount so the first painted frame is already correctly framed. */
 export const snapToFit = (): void => {
+  isManual.value = false
   lastTowerVersion = towerVersion.value
   computeAutoTarget()
   x = tx

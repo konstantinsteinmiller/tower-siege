@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const loadGate = async (opts: { crazy?: boolean; fullRelease?: boolean; granted?: boolean } = {}) => {
   vi.resetModules()
+  localStorage.clear()
   vi.doMock('@/use/useUser', () => ({ isCrazyWeb: opts.crazy ?? true }))
   vi.doMock('@/use/useMatch', () => ({ isCrazyGamesFullRelease: opts.fullRelease ?? true }))
   const showRewardedAd = vi.fn(async () => opts.granted ?? true)
@@ -78,7 +79,12 @@ describe('rewarded rate limit', () => {
   })
 
   it('does not limit an ungated build — nothing is being requested', async () => {
+    // Off a gated build the ceiling is the WALLET, not the ad window: no video
+    // is asked for, so the rolling allowance never fills.
     const gate = await loadGate({ crazy: false, fullRelease: false })
+    const economy = await import('@/use/useTowerEconomy')
+    economy.default().addCoins(20 * gate.REWARD_COIN_COST)
+
     for (let i = 0; i < 20; i++) {
       await expect(gate.claimReward(vi.fn())).resolves.toBe(true)
     }

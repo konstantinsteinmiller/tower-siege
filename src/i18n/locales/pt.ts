@@ -27,18 +27,25 @@ export default {
 
   'blocks': {
     'sell': 'Vender',
+    'upgrade': 'Melhorar',
+    'upgradeMax': 'Totalmente melhorado',
+    'rank': 'Nv {n}/{max}',
+    'reinforced': 'Reforçado',
+    'roofed': 'Com telhado',
     'roofNote': 'Com telhado: PV em dobro e defesa tripla vinda de cima. Precisa de céu livre.',
-    'enhancedNote': 'Reforçado — mais PV e mais dano.',
+    'enhancedNote': 'Reforçado: +{hp}% de PV e +{dmg}% de dano.',
     'enhancedHand': 'Mão reforçada',
     'reroll': 'Trocar esta peça',
-    'kinds': { 'core': 'Núcleo', 'structure': 'Estrutura', 'weapon': 'Arma', 'economy': 'Economia', 'utility': 'Utilidade' },
+    'kinds': { 'core': 'Núcleo', 'structure': 'Estrutura', 'weapon': 'Arma', 'economy': 'Economia', 'utility': 'Utilidade', 'ship': 'Navio' },
     'stats': {
+      'topDefense': 'Defesa superior',
       'hp': 'PV', 'armor': 'Armadura', 'dmg': 'Dano', 'cooldown': 'Recarga', 'range': 'Alcance',
       'splash': 'Área', 'yieldWood': 'Madeira / onda', 'yieldStone': 'Pedra / onda', 'yieldCoins': 'Moedas / onda',
       'repair': 'Reparo / onda', 'blast': 'Explosão',
       'thorns': 'Espinhos'
     },
     'names': {
+      'skiff': 'Escaler de guarda', 'longship': 'Drakkar', 'galley': 'Galé de guerra',
       'gate': 'Portão', 'wood': 'Caixa de madeira', 'brace': 'Caixa reforçada', 'stone': 'Bloco de pedra',
       'archer': 'Torre de arqueiros', 'cannon': 'Canhão', 'mortar': 'Morteiro', 'tesla': 'Bobina elétrica',
       'frost': 'Agulha de gelo', 'repair': 'Oficina',
@@ -47,6 +54,9 @@ export default {
       'bombard': 'Bombarda'
     },
     'descriptions': {
+      'skiff': 'Ancorado na água. Atinge inimigos submersos.',
+      'longship': 'Arpão pesado. Escudado e com mais alcance que a margem.',
+      'galley': 'Aríete de bronze e bombarda de convés. O lago é seu.',
       'gate': 'O coração da sua torre. Se cair, o cerco acaba.',
       'wood': 'Enchimento barato. A espinha dorsal de toda torre inicial.',
       'brace': 'O dobro de madeira e mais que o dobro de resistência.',
@@ -132,6 +142,10 @@ export default {
     'requires': 'Requer {n}',
     'spotlight': 'Gaste!',
     'names': {
+      'harbour': 'Porto', 'dockWorks': 'Obras do cais',
+      'unlockLongship': 'Drakkar', 'seasonedHulls': 'Cascos curados',
+      'navalGunnery': 'Artilharia naval', 'unlockGalley': 'Galé de guerra',
+      'admiralty': 'Almirantado',
       'foundations': 'Fundações', 'sharpBolts': 'Virotes afiados', 'unlockBrace': 'Caixas reforçadas',
       'lumberStock': 'Reserva de madeira', 'longSight': 'Visão longa', 'rapidFire': 'Tiro rápido',
       'reinforced': 'Vigas reforçadas', 'unlockSawmill': 'Serraria', 'quarryStock': 'Reserva de pedra',
@@ -149,6 +163,13 @@ export default {
       'artilleryDoctrine': 'Doutrina de artilharia'
     },
     'descriptions': {
+      'harbour': 'Ancore navios na água. Só eles atingem inimigos submersos.',
+      'dockWorks': 'Ancore {n} casa mais longe por nível.',
+      'unlockLongship': 'Um casco escudado com um arpão pesado.',
+      'seasonedHulls': 'Navios começam com +{n}% de PV.',
+      'navalGunnery': 'Armas navais causam +{n}% de dano.',
+      'unlockGalley': 'Aríete de bronze, bombarda e castelo de combate.',
+      'admiralty': 'Armas navais causam mais +{n}% de dano.',
       'foundations': 'Cada bloco começa com +{n} % de PV.',
       'sharpBolts': 'Todas as armas causam +{n}% de dano por nível.',
       'unlockBrace': 'Desbloqueia a caixa reforçada: o dobro dos PV da madeira.',
@@ -188,7 +209,7 @@ export default {
   'resources': {
     'wood': 'madeira',
     'stone': 'pedra',
-    'coins': 'moedas'
+    'gold': 'ouro'
   },
 
   'ads': {

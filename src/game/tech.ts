@@ -298,6 +298,76 @@ export const TECH_NODES: ReadonlyArray<TechNode> = [
     requires: ['siegeShells', 'overcharge'],
     effect: { kind: 'range', pct: 9 },
     icon: 'doctrine'
+  },
+
+  // ── The Harbour ──────────────────────────────────────────────────────────
+  //
+  // A SECOND ROOT, deliberately. It requires nothing, it is bought with its own
+  // gold, and no node in it connects back to `foundations` — so it reads on the
+  // board as what it is: a different place to build, not a deeper rank of the
+  // tower. Column 4 is left empty as a gutter so the two trees never appear to
+  // share an edge.
+  //
+  // What it buys is the answer to the sea lane. Everything on land is refused a
+  // submerged target, so until a player owns a hull their only counter to eels
+  // and krakens is to survive the bite. It is priced against that: the first
+  // rank costs about what a mid-tier weapon unlock does, and the hulls
+  // themselves are expensive in a currency the tower also wants.
+  {
+    id: 'harbour',
+    tier: 0, col: 6, maxLevel: 1,
+    costBase: 140, costGrowth: 1,
+    requires: [],
+    effect: { kind: 'unlock', blockId: 'skiff' },
+    icon: 'harbour'
+  },
+  {
+    id: 'dockWorks',
+    tier: 1, col: 5, maxLevel: UNCAPPED,
+    costBase: 180, costGrowth: 1.5,
+    requires: ['harbour'],
+    effect: { kind: 'dockWidth', add: 1 },
+    icon: 'dock'
+  },
+  {
+    id: 'unlockLongship',
+    tier: 1, col: 7, maxLevel: 1,
+    costBase: 260, costGrowth: 1,
+    requires: ['harbour'],
+    effect: { kind: 'unlock', blockId: 'longship' },
+    icon: 'longship'
+  },
+  {
+    id: 'seasonedHulls',
+    tier: 2, col: 5, maxLevel: UNCAPPED,
+    costBase: 200, costGrowth: 1.3,
+    requires: ['dockWorks'],
+    effect: { kind: 'navalHp', pct: 12 },
+    icon: 'hull'
+  },
+  {
+    id: 'navalGunnery',
+    tier: 2, col: 7, maxLevel: UNCAPPED,
+    costBase: 240, costGrowth: 1.32,
+    requires: ['unlockLongship'],
+    effect: { kind: 'navalDamage', pct: 10 },
+    icon: 'naval'
+  },
+  {
+    id: 'unlockGalley',
+    tier: 3, col: 6, maxLevel: 1,
+    costBase: 620, costGrowth: 1,
+    requires: ['seasonedHulls', 'navalGunnery'],
+    effect: { kind: 'unlock', blockId: 'galley' },
+    icon: 'galley'
+  },
+  {
+    id: 'admiralty',
+    tier: 4, col: 6, maxLevel: UNCAPPED,
+    costBase: 780, costGrowth: 1.38,
+    requires: ['unlockGalley'],
+    effect: { kind: 'navalDamage', pct: 13 },
+    icon: 'admiralty'
   }
 ]
 

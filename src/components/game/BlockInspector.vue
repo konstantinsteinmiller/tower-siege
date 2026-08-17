@@ -2,16 +2,27 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import BlockTile from '@/components/game/BlockTile.vue'
-import { blockDef, GATE_ID, sellRefund } from '@/game/blocks'
-import { damageMul, fireRateMul, rangeMul, thornsMul } from '@/use/useTowerProgress'
+import {
+  blockDef, GATE_ID, sellRefund, ENHANCED_DAMAGE_MUL, ROOF_TOP_DEFENSE_DIV,
+  MAX_BLOCK_LEVEL, blockUpgradeCost, upgradePowerMul, upgradeArmorBonus
+} from '@/game/blocks'
+import {
+  damageMul, fireRateMul, rangeMul, splashMul, thornsMul, armorBonus
+} from '@/use/useTowerProgress'
+import { runCoins, towerVersion } from '@/use/useTowerGame'
 import type { Block } from '@/game/types'
 
 /**
  * Stat card for the selected block (reference image 3).
  *
- * Numbers shown are the EFFECTIVE values — base stats multiplied by the
- * player's tech. Showing the base numbers here would quietly make the entire
- * tech tree feel like it does nothing.
+ * Every number here is the EFFECTIVE one — base stats run through the player's
+ * tech, the reinforced multiplier, the gable's HP bonus and whatever ranks the
+ * block has been upgraded to. Showing base numbers would quietly make the tech
+ * tree, the rewarded reinforced hand AND the upgrade button all feel like they
+ * do nothing, because the card is where the player goes to check.
+ *
+ * Rows that are above the block's printed base are flagged `boosted` and drawn
+ * in gold, so "why is this crate on 210 HP" answers itself.
  */
 
 interface Props {
@@ -19,46 +30,134 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-const emit = defineEmits<{ (e: 'sell'): void; (e: 'close'): void }>()
+const emit = defineEmits<{
+  (e: 'sell'): void
+  (e: 'close'): void
+  (e: 'upgrade'): void
+}>()
 
 const { t } = useI18n()
 
 const def = computed(() => (props.block ? blockDef(props.block.typeId) : null))
 const isGate = computed(() => props.block?.typeId === GATE_ID)
 
-const stats = computed(() => {
-  const d = def.value
+/**
+ * A SNAPSHOT of the live block, re-read whenever the tower changes.
+ *
+ * `props.block` is a PLAIN object out of the simulation's non-reactive grid, so
+ * mutating its rank or max HP fires no dependency of its own. `towerVersion` is
+ * bumped by every structural change including an upgrade, which is what makes
+ * this card repaint the instant the player buys a rank.
+ *
+ * It must return a NEW object rather than the block itself. A computed that
+ * re-evaluates to the identical reference is treated as unchanged by Vue and
+ * notifies nobody — which is exactly what happened: the upgrade charged the
+ * gold, the simulation applied the rank, and the card kept showing the old
+ * numbers because `props.block` was still the same object it always was.
+ */
+const live = computed(() => {
+  void towerVersion.value
   const b = props.block
+  if (!b) return null
+  return {
+    typeId: b.typeId,
+    hp: b.hp,
+    maxHp: b.maxHp,
+    roof: b.roof === true,
+    enhanced: b.enhanced === true,
+    level: b.level ?? 0
+  }
+})
+
+const level = computed(() => live.value?.level ?? 0)
+const isMaxLevel = computed(() => level.value >= MAX_BLOCK_LEVEL)
+
+interface Row { key: string; value: string; boosted?: boolean }
+
+const stats = computed<Row[]>(() => {
+  const d = def.value
+  const b = live.value
   if (!d || !b) return []
 
-  const rows: Array<{ key: string; value: string }> = [
-    { key: 'hp', value: `${Math.ceil(b.hp)} / ${b.maxHp}` }
+  const power = upgradePowerMul(b.level)
+  const enh = b.enhanced ? ENHANCED_DAMAGE_MUL : 1
+  const rows: Row[] = [
+    // `maxHp` already carries tech, the reinforced bonus, the gable and the
+    // ranks — it is the number the simulation actually defends with.
+    { key: 'hp', value: `${Math.ceil(b.hp)} / ${b.maxHp}`, boosted: b.maxHp > d.hp }
   ]
-  if (d.armor) rows.push({ key: 'armor', value: `${d.armor}` })
+
+  // Armour is FLAT damage reduction and the Iron Plating node adds it to every
+  // block, including ones whose printed armour is zero — so this row has to be
+  // computed, never read straight off the definition.
+  const armor = (d.armor ?? 0) + armorBonus.value + upgradeArmorBonus(b.level)
+  if (armor > 0) rows.push({ key: 'armor', value: `${armor}`, boosted: armor > (d.armor ?? 0) })
+
+  // A gable divides every hit that lands on top of it by three.
+  if (b.roof) rows.push({ key: 'topDefense', value: `×${ROOF_TOP_DEFENSE_DIV}`, boosted: true })
 
   if (d.weapon) {
-    rows.push({ key: 'dmg', value: `${Math.round(d.weapon.damage * damageMul.value)}` })
+    const dmg = d.weapon.damage * damageMul.value * enh * power
+    rows.push({ key: 'dmg', value: `${Math.round(dmg)}`, boosted: dmg > d.weapon.damage + 0.5 })
     // Cooldown shrinks as fire rate grows, so present it already divided.
-    rows.push({ key: 'cooldown', value: `${(d.weapon.cooldownMs / fireRateMul.value / 1000).toFixed(1)}s` })
-    rows.push({ key: 'range', value: `${(d.weapon.range * rangeMul.value).toFixed(1)}` })
-    if (d.weapon.splash) rows.push({ key: 'splash', value: `${d.weapon.splash.toFixed(1)}` })
+    rows.push({
+      key: 'cooldown',
+      value: `${(d.weapon.cooldownMs / fireRateMul.value / 1000).toFixed(1)}s`,
+      boosted: fireRateMul.value > 1
+    })
+    rows.push({
+      key: 'range',
+      value: `${(d.weapon.range * rangeMul.value).toFixed(1)}`,
+      boosted: rangeMul.value > 1
+    })
+    if (d.weapon.splash) {
+      rows.push({
+        key: 'splash',
+        value: `${(d.weapon.splash * splashMul.value).toFixed(1)}`,
+        boosted: splashMul.value > 1
+      })
+    }
   }
   if (d.economy) {
-    if (d.economy.wood) rows.push({ key: 'yieldWood', value: `+${d.economy.wood}` })
-    if (d.economy.stone) rows.push({ key: 'yieldStone', value: `+${d.economy.stone}` })
-    if (d.economy.coins) rows.push({ key: 'yieldCoins', value: `+${d.economy.coins}` })
+    const yields: Array<[string, number | undefined]> = [
+      ['yieldWood', d.economy.wood],
+      ['yieldStone', d.economy.stone],
+      ['yieldCoins', d.economy.coins]
+    ]
+    for (const [key, base] of yields) {
+      if (!base) continue
+      rows.push({ key, value: `+${Math.round(base * power)}`, boosted: power > 1 })
+    }
   }
-  if (d.utility?.repairPerWave) rows.push({ key: 'repair', value: `+${d.utility.repairPerWave}` })
+  if (d.utility?.repairPerWave) {
+    rows.push({
+      key: 'repair',
+      value: `+${Math.round(d.utility.repairPerWave * power)}`,
+      boosted: power > 1
+    })
+  }
   if (d.utility?.deathExplosion) {
-    rows.push({ key: 'blast', value: `${d.utility.deathExplosion.damage}` })
+    rows.push({
+      key: 'blast',
+      value: `${Math.round(d.utility.deathExplosion.damage * power)}`,
+      boosted: power > 1
+    })
   }
-  // Thorns is shown already multiplied by the tech rank, like weapon damage —
-  // the number in the panel should be the number the enemy actually takes.
+  // Thorns is shown already multiplied, like weapon damage — the number in the
+  // panel should be the number the enemy actually takes.
   if (d.utility?.thorns) {
-    rows.push({ key: 'thorns', value: `${Math.round(d.utility.thorns * thornsMul.value)}` })
+    const thorns = d.utility.thorns * thornsMul.value * power
+    rows.push({ key: 'thorns', value: `${Math.round(thorns)}`, boosted: thorns > d.utility.thorns + 0.5 })
   }
   return rows
 })
+
+const upgradeCost = computed(() =>
+  live.value ? blockUpgradeCost(live.value.typeId, level.value) : Infinity
+)
+const canUpgrade = computed(() =>
+  !isMaxLevel.value && runCoins.value >= upgradeCost.value
+)
 
 const refund = computed(() =>
   props.block ? sellRefund(props.block.typeId) : { wood: 0, stone: 0, coins: 0 }
@@ -83,10 +182,44 @@ const refund = computed(() =>
             svg(viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round")
               path(d="M6 18L18 6M6 6l12 12")
 
+        //- Why this block's numbers are above the printed base. Chips rather
+        //- than prose: the card is read mid-siege with a wave incoming.
+        div.inspector__tags(v-if="live?.enhanced || live?.roof || level > 0")
+          span.inspector__tag.is-gold(v-if="live?.enhanced") {{ t('blocks.reinforced') }}
+          span.inspector__tag.is-red(v-if="live?.roof") {{ t('blocks.roofed') }}
+          span.inspector__tag.is-gold(v-if="level > 0")
+            | {{ t('blocks.rank', { n: level, max: MAX_BLOCK_LEVEL }) }}
+
         dl.inspector__stats
           template(v-for="row in stats" :key="row.key")
             dt {{ t(`blocks.stats.${row.key}`) }}
-            dd {{ row.value }}
+            dd(:class="{ 'is-boosted': row.boosted }") {{ row.value }}
+
+        //- Spend the run's gold on the tower you already have. Sits above
+        //- Sell because it is the constructive half of the pair.
+        button.inspector__upgrade(
+          type="button"
+          :class="{ 'is-maxed': isMaxLevel }"
+          :disabled="!canUpgrade"
+          @click="emit('upgrade')"
+        )
+          template(v-if="isMaxLevel")
+            span {{ t('blocks.upgradeMax') }}
+          template(v-else)
+            svg.inspector__upgrade-icon(viewBox="0 0 24 24" fill="currentColor" aria-hidden="true")
+              path(d="M12 3 21 12h-5v8h-8v-8H3z")
+            span {{ t('blocks.upgrade') }}
+            span.inspector__upgrade-cost
+              i.inspector__dot.is-gold
+              | {{ upgradeCost }}
+
+        //- Rank pips, so "how much more is there" is answerable without maths.
+        div.inspector__pips(v-if="!isMaxLevel || level > 0" :aria-hidden="true")
+          i.inspector__pip(
+            v-for="n in MAX_BLOCK_LEVEL"
+            :key="n"
+            :class="{ 'is-on': n <= level }"
+          )
 
         //- The Gate is the run's lose condition and can never be sold.
         button.inspector__sell(
@@ -199,6 +332,104 @@ const refund = computed(() =>
     font-variant-numeric: tabular-nums
     font-size: clamp(0.55rem, 2.5vw, 0.75rem)
     text-align: right
+
+    // Anything above the block's printed base — tech, a gable, the reinforced
+    // hand, a bought rank. The arrow carries the meaning where colour alone
+    // would not (colour-blind players, washed-out phone screens in daylight).
+    &.is-boosted
+      color: #ffd93c
+
+      &::before
+        content: '▲'
+        margin-right: 0.25em
+        font-size: 0.7em
+        vertical-align: 0.08em
+
+.inspector__tags
+  display: flex
+  flex-wrap: wrap
+  gap: 0.2rem
+
+.inspector__tag
+  padding: 0.05rem 0.35rem
+  border-radius: 999px
+  font-weight: 900
+  text-transform: uppercase
+  letter-spacing: 0.04em
+  font-size: clamp(0.4rem, 1.9vw, 0.55rem)
+
+  &.is-gold
+    background-color: rgba(255, 217, 60, 0.18)
+    border: 1px solid rgba(255, 217, 60, 0.55)
+    color: #ffd93c
+  &.is-red
+    background-color: rgba(224, 87, 77, 0.18)
+    border: 1px solid rgba(224, 87, 77, 0.6)
+    color: #ff9a92
+
+.inspector__upgrade
+  display: flex
+  flex-wrap: wrap
+  align-items: center
+  justify-content: center
+  gap: 0.2em 0.35em
+  min-height: 1.9rem
+  margin-top: 0.15rem
+  padding: 0.2rem 0.5rem
+  border: 2px solid #0f1a30
+  border-radius: 0.5rem
+  background-image: linear-gradient(to bottom, #6fe08a, #1f8f4d)
+  color: #fff
+  font-weight: 900
+  text-transform: uppercase
+  font-size: clamp(0.5rem, 2.3vw, 0.7rem)
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6)
+  cursor: pointer
+  -webkit-tap-highlight-color: transparent
+
+  &:active
+    translate: 0 2px
+    scale: 0.97
+
+  // Disabled means "you cannot afford this yet", which is information, so the
+  // price stays legible rather than being greyed into the background.
+  &:disabled
+    background-image: linear-gradient(to bottom, #4a5a72, #2b3548)
+    cursor: default
+    opacity: 0.85
+
+    &:active
+      translate: 0
+      scale: 1
+
+  &.is-maxed
+    background-image: linear-gradient(to bottom, #c9a227, #7a5f12)
+    opacity: 1
+
+.inspector__upgrade-icon
+  width: 0.85em
+  height: 0.85em
+  flex: 0 0 auto
+
+.inspector__upgrade-cost
+  display: inline-flex
+  align-items: center
+  gap: 0.15em
+  font-variant-numeric: tabular-nums
+
+.inspector__pips
+  display: flex
+  justify-content: center
+  gap: 0.2rem
+
+.inspector__pip
+  width: 0.85rem
+  height: 0.22rem
+  border-radius: 999px
+  background-color: rgba(255, 255, 255, 0.16)
+
+  &.is-on
+    background-color: #ffd93c
 
 // Wraps: a three-resource refund (the Mint and the Bombard both return wood,
 // stone AND gold) alongside a long localised verb can outrun the panel width.

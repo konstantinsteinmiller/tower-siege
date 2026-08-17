@@ -27,18 +27,25 @@ export default {
 
   'blocks': {
     'sell': 'Bán',
+    'upgrade': 'Nâng cấp',
+    'upgradeMax': 'Đã nâng cấp tối đa',
+    'rank': 'Cấp {n}/{max}',
+    'reinforced': 'Gia cố',
+    'roofed': 'Có mái',
     'roofNote': 'Có mái — gấp đôi HP, phòng thủ gấp ba trước đòn từ trên. Cần trống phía trên.',
-    'enhancedNote': 'Gia cố — nhiều HP và sát thương hơn.',
+    'enhancedNote': 'Gia cố — +{hp}% HP, +{dmg}% sát thương.',
     'enhancedHand': 'Bộ khối gia cố',
     'reroll': 'Đổi mảnh này',
-    'kinds': { 'core': 'Lõi', 'structure': 'Kết cấu', 'weapon': 'Vũ khí', 'economy': 'Kinh tế', 'utility': 'Tiện ích' },
+    'kinds': { 'core': 'Lõi', 'structure': 'Kết cấu', 'weapon': 'Vũ khí', 'economy': 'Kinh tế', 'utility': 'Tiện ích', 'ship': 'Tàu' },
     'stats': {
+      'topDefense': 'Phòng thủ trên',
       'hp': 'HP', 'armor': 'Giáp', 'dmg': 'Sát thương', 'cooldown': 'Hồi chiêu', 'range': 'Tầm bắn',
       'splash': 'Diện rộng', 'yieldWood': 'Gỗ / đợt', 'yieldStone': 'Đá / đợt', 'yieldCoins': 'Xu / đợt',
       'repair': 'Sửa chữa / đợt', 'blast': 'Vụ nổ',
       'thorns': 'Gai'
     },
     'names': {
+      'skiff': 'Thuyền tuần', 'longship': 'Thuyền dài', 'galley': 'Chiến thuyền',
       'gate': 'Cổng', 'wood': 'Thùng gỗ', 'brace': 'Thùng gia cố', 'stone': 'Khối đá',
       'archer': 'Tháp cung thủ', 'cannon': 'Đại bác', 'mortar': 'Súng cối', 'tesla': 'Cuộn sét',
       'frost': 'Tháp băng', 'repair': 'Xưởng sửa chữa',
@@ -47,6 +54,9 @@ export default {
       'bombard': 'Pháo cối'
     },
     'descriptions': {
+      'skiff': 'Neo trên mặt nước. Bắn trúng kẻ địch dưới mặt nước.',
+      'longship': 'Lao nặng. Có khiên và tầm xa hơn bờ.',
+      'galley': 'Mũi húc đồng và pháo boong. Hồ này là của bạn.',
       'gate': 'Trái tim của tháp. Mất nó là cuộc vây hãm kết thúc.',
       'wood': 'Vật liệu rẻ. Xương sống của mọi tháp thuở đầu.',
       'brace': 'Gấp đôi gỗ, hơn gấp đôi độ bền.',
@@ -132,6 +142,10 @@ export default {
     'requires': 'Cần {n}',
     'spotlight': 'Hãy tiêu!',
     'names': {
+      'harbour': 'Bến cảng', 'dockWorks': 'Công trình bến',
+      'unlockLongship': 'Thuyền dài', 'seasonedHulls': 'Thân tàu tôi luyện',
+      'navalGunnery': 'Pháo hạm', 'unlockGalley': 'Chiến thuyền',
+      'admiralty': 'Bộ Hải quân',
       'foundations': 'Nền móng', 'sharpBolts': 'Mũi tên sắc', 'unlockBrace': 'Thùng gia cố',
       'lumberStock': 'Kho gỗ', 'longSight': 'Tầm nhìn xa', 'rapidFire': 'Bắn nhanh',
       'reinforced': 'Dầm gia cố', 'unlockSawmill': 'Xưởng cưa', 'quarryStock': 'Kho đá',
@@ -149,6 +163,13 @@ export default {
       'artilleryDoctrine': 'Học thuyết pháo binh'
     },
     'descriptions': {
+      'harbour': 'Neo tàu trên nước. Chỉ chúng bắn được kẻ địch chìm.',
+      'dockWorks': 'Bến rộng thêm {n} ô mỗi cấp.',
+      'unlockLongship': 'Thân tàu có khiên với lao nặng.',
+      'seasonedHulls': 'Tàu khởi đầu với +{n}% HP.',
+      'navalGunnery': 'Vũ khí tàu gây +{n}% sát thương.',
+      'unlockGalley': 'Mũi húc đồng, pháo boong và tháp chiến.',
+      'admiralty': 'Vũ khí tàu gây thêm +{n}% sát thương.',
       'foundations': 'Mọi khối khởi đầu với +{n}% HP.',
       'sharpBolts': 'Mọi vũ khí gây +{n}% sát thương mỗi bậc.',
       'unlockBrace': 'Mở khóa Thùng gia cố — HP gấp đôi gỗ thường.',
@@ -188,7 +209,7 @@ export default {
   'resources': {
     'wood': 'gỗ',
     'stone': 'đá',
-    'coins': 'xu'
+    'gold': 'vàng'
   },
 
   'ads': {

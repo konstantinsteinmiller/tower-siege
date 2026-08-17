@@ -20,11 +20,11 @@ import type { EnemyDef, ProjectileKind } from './types'
 //
 // SIEGE ENGINES (wave 14+) break the rules infantry follow, and each one has a
 // specific answer:
-//   ram        ignores the frontier and drives at the Gate — needs the Gate
-//              itself defended, not just the flanks
+//   ram        one block, very hard — a wall that was thick enough for
+//              infantry is not thick enough for this
 //   ballista   stands off at 9 cells and snipes turrets — out-ranges most guns
 //   catapult   stands off at 13 and lobs splash — must be reached, not out-shot
-//   siegeTower rolls in and lets escorts strike three rows up
+//   siegeTower rolls in and its archers strike three rows up
 //   trebuchet  stands off at 20, hits like a truck, and NOTHING in the tower
 //              reaches it. The only counter is cavalry.
 // Standoff engines are why cavalry exist: a purely static defence has no answer
@@ -280,19 +280,41 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
   },
 
   // ── Siege engines ──────────────────────────────────────────────────────
+  // ── A note on siege `reach`, which is doing double duty ──
+  //
+  // For a contact engine, `reach` IS its parking distance from the face of the
+  // block it is hitting (`dist = |dx| − 0.5`, so the engine centre ends up
+  // exactly `reach` from that face). It therefore has to be read off the ART,
+  // not chosen for feel: shorter than the chassis and the whole machine drives
+  // INSIDE the tower, which is what these used to do — a shed and a casemate
+  // parked on top of the crates they were supposedly breaking down.
+  //
+  // The rule for all three: `chassis half-width < reach < head reach`. The
+  // frame stops clear of the wall, and only the ram head — the part that is
+  // meant to be hitting it — swings through the block face.
   ram: {
     id: 'ram',
     hp: 320,
     speed: 0.55,
     damage: 55,
     attackCooldownMs: 1700,
-    reach: 1.1,
+    // Chassis reaches 0.69 cells, the head 0.93 and 1.10 at full swing.
+    reach: 0.8,
     movement: 'ground',
     coins: 12,
     cost: 60,
     minWave: 14,
-    siege: { targetsGate: true },
-    scale: 1.55,
+    // `siege` with no flags: still a siege ENGINE — which is what marks it as
+    // a machine to the renderer, to the cavalry's threat scoring and to the
+    // wave director — but no longer `targetsGate`. It used to drive PAST the
+    // wall to swing at the Gate, which meant a shed on wheels parked bodily
+    // inside three stone blocks, and a rule the player cannot see is a rule
+    // they read as a bug. It now stops at whatever is in front of it and
+    // breaks that down first. The threat is undiminished: nothing else hits a
+    // single block this hard, and a thin centre still lets it reach the Gate
+    // directly, because the Gate is then the nearest thing in its path.
+    siege: {},
+    scale: 1.15,
     palette: 'ram'
   },
   ballista: {
@@ -307,7 +329,10 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
     cost: 48,
     minWave: 15,
     siege: { standoff: 9 },
-    scale: 1.35,
+    // The standoff family sits a step above the contact engines (ram 1.15,
+    // iron ram 1.35, tower 1.05): they are the ones you must ride out to, so
+    // they read as the biggest, most valuable targets on the field.
+    scale: 1.2,
     palette: 'ballista'
   },
   catapult: {
@@ -322,7 +347,7 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
     cost: 70,
     minWave: 17,
     siege: { standoff: 13, splash: 1.6 },
-    scale: 1.7,
+    scale: 1.45,
     palette: 'catapult'
   },
   siegeTower: {
@@ -331,14 +356,18 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
     speed: 0.42,
     damage: 26,
     attackCooldownMs: 1300,
-    reach: 1.3,
+    // Far enough back that the tower body never sits inside the wall, close
+    // enough that the dropped ramp lands ON it.
+    reach: 0.85,
     movement: 'ground',
     coins: 16,
     cost: 85,
     minWave: 19,
-    // Escorts swarm up it and strike three rows above the ground line.
+    // Its crew are ARCHERS, and they shoot three rows up the wall — which is
+    // what stops height alone from being safety. They are drawn in the
+    // fighting top for exactly that reason: the rule should be visible.
     siege: { ladderHeight: 3 },
-    scale: 2.05,
+    scale: 1.05,
     palette: 'siegeTower'
   },
   trebuchet: {
@@ -353,7 +382,7 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
     cost: 120,
     minWave: 22,
     siege: { standoff: 20, splash: 2.2 },
-    scale: 2.1,
+    scale: 1.7,
     palette: 'trebuchet'
   },
   ironRam: {
@@ -362,7 +391,7 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
     speed: 0.36,
     damage: 105,
     attackCooldownMs: 2200,
-    reach: 1.2,
+    reach: 0.9,
     movement: 'ground',
     coins: 26,
     cost: 135,
@@ -371,8 +400,11 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
     // answered every previous threat with cheap Archery towers has nothing at
     // all for this, and has to actually own a cannon, a coil or some cavalry.
     immuneTo: ['bolt'],
-    siege: { targetsGate: true },
-    scale: 1.85,
+    // Same as the plain ram: it breaks the wall in front of it rather than
+    // driving through it. See the note there.
+    siege: {},
+    // Chassis reaches 0.76 cells, the head 1.19 and 1.38 at full swing.
+    scale: 1.35,
     palette: 'ironRam'
   },
 

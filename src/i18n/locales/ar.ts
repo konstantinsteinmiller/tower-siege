@@ -27,18 +27,25 @@ export default {
 
   'blocks': {
     'sell': 'بيع',
+    'upgrade': 'ترقية',
+    'upgradeMax': 'مُرقّى بالكامل',
+    'rank': 'مستوى {n}/{max}',
+    'reinforced': 'مُعزّز',
+    'roofed': 'مُسقّف',
     'roofNote': 'مسقوف — ضعف نقاط الصحة ودفاع ثلاثي ضد الضربات من الأعلى. يحتاج إلى سماء مفتوحة.',
-    'enhancedNote': 'معزّز — صحة وضرر أكبر.',
+    'enhancedNote': 'مُعزّز — +{hp}٪ صحة، +{dmg}٪ ضرر.',
     'enhancedHand': 'يد معزّزة',
     'reroll': 'استبدل هذه القطعة',
-    'kinds': { 'core': 'أساسي', 'structure': 'بنية', 'weapon': 'سلاح', 'economy': 'اقتصاد', 'utility': 'مساعد' },
+    'kinds': { 'core': 'أساسي', 'structure': 'بنية', 'weapon': 'سلاح', 'economy': 'اقتصاد', 'utility': 'مساعد', 'ship': 'سفينة' },
     'stats': {
+      'topDefense': 'الدفاع من الأعلى',
       'hp': 'الصحة', 'armor': 'الدرع', 'dmg': 'الضرر', 'cooldown': 'الانتظار', 'range': 'المدى',
       'splash': 'المساحة', 'yieldWood': 'خشب / موجة', 'yieldStone': 'حجر / موجة', 'yieldCoins': 'عملات / موجة',
       'repair': 'إصلاح / موجة', 'blast': 'انفجار',
       'thorns': 'أشواك'
     },
     'names': {
+      'skiff': 'زورق حراسة', 'longship': 'سفينة طويلة', 'galley': 'قادس حربي',
       'gate': 'البوابة', 'wood': 'صندوق خشبي', 'brace': 'صندوق معزز', 'stone': 'كتلة حجرية',
       'archer': 'برج الرماة', 'cannon': 'مدفع', 'mortar': 'هاون', 'tesla': 'ملف البرق',
       'frost': 'برج الصقيع', 'repair': 'ورشة الإصلاح',
@@ -47,6 +54,9 @@ export default {
       'bombard': 'مدفع قصير'
     },
     'descriptions': {
+      'skiff': 'راسية على الماء. تصيب الأعداء تحت السطح.',
+      'longship': 'حربة ثقيلة. مدرّعة ومداها أبعد من الشاطئ.',
+      'galley': 'كبش برونزي وبومباردة على السطح. البحيرة لك.',
       'gate': 'قلب برجك. إذا سقط انتهى الحصار.',
       'wood': 'حشوة رخيصة. العمود الفقري لكل برج مبكر.',
       'brace': 'ضعف الخشب وأكثر من ضعف المتانة.',
@@ -132,6 +142,10 @@ export default {
     'requires': 'يتطلب {n}',
     'spotlight': 'أنفق!',
     'names': {
+      'harbour': 'مرفأ', 'dockWorks': 'أعمال الرصيف',
+      'unlockLongship': 'سفينة طويلة', 'seasonedHulls': 'هياكل مُعالَجة',
+      'navalGunnery': 'مدفعية بحرية', 'unlockGalley': 'قادس حربي',
+      'admiralty': 'الأميرالية',
       'foundations': 'الأساسات', 'sharpBolts': 'سهام حادة', 'unlockBrace': 'صناديق معززة',
       'lumberStock': 'مخزون الخشب', 'longSight': 'بُعد النظر', 'rapidFire': 'إطلاق سريع',
       'reinforced': 'عوارض معززة', 'unlockSawmill': 'منشرة', 'quarryStock': 'مخزون الحجر',
@@ -149,6 +163,13 @@ export default {
       'artilleryDoctrine': 'عقيدة المدفعية'
     },
     'descriptions': {
+      'harbour': 'أرسِ السفن على الماء. وحدها تصيب الغاطسين.',
+      'dockWorks': 'يتسع الرصيف بمقدار {n} خانة لكل رتبة.',
+      'unlockLongship': 'هيكل مدرّع بحربة ثقيلة.',
+      'seasonedHulls': 'تبدأ السفن بـ +{n}٪ صحة.',
+      'navalGunnery': 'أسلحة السفن تسبب +{n}٪ ضرر.',
+      'unlockGalley': 'كبش برونزي وبومباردة وبرج قتال.',
+      'admiralty': 'أسلحة السفن تسبب +{n}٪ ضرر إضافي.',
       'foundations': 'كل كتلة تبدأ بـ +{n}٪ صحة.',
       'sharpBolts': 'كل الأسلحة تسبب +{n}٪ ضرراً لكل رتبة.',
       'unlockBrace': 'يفتح الصندوق المعزز — ضعف صحة الخشب.',
@@ -188,7 +209,7 @@ export default {
   'resources': {
     'wood': 'خشب',
     'stone': 'حجر',
-    'coins': 'عملة'
+    'gold': 'ذهب'
   },
 
   'ads': {

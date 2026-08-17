@@ -61,7 +61,9 @@ const paint = (): void => {
   // Fit the whole footprint into the square, leaving room for the roof to
   // overhang the top of its cell.
   const roofPad = (def.roofs?.length ?? 0) > 0 ? 0.42 : 0
-  const cell = Math.floor(Math.min(px / w, px / (h + roofPad)) * 0.92)
+  // No shrink factor: the tray is tight now, and a thumbnail that holds itself
+  // 8 % off its own box is 8 % of the tray spent on nothing.
+  const cell = Math.floor(Math.min(px / w, px / (h + roofPad)))
   const totalW = cell * w
   const totalH = cell * (h + roofPad)
   const ox = (px - totalW) / 2

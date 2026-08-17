@@ -54,8 +54,13 @@ export default {
   // ─── Blocks ───────────────────────────────────────────────────────────────
   'blocks': {
     'sell': 'Sell',
+    'upgrade': 'Upgrade',
+    'upgradeMax': 'Fully upgraded',
+    'rank': 'Lv {n}/{max}',
+    'reinforced': 'Reinforced',
+    'roofed': 'Roofed',
     'roofNote': 'Roofed — double HP, triple defence from above. Needs clear sky.',
-    'enhancedNote': 'Reinforced — extra HP and extra damage.',
+    'enhancedNote': 'Reinforced — +{hp}% HP, +{dmg}% damage.',
     'enhancedHand': 'Reinforced hand',
     'reroll': 'Swap this piece',
     'kinds': {
@@ -63,11 +68,13 @@ export default {
       'structure': 'Structure',
       'weapon': 'Weapon',
       'economy': 'Economy',
-      'utility': 'Utility'
+      'utility': 'Utility',
+      'ship': 'Ship'
     },
     'stats': {
       'hp': 'HP',
       'armor': 'Armour',
+      'topDefense': 'Top defence',
       'dmg': 'Damage',
       'cooldown': 'Cooldown',
       'range': 'Range',
@@ -80,6 +87,7 @@ export default {
       'thorns': 'Thorns'
     },
     'names': {
+      'skiff': 'Picket Skiff', 'longship': 'Longship', 'galley': 'War Galley',
       'gate': 'Gate',
       'wood': 'Wood Crate',
       'brace': 'Braced Crate',
@@ -97,6 +105,9 @@ export default {
       'bombard': 'Bombard'
     },
     'descriptions': {
+      'skiff': 'Moored on the water. Hits things under the surface.',
+      'longship': 'Heavy harpoon. Shielded, and it out-ranges the shore.',
+      'galley': 'Bronze ram and a deck bombard. The lake is yours.',
       'gate': 'The heart of your tower. Lose it and the siege is over.',
       'wood': 'Cheap filler. The backbone of every early tower.',
       'brace': 'Twice the wood, more than twice the staying power.',
@@ -194,6 +205,10 @@ export default {
     'requires': 'Requires {n}',
     'spotlight': 'Spend!',
     'names': {
+      'harbour': 'Harbour', 'dockWorks': 'Dock Works',
+      'unlockLongship': 'Longship', 'seasonedHulls': 'Seasoned Hulls',
+      'navalGunnery': 'Naval Gunnery', 'unlockGalley': 'War Galley',
+      'admiralty': 'Admiralty',
       'foundations': 'Foundations',
       'sharpBolts': 'Sharpened Bolts',
       'unlockBrace': 'Braced Crates',
@@ -229,6 +244,13 @@ export default {
       'artilleryDoctrine': 'Artillery Doctrine'
     },
     'descriptions': {
+      'harbour': 'Moor ships on the water. They alone can hit submerged foes.',
+      'dockWorks': 'Berth ships {n} cell wider per rank.',
+      'unlockLongship': 'A shielded hull with a heavy harpoon.',
+      'seasonedHulls': 'Ships start with +{n}% HP.',
+      'navalGunnery': 'Ship weapons deal +{n}% damage.',
+      'unlockGalley': 'Bronze ram, deck bombard and a fighting castle.',
+      'admiralty': 'Ship weapons deal a further +{n}% damage.',
       'foundations': 'Every block starts with +{n}% HP.',
       'sharpBolts': 'All weapons deal +{n}% damage per rank.',
       'unlockBrace': 'Unlocks the Braced Crate — twice the HP of plain wood.',
@@ -269,7 +291,7 @@ export default {
   'resources': {
     'wood': 'wood',
     'stone': 'stone',
-    'coins': 'coins'
+    'gold': 'gold'
   },
 
   // ─── Ads ──────────────────────────────────────────────────────────────────

@@ -27,18 +27,25 @@ export default {
 
   'blocks': {
     'sell': '판매',
+    'upgrade': '업그레이드',
+    'upgradeMax': '최대 강화',
+    'rank': 'Lv {n}/{max}',
+    'reinforced': '강화됨',
+    'roofed': '지붕 있음',
     'roofNote': '지붕 있음 — 체력 2배, 위쪽 공격 방어 3배. 위가 비어 있어야 합니다.',
-    'enhancedNote': '강화됨 — 체력과 피해량이 더 높습니다.',
+    'enhancedNote': '강화됨 — 체력 +{hp}%, 피해 +{dmg}%.',
     'enhancedHand': '강화 블록',
     'reroll': '이 조각 교체',
-    'kinds': { 'core': '핵심', 'structure': '구조', 'weapon': '무기', 'economy': '경제', 'utility': '보조' },
+    'kinds': { 'core': '핵심', 'structure': '구조', 'weapon': '무기', 'economy': '경제', 'utility': '보조', 'ship': '함선' },
     'stats': {
+      'topDefense': '상단 방어',
       'hp': '체력', 'armor': '방어', 'dmg': '피해', 'cooldown': '재사용', 'range': '사거리',
       'splash': '범위', 'yieldWood': '목재 / 웨이브', 'yieldStone': '석재 / 웨이브', 'yieldCoins': '코인 / 웨이브',
       'repair': '수리 / 웨이브', 'blast': '폭발',
       'thorns': '가시'
     },
     'names': {
+      'skiff': '초계정', 'longship': '롱십', 'galley': '전투 갤리선',
       'gate': '성문', 'wood': '나무 상자', 'brace': '보강 상자', 'stone': '석재 블록',
       'archer': '궁수탑', 'cannon': '대포', 'mortar': '박격포', 'tesla': '번개 코일',
       'frost': '서리 첨탑', 'repair': '수리소',
@@ -47,6 +54,9 @@ export default {
       'bombard': '박격포탑'
     },
     'descriptions': {
+      'skiff': '물 위에 정박. 수면 아래의 적도 공격합니다.',
+      'longship': '중작살. 방패를 두르고 해안보다 사거리가 깁니다.',
+      'galley': '청동 충각과 갑판 포. 호수는 당신 것입니다.',
       'gate': '타워의 심장. 무너지면 공성전은 끝납니다.',
       'wood': '저렴한 채움재. 초반 타워의 척추.',
       'brace': '목재는 두 배, 내구는 두 배 이상.',
@@ -132,6 +142,10 @@ export default {
     'requires': '필요: {n}',
     'spotlight': '사용하세요!',
     'names': {
+      'harbour': '항구', 'dockWorks': '부두 공사',
+      'unlockLongship': '롱십', 'seasonedHulls': '숙성 선체',
+      'navalGunnery': '함포술', 'unlockGalley': '전투 갤리선',
+      'admiralty': '해군 본부',
       'foundations': '기초', 'sharpBolts': '날카로운 화살', 'unlockBrace': '보강 상자',
       'lumberStock': '목재 비축', 'longSight': '원시', 'rapidFire': '속사',
       'reinforced': '보강 들보', 'unlockSawmill': '제재소', 'quarryStock': '석재 비축',
@@ -149,6 +163,13 @@ export default {
       'artilleryDoctrine': '포병 교리'
     },
     'descriptions': {
+      'harbour': '물 위에 함선을 정박. 잠수한 적은 함선만 공격합니다.',
+      'dockWorks': '등급마다 정박지가 {n}칸 넓어집니다.',
+      'unlockLongship': '방패를 두른 선체에 중작살을 얹었습니다.',
+      'seasonedHulls': '함선이 체력 +{n}%로 시작합니다.',
+      'navalGunnery': '함선 무기 피해 +{n}%.',
+      'unlockGalley': '청동 충각, 갑판 포, 전투 누각.',
+      'admiralty': '함선 무기 피해가 추가로 +{n}%.',
       'foundations': '모든 블록이 체력 +{n}%로 시작합니다.',
       'sharpBolts': '모든 무기의 피해가 등급당 +{n}%.',
       'unlockBrace': '보강 상자 해금 — 목재의 두 배 체력.',
@@ -188,7 +209,7 @@ export default {
   'resources': {
     'wood': '목재',
     'stone': '석재',
-    'coins': '코인'
+    'gold': '금'
   },
 
   'ads': {

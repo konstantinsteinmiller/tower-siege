@@ -27,18 +27,25 @@ export default {
 
   'blocks': {
     'sell': 'Sat',
+    'upgrade': 'Yükselt',
+    'upgradeMax': 'Tam yükseltildi',
+    'rank': 'Sv {n}/{max}',
+    'reinforced': 'Takviyeli',
+    'roofed': 'Çatılı',
     'roofNote': 'Çatılı — iki kat CP, yukarıdan gelen hasara üç kat savunma. Üstü boş olmalı.',
-    'enhancedNote': 'Takviyeli — daha fazla CP ve hasar.',
+    'enhancedNote': 'Takviyeli — +%{hp} CP, +%{dmg} hasar.',
     'enhancedHand': 'Takviyeli el',
     'reroll': 'Bu parçayı değiştir',
-    'kinds': { 'core': 'Çekirdek', 'structure': 'Yapı', 'weapon': 'Silah', 'economy': 'Ekonomi', 'utility': 'Yardımcı' },
+    'kinds': { 'core': 'Çekirdek', 'structure': 'Yapı', 'weapon': 'Silah', 'economy': 'Ekonomi', 'utility': 'Yardımcı', 'ship': 'Gemi' },
     'stats': {
+      'topDefense': 'Üstten savunma',
       'hp': 'CP', 'armor': 'Zırh', 'dmg': 'Hasar', 'cooldown': 'Bekleme', 'range': 'Menzil',
       'splash': 'Alan', 'yieldWood': 'Odun / dalga', 'yieldStone': 'Taş / dalga', 'yieldCoins': 'Altın / dalga',
       'repair': 'Onarım / dalga', 'blast': 'Patlama',
       'thorns': 'Dikenler'
     },
     'names': {
+      'skiff': 'Gözcü kayığı', 'longship': 'Uzun gemi', 'galley': 'Savaş kadırgası',
       'gate': 'Kapı', 'wood': 'Ahşap Sandık', 'brace': 'Takviyeli Sandık', 'stone': 'Taş Blok',
       'archer': 'Okçu Kulesi', 'cannon': 'Top', 'mortar': 'Havan', 'tesla': 'Yıldırım Bobini',
       'frost': 'Buz Kulesi', 'repair': 'Tamirhane',
@@ -47,6 +54,9 @@ export default {
       'bombard': 'Bombarda'
     },
     'descriptions': {
+      'skiff': 'Suya demirli. Yüzeyin altındaki düşmanlara vurur.',
+      'longship': 'Ağır zıpkın. Kalkanlı ve kıyıdan daha uzun menzilli.',
+      'galley': 'Bronz mahmuz ve güverte bombardası. Göl senindir.',
       'gate': 'Kulenin kalbi. Düşerse kuşatma biter.',
       'wood': 'Ucuz dolgu. Her erken kulenin bel kemiği.',
       'brace': 'İki katı odun, iki katından fazla dayanıklılık.',
@@ -132,6 +142,10 @@ export default {
     'requires': 'Gerekli: {n}',
     'spotlight': 'Harca!',
     'names': {
+      'harbour': 'Liman', 'dockWorks': 'Rıhtım işleri',
+      'unlockLongship': 'Uzun gemi', 'seasonedHulls': 'Sertleştirilmiş gövdeler',
+      'navalGunnery': 'Deniz topçuluğu', 'unlockGalley': 'Savaş kadırgası',
+      'admiralty': 'Amirallik',
       'foundations': 'Temeller', 'sharpBolts': 'Keskin Oklar', 'unlockBrace': 'Takviyeli Sandıklar',
       'lumberStock': 'Odun Stoku', 'longSight': 'Uzak Görüş', 'rapidFire': 'Hızlı Atış',
       'reinforced': 'Güçlendirilmiş Kirişler', 'unlockSawmill': 'Kereste Fabrikası', 'quarryStock': 'Taş Stoku',
@@ -149,6 +163,13 @@ export default {
       'artilleryDoctrine': 'Topçu Doktrini'
     },
     'descriptions': {
+      'harbour': 'Gemileri suya demirle. Batıklara yalnızca onlar vurur.',
+      'dockWorks': 'Her rütbede rıhtım {n} kare genişler.',
+      'unlockLongship': 'Ağır zıpkınlı, kalkanlı bir gövde.',
+      'seasonedHulls': 'Gemiler +%{n} CP ile başlar.',
+      'navalGunnery': 'Gemi silahları +%{n} hasar verir.',
+      'unlockGalley': 'Bronz mahmuz, bombarda ve savaş kulesi.',
+      'admiralty': 'Gemi silahları +%{n} daha fazla hasar verir.',
       'foundations': 'Her blok +%{n} CP ile başlar.',
       'sharpBolts': 'Tüm silahlar kademe başına +%{n} hasar verir.',
       'unlockBrace': 'Takviyeli sandığı açar — ahşabın iki katı CP.',
@@ -188,7 +209,7 @@ export default {
   'resources': {
     'wood': 'odun',
     'stone': 'taş',
-    'coins': 'altın'
+    'gold': 'altın'
   },
 
   'ads': {

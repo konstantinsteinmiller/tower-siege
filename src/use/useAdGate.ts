@@ -2,6 +2,7 @@ import { ref, computed } from 'vue'
 import { isCrazyWeb } from '@/use/useUser'
 import { isCrazyGamesFullRelease } from '@/use/useMatch'
 import { isRewardedReady, showRewardedAd } from '@/use/useAds'
+import useTowerEconomy, { coins } from '@/use/useTowerEconomy'
 
 /**
  * ─── Reward gating ──────────────────────────────────────────────────────────
@@ -16,6 +17,31 @@ import { isRewardedReady, showRewardedAd } from '@/use/useAds'
  * perk can never accidentally ship gated on a build that has no ads.
  */
 export const isRewardGated = isCrazyWeb && isCrazyGamesFullRelease
+
+// ─── The price where there is no video ──────────────────────────────────────
+//
+// "Free" was the wrong fallback. On every build that is not the CG full release
+// — the CG pre-release QA build most of all — a perk with no video behind it
+// became an unlimited button: triple the wave, reinforce the hand, rebuild the
+// tower, again and again, for nothing. That is not the same perk balanced
+// differently, it is the decision removed, and it makes the build QA plays
+// unrepresentative of the one players get.
+//
+// So these builds charge WALLET coins instead: the same currency the tech tree
+// spends, taken from the badge in the corner, so every claim costs the player
+// something they wanted for something else.
+
+/** Wallet coins a perk costs on a build where no rewarded video plays. */
+export const REWARD_COIN_COST = 30
+
+/** True where perks are paid for in coins rather than with a video. */
+export const isRewardCoinPriced = !isRewardGated
+
+/** Can the player pay the coin price right now? Always true on a gated build,
+ *  where the video is the price and the wallet is not touched. */
+export const canPayRewardPrice = computed(
+  () => isRewardGated || coins.value >= REWARD_COIN_COST
+)
 
 // ─── Rewarded rate limit ────────────────────────────────────────────────────
 //
@@ -85,8 +111,14 @@ export const __resetRewardWindow = (): void => {
  * button is not the only way into this function and a limit that only hides UI
  * is not a limit.
  */
-export const claimReward = async (grant: () => void): Promise<boolean> => {
+export const claimReward = async (
+  grant: () => void,
+  opts: { free?: boolean } = {}
+): Promise<boolean> => {
   if (!isRewardGated) {
+    // No video to charge, so the wallet is the price. `free` is for the perks
+    // that must never be gated at all — the way OUT of a finished run.
+    if (!opts.free && !useTowerEconomy().spendCoins(REWARD_COIN_COST)) return false
     grant()
     return true
   }

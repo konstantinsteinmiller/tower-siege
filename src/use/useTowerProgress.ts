@@ -93,6 +93,22 @@ export const thornsMul: ComputedRef<number> = computed(() => 1 + sumEffect(tech.
 /** Cavalry HP + damage multiplier. */
 export const cavalryMul: ComputedRef<number> = computed(() => 1 + sumEffect(tech.value.levels, 'cavalryPower') / 100)
 
+// ─── The Harbour ────────────────────────────────────────────────────────────
+//
+// Naval bonuses are their OWN multipliers rather than a share of the tower's.
+// The harbour is a separate tree bought with separate gold, and a player who
+// poured everything into ships should not be quietly buying archer damage —
+// nor should a fully-teched tower arrive with a free fleet.
+
+/** Damage multiplier for ship weapons only. */
+export const navalDamageMul: ComputedRef<number> = computed(
+  () => 1 + sumEffect(tech.value.levels, 'navalDamage') / 100
+)
+/** Max-HP multiplier for hulls only. */
+export const navalHpMul: ComputedRef<number> = computed(
+  () => 1 + sumEffect(tech.value.levels, 'navalHp') / 100
+)
+
 /** Starting build resources for a fresh run. */
 export const startWood: ComputedRef<number> = computed(() => 120 + sumEffect(tech.value.levels, 'startWood'))
 export const startStone: ComputedRef<number> = computed(() => 40 + sumEffect(tech.value.levels, 'startStone'))
@@ -108,6 +124,18 @@ export const startStone: ComputedRef<number> = computed(() => 40 + sumEffect(tec
  */
 export const buildHalfWidth: ComputedRef<number> = computed(
   () => 4 + sumEffect(tech.value.levels, 'buildWidth')
+)
+
+/**
+ * Half-width of the DOCK — how far out into the lake hulls may be moored.
+ *
+ * Starts narrower than the foundation and widens on its own node, so a harbour
+ * player is buying berths the same way a tower player buys footprint. Zero
+ * until the Harbour itself is owned, because a dock with no ships is not a
+ * thing the player should be able to see the outline of.
+ */
+export const dockHalfWidth: ComputedRef<number> = computed(
+  () => 3 + sumEffect(tech.value.levels, 'dockWidth')
 )
 
 /** Block ids the player may place right now. */

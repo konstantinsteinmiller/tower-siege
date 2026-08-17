@@ -7,11 +7,11 @@ import useTowerGame, {
   enemiesLeft, enemiesTotal, gateHpPct, buildTimeLeft, gameSpeed,
   lastWaveReward, isBossIncoming, towerVersion, getBlocks, offers,
   offerEnhanced, rerollReadyIn, allyCount,
-  startRun, resumeRun, placeShape, sellBlock, canPlaceShapeAt,
+  startRun, resumeRun, placeShape, sellBlock, upgradeBlock, canPlaceShapeAt,
   canAffordShape, callWave, toggleSpeed, step, runSummary, saveRunSnapshot,
   manualReroll, canManualReroll, dealEnhancedOffers, summonCavalry, cavalryCost,
-  halfWidthAt, speedBuffLeft, grantSpeedBuff, graceAvailable, continueRun,
-  isFirstSession, seedScriptedOpening
+  halfWidthAt, UPPER_HALF_WIDTH, WATER_ROW, speedBuffLeft, grantSpeedBuff, graceAvailable,
+  continueRun, isFirstSession, seedScriptedOpening
 } from '@/use/useTowerGame'
 import {
   setViewport, snapToFit, screenToCell, panBy, zoomAt,
@@ -22,7 +22,7 @@ import { drawScene, resetDrawnFx, setBuildOverlay } from '@/use/useTowerArt'
 import { resetVfx } from '@/use/useTowerVfx'
 import { warmAudio } from '@/use/useTowerAudio'
 import { warmSpriteProbes } from '@/game/art'
-import useTowerProgress, { buildHalfWidth, bestWave } from '@/use/useTowerProgress'
+import useTowerProgress, { bestWave } from '@/use/useTowerProgress'
 import {
   reportRun, rankFor, boardSize, playerTotal, leaderboardEnabled,
   leaderboardPending, OUTSIDE_BOARD
@@ -31,10 +31,11 @@ import useTowerEconomy from '@/use/useTowerEconomy'
 import useMissions, { beginMissionRun } from '@/use/useMissions'
 import useAchievements from '@/use/useAchievements'
 import useBattlePass from '@/use/useBattlePass'
-import { BUILDABLE_BLOCKS, GATE_ID } from '@/game/blocks'
+import { BUILDABLE_BLOCKS, GATE_ID, isShip } from '@/game/blocks'
 import { OFFER_SLOTS, SHAPE_BY_ID } from '@/game/shapes'
 import { ENEMY_DEFS } from '@/game/enemies'
 import { earlyCallBonus, planWave, countSiege } from '@/game/waves'
+import { SEA_LEVEL } from '@/game/world'
 import type { Block } from '@/game/types'
 
 import { getState, setState } from '@/use/useTowerState'
@@ -42,7 +43,8 @@ import { DAILY_BONUS_DAY_KEY, ONBOARDED_KEY, TECH_SPOTLIGHT_KEY, TUTORIAL_KEY } 
 import useSounds, { useMusic } from '@/use/useSound'
 import { useScreenshake } from '@/use/useScreenshake'
 import { isGamePaused, isAdShowing } from '@/use/useGamePause'
-import { isMobileLandscape } from '@/use/useUser'
+import { isMobileLandscape, isCrazyWeb } from '@/use/useUser'
+import { isFullscreen, installFullscreenWatch } from '@/use/useFullscreen'
 import { isCrazyGamesFullRelease } from '@/use/useMatch'
 import { spawnCoinExplosion } from '@/use/useCoinExplosion'
 import { isInterstitialReady, showMidgameAd } from '@/use/useAds'
@@ -126,6 +128,29 @@ const measureInsets = (): { top: number; bottom: number } => {
   }
 }
 
+/**
+ * The same insets, mirrored into a ref.
+ *
+ * `measureInsets` is called imperatively for the camera; the payout toast is
+ * positioned in SCREEN space against the world, so it needs the same numbers
+ * reactively in order to stay clear of the top bar and the build tray.
+ */
+const hudInset = ref({ top: 0, bottom: 0 })
+
+/**
+ * Whether the in-game mute button is shown at all.
+ *
+ * Everywhere but CrazyGames: always. On CrazyGames the platform toolbar carries
+ * its own mute, and QA treats a second in-game toggle as one control fighting
+ * another — the two do not track each other, so the player ends up with a
+ * muted button and audible game. In fullscreen that toolbar is not on screen,
+ * so the in-game button comes back rather than leaving no way to silence it.
+ *
+ * The volume sliders in Options are untouched either way: they are settings,
+ * not a competing toggle.
+ */
+const showMuteButton = computed(() => !isCrazyWeb || isFullscreen.value)
+
 const resize = (): void => {
   const canvas = canvasRef.value
   if (!canvas) return
@@ -139,12 +164,45 @@ const resize = (): void => {
   canvas.height = Math.round(cssH * dpr)
   canvas.style.width = `${cssW}px`
   canvas.style.height = `${cssH}px`
+  cssHRef.value = cssH
   ctx = canvas.getContext('2d')
   ctx?.setTransform(dpr, 0, 0, dpr, 0, 0)
   const insets = measureInsets()
+  hudInset.value = insets
   setViewport(cssW, cssH, insets.top, insets.bottom)
   snapToFit()
 }
+
+/**
+ * Screen Y of the shoreline in CSS px — where the grass gives way to water.
+ *
+ * Tracked so the payout toast can sit ON that line instead of near the top bar,
+ * where it covered the crown of the tower for three and a half seconds after
+ * every single wave. Written from the render loop with a half-pixel deadband so
+ * a settled camera stops re-triggering the layout.
+ */
+const shorelineY = ref(0)
+
+/** Height of the toast, measured — it changes with the triple-coins offer. */
+const toastH = ref(0)
+const toastRef = ref<HTMLElement | null>(null)
+let toastRo: ResizeObserver | null = null
+
+/**
+ * Where the toast is pinned, clamped into the band the HUD leaves free.
+ *
+ * Below the shoreline the water band is only a couple of cells tall, so on a
+ * portrait phone the clamp is what actually decides this — and it has to prefer
+ * the BOTTOM of the free band, since the whole point is to keep the tower clear.
+ */
+const toastTop = computed(() => {
+  const lo = hudInset.value.top + 6
+  const hi = Math.max(lo, cssHRef.value - hudInset.value.bottom - toastH.value - 6)
+  return Math.round(Math.min(hi, Math.max(lo, shorelineY.value)))
+})
+
+/** `cssH` as a ref — the toast's clamp needs the viewport height reactively. */
+const cssHRef = ref(0)
 
 const loop = (t: number): void => {
   rafId = requestAnimationFrame(loop)
@@ -157,6 +215,9 @@ const loop = (t: number): void => {
   if (!isGamePaused.value && !showResult.value) step(dt)
 
   if (ctx) drawScene(ctx, cssW, cssH, dt, dpr)
+
+  const sea = worldToScreenY(SEA_LEVEL)
+  if (Math.abs(sea - shorelineY.value) > 0.5) shorelineY.value = sea
 }
 
 // ─── Build state ────────────────────────────────────────────────────────────
@@ -193,16 +254,34 @@ const legalSlots = computed<Array<[number, number]>>(() => {
     if (dy + 1 > shapeH) shapeH = dy + 1
   }
 
-  // Scan the widest row the tower can ever reach: the foundation is capped
-  // narrower than the upper floors, so scanning `buildHalfWidth` alone would
-  // still be right, but taking the max keeps this correct if either cap moves.
-  const halfW = Math.max(buildHalfWidth.value, halfWidthAt(0))
+  // Scan wide enough to cover BOTH caps.
+  //
+  // The foundation's width is `halfWidthAt(0)` and grows with the foundation
+  // tech; the floors above it are bounded only by `UPPER_HALF_WIDTH`, and a
+  // cantilevered arm can legally reach past the footing. Scanning the
+  // foundation width alone silently withheld every overhang slot — the piece
+  // was placeable by tapping, but nothing ever lit up to say so. Bounded by the
+  // tower's own extent plus a piece-width of reach, so this stays a small scan
+  // on a small tower instead of always sweeping 45 columns.
   let maxR = 0
-  for (const b of getBlocks().values()) if (b.r > maxR) maxR = b.r
+  let reach = 0
+  for (const b of getBlocks().values()) {
+    if (b.r > maxR) maxR = b.r
+    const w = Math.abs(b.c)
+    if (w > reach) reach = w
+  }
+  // A naval piece is moored, not built: its only legal row is the water, and
+  // its width is the dock's rather than the tower's.
+  const naval = def.cells.every(([, , typeId]) => isShip(typeId))
+  const halfW = naval
+    ? halfWidthAt(WATER_ROW)
+    : Math.min(UPPER_HALF_WIDTH, Math.max(halfWidthAt(0), reach + shapeW + 1))
+  const rowFrom = naval ? WATER_ROW : 0
+  const rowTo = naval ? WATER_ROW : maxR + 1
 
   const out: Array<[number, number]> = []
   for (let c = -halfW; c <= halfW - shapeW + 1; c++) {
-    for (let r = 0; r <= maxR + 1; r++) {
+    for (let r = rowFrom; r <= rowTo; r++) {
       if (canPlaceShapeAt(shapeId, c, r)) out.push([c, r])
     }
   }
@@ -912,6 +991,23 @@ const onSellInspected = (): void => {
 }
 
 /**
+ * Buy one rank on the inspected block with run gold.
+ *
+ * The panel stays OPEN, unlike a sale: the whole point of the button is to show
+ * the numbers on the card move, and closing over the moment they change would
+ * throw away the only feedback the purchase has.
+ */
+const onUpgradeInspected = (): void => {
+  const b = inspected.value
+  if (!b) return
+  if (!upgradeBlock(b.c, b.r)) {
+    playSound('obstacle-hit', 0.03)
+    return
+  }
+  playSound('level-up', 0.05)
+}
+
+/**
  * "3× coins" — triple the wave payout for a rewarded video.
  *
  * The wave's base payout has already been banked by `completeWave`, so this
@@ -955,23 +1051,12 @@ const onBuySpeed = async (): Promise<void> => {
  * Offered during the build phase only — mid-battle it would be a "pay to undo
  * a bad wave" button, which is exactly the pattern portals reject.
  */
-/**
- * What the hand costs where there is no video to charge for it.
- *
- * Off-portal `claimReward` grants immediately, which would leave the reinforced
- * hand a free, unlimited button — and a free reroll into four better blocks is
- * not a perk, it is the build phase solved. Run coins are the right price:
- * the same currency the good blocks cost, so taking the hand is a real trade
- * against a mortar rather than a tap.
- */
-const ENHANCED_HAND_COINS = 20
-
 const onEnhancedHand = async (): Promise<void> => {
   if (adInFlight.value) return
-  if (!isRewardGated) {
-    if (runCoins.value < ENHANCED_HAND_COINS) return
-    runCoins.value -= ENHANCED_HAND_COINS
-  }
+  // The wallet price where no video plays is charged by `claimReward` itself,
+  // at the same rate as every other perk — see `REWARD_COIN_COST`. It used to
+  // be a bespoke 20 run-coins here, which meant this one button was priced in a
+  // different currency from the rest and had to be kept in sync by hand.
   await claimReward(() => {
     dealEnhancedOffers()
     selectedSlot.value = null
@@ -1035,17 +1120,15 @@ const cavalryOffered = computed(() => phase.value === 'battle' && siegeIncoming.
 
 // ─── Manual reroll ──────────────────────────────────────────────────────────
 
-const rerollSeconds = computed(() => Math.ceil(rerollReadyIn.value / 1000))
-const rerollReady = computed(() => rerollReadyIn.value <= 0)
-
 /**
  * Trade one offered shape for a new draw.
  *
  * Without this a run could deadlock into four unaffordable or useless offers;
- * the 10 s cooldown is what stops it becoming a free "reroll until perfect".
+ * the five-second per-slot cooldown is what stops it becoming a free "reroll
+ * until perfect" without punishing the rest of the hand for one bad piece.
  */
 const onReroll = (slot: number): void => {
-  if (!canManualReroll()) {
+  if (!canManualReroll(slot)) {
     playSound('obstacle-hit', 0.03)
     return
   }
@@ -1159,6 +1242,7 @@ let insetTimer = 0
 
 onMounted(() => {
   void boot()
+  installFullscreenWatch()
   window.addEventListener('resize', resize)
   window.addEventListener('orientationchange', onOrientationChange)
   window.addEventListener('keydown', onKey)
@@ -1183,8 +1267,18 @@ onMounted(() => {
   insetTimer = window.setInterval(() => {
     if (cssW === 0) return
     const insets = measureInsets()
+    hudInset.value = insets
     setViewport(cssW, cssH, insets.top, insets.bottom)
   }, 1000)
+
+  // The toast grows a whole button when the triple-coins offer is on it, and
+  // its clamp is measured off the bottom edge — so the height has to be real.
+  if (toastRef.value && typeof ResizeObserver !== 'undefined') {
+    toastRo = new ResizeObserver(([entry]) => {
+      toastH.value = entry?.contentRect.height ?? 0
+    })
+    toastRo.observe(toastRef.value)
+  }
 
   // The tutorial's spotlight tracks a camera that is still easing into place,
   // so it re-measures on a short cadence while it is up — and not at all once
@@ -1208,6 +1302,8 @@ onUnmounted(() => {
   window.removeEventListener('keydown', onKey)
   clearInterval(insetTimer)
   clearInterval(tutorialTimer)
+  toastRo?.disconnect()
+  toastRo = null
   clearLongPress()
   stopBattleMusic()
   // A tab close mid-build must never cost the player their tower.
@@ -1246,8 +1342,10 @@ onUnmounted(() => {
           CoinBadge(ref="coinBadgeRef")
           TreasureChest(:target-el="coinBadgeEl")
 
-      //- Wave-clear payout toast, centred under the top bar.
-      div.scene__toast
+      //- Wave-clear payout toast, pinned to the shoreline rather than to the
+      //- top bar — anywhere higher and it sits over the tower the player is
+      //- trying to look at while deciding what to build next.
+      div.scene__toast(ref="toastRef" :style="{ top: toastTop + 'px' }")
         WaveClearToast(
           :reward="toastHeld ? null : lastWaveReward"
           @triple="onTripleWave"
@@ -1274,6 +1372,7 @@ onUnmounted(() => {
         BlockInspector(
           :block="inspected"
           @sell="onSellInspected"
+          @upgrade="onUpgradeInspected"
           @close="inspected = null"
         )
 
@@ -1281,7 +1380,11 @@ onUnmounted(() => {
       div.scene__bottom(ref="bottomBarRef")
         //- Meta buttons.
         div.scene__meta
-          FMuteButton
+          //- On CrazyGames the platform toolbar owns the mute control and QA
+          //- rejects a second one competing with it — except in fullscreen,
+          //- where that toolbar is gone and this is the only way to shut the
+          //- game up.
+          FMuteButton(v-if="showMuteButton")
           FHudButton(
             tone="slate"
             :aria-label="t('options.title')"
@@ -1305,8 +1408,6 @@ onUnmounted(() => {
               tone="gold"
               size="sm"
               :label="t('blocks.enhancedHand')"
-              :coin-cost="ENHANCED_HAND_COINS"
-              :coins="runCoins"
               @click="onEnhancedHand"
             )
             button.scene__cavalry(
@@ -1332,8 +1433,7 @@ onUnmounted(() => {
             :wood="wood"
             :stone="stone"
             :coins="runCoins"
-            :reroll-ready="rerollReady"
-            :reroll-seconds="rerollSeconds"
+            :reroll-seconds="rerollReadyIn"
             @select="onSelectSlot"
             @reroll="onReroll"
           )
@@ -1517,10 +1617,16 @@ onUnmounted(() => {
   padding-bottom: clamp(0.9rem, 3.6vw, 1.2rem)
   pointer-events: auto
 
+// Taken out of the HUD column and positioned in screen space, so it can track
+// the world's shoreline instead of stacking under the top bar.
 .scene__toast
+  position: absolute
+  left: 0
+  right: 0
   display: flex
   justify-content: center
-  margin-top: clamp(0.3rem, 1.6vw, 0.6rem)
+  padding-inline: 0.5rem
+  pointer-events: none
 
 .scene__hint
   display: flex

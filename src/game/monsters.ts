@@ -1733,13 +1733,20 @@ const drawThornwick = (ctx: CanvasRenderingContext2D, S: number, t: number): voi
   }
 
   // High left arm, raised.
+  //
+  // The reach of this arm and of the crown below is capped, not chosen freely.
+  // A twig's leaf mass ends up at roughly `joint + sin(a) * len + sway + r`,
+  // and the cast's contract is a crown at −1.05 — this arm used to land its
+  // topmost cluster near −1.34, which is outside the baked frame. It came out
+  // of the strip with its foliage sliced flat, and no amount of drawing fixes
+  // a shape that was never rendered.
   branch([
     [trunkX(0.7) - 0.1 * S, trunkY(0.7)],
-    [-0.42 * S + creak, -0.5 * S + b],
-    [-0.62 * S + creak, -0.78 * S + b]
+    [-0.42 * S + creak, -0.44 * S + b],
+    [-0.62 * S + creak, -0.66 * S + b]
   ], 0.115 * S, BARK, 940, [
-    { a: -1.9, len: 0.26 * S, r: 0.18 * S, lag: 0.1 },
-    { a: -1.15, len: 0.2 * S, r: 0.13 * S, lag: 0.17 },
+    { a: -1.9, len: 0.2 * S, r: 0.15 * S, lag: 0.1 },
+    { a: -1.15, len: 0.19 * S, r: 0.13 * S, lag: 0.17 },
     { a: -2.7, len: 0.22 * S, r: 0.14 * S, lag: 0.13 }
   ])
 
@@ -1753,14 +1760,14 @@ const drawThornwick = (ctx: CanvasRenderingContext2D, S: number, t: number): voi
     { a: 0.3, len: 0.18 * S, r: 0.11 * S, lag: 0.2 }
   ])
 
-  // Crown, straight up out of the top.
+  // Crown, straight up out of the top. Same cap as the left arm — see there.
   branch([
     [trunkX(0.95), trunkY(0.95)],
-    [0.06 * S + creak * 1.1, -0.86 * S + b],
-    [0.16 * S + creak * 1.1, -0.98 * S + b]
+    [0.06 * S + creak * 1.1, -0.66 * S + b],
+    [0.16 * S + creak * 1.1, -0.76 * S + b]
   ], 0.08 * S, BARK, 960, [
-    { a: -1.35, len: 0.2 * S, r: 0.15 * S, lag: 0.08 },
-    { a: -2.35, len: 0.16 * S, r: 0.11 * S, lag: 0.15 }
+    { a: -1.35, len: 0.15 * S, r: 0.12 * S, lag: 0.08 },
+    { a: -2.35, len: 0.14 * S, r: 0.1 * S, lag: 0.15 }
   ])
 
   thorn(-0.34 * S + creak, -0.44 * S + b, -2.3, 0.13 * S, 970)

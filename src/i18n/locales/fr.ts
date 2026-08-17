@@ -27,18 +27,25 @@ export default {
 
   'blocks': {
     'sell': 'Vendre',
+    'upgrade': 'Améliorer',
+    'upgradeMax': 'Amélioration max',
+    'rank': 'Niv {n}/{max}',
+    'reinforced': 'Renforcé',
+    'roofed': 'Toituré',
     'roofNote': 'Toituré — PV doublés, défense triplée par le haut. Nécessite un ciel dégagé.',
-    'enhancedNote': 'Renforcé — plus de PV et plus de dégâts.',
+    'enhancedNote': 'Renforcé — +{hp} % de PV, +{dmg} % de dégâts.',
     'enhancedHand': 'Main renforcée',
     'reroll': 'Changer cette pièce',
-    'kinds': { 'core': 'Cœur', 'structure': 'Structure', 'weapon': 'Arme', 'economy': 'Économie', 'utility': 'Utilitaire' },
+    'kinds': { 'core': 'Cœur', 'structure': 'Structure', 'weapon': 'Arme', 'economy': 'Économie', 'utility': 'Utilitaire', 'ship': 'Navire' },
     'stats': {
+      'topDefense': 'Défense (haut)',
       'hp': 'PV', 'armor': 'Armure', 'dmg': 'Dégâts', 'cooldown': 'Recharge', 'range': 'Portée',
       'splash': 'Zone', 'yieldWood': 'Bois / vague', 'yieldStone': 'Pierre / vague', 'yieldCoins': 'Pièces / vague',
       'repair': 'Réparation / vague', 'blast': 'Explosion',
       'thorns': 'Épines'
     },
     'names': {
+      'skiff': 'Chaloupe de garde', 'longship': 'Drakkar', 'galley': 'Galère de guerre',
       'gate': 'Porte', 'wood': 'Caisse en bois', 'brace': 'Caisse renforcée', 'stone': 'Bloc de pierre',
       'archer': 'Tour d’archers', 'cannon': 'Canon', 'mortar': 'Mortier', 'tesla': 'Bobine électrique',
       'frost': 'Flèche de givre', 'repair': 'Atelier',
@@ -47,6 +54,9 @@ export default {
       'bombard': 'Bombarde'
     },
     'descriptions': {
+      'skiff': 'Amarré sur l’eau. Touche les ennemis immergés.',
+      'longship': 'Harpon lourd. Bardé de boucliers et plus long que la rive.',
+      'galley': 'Éperon de bronze et bombarde de pont. Le lac est à vous.',
       'gate': 'Le cœur de votre tour. Si elle tombe, le siège est fini.',
       'wood': 'Remplissage bon marché. La colonne vertébrale de toute tour débutante.',
       'brace': 'Deux fois plus de bois, bien plus de résistance.',
@@ -132,6 +142,10 @@ export default {
     'requires': 'Nécessite {n}',
     'spotlight': 'Dépensez !',
     'names': {
+      'harbour': 'Port', 'dockWorks': 'Travaux portuaires',
+      'unlockLongship': 'Drakkar', 'seasonedHulls': 'Coques traitées',
+      'navalGunnery': 'Artillerie navale', 'unlockGalley': 'Galère de guerre',
+      'admiralty': 'Amirauté',
       'foundations': 'Fondations', 'sharpBolts': 'Carreaux aiguisés', 'unlockBrace': 'Caisses renforcées',
       'lumberStock': 'Réserve de bois', 'longSight': 'Longue vue', 'rapidFire': 'Tir rapide',
       'reinforced': 'Poutres renforcées', 'unlockSawmill': 'Scierie', 'quarryStock': 'Réserve de pierre',
@@ -149,6 +163,13 @@ export default {
       'artilleryDoctrine': 'Doctrine d’artillerie'
     },
     'descriptions': {
+      'harbour': 'Amarrez des navires. Eux seuls touchent les ennemis immergés.',
+      'dockWorks': 'Amarrez {n} case plus loin par rang.',
+      'unlockLongship': 'Une coque bardée avec un harpon lourd.',
+      'seasonedHulls': 'Les navires démarrent avec +{n} % de PV.',
+      'navalGunnery': 'Les armes navales infligent +{n} % de dégâts.',
+      'unlockGalley': 'Éperon de bronze, bombarde et château de combat.',
+      'admiralty': 'Les armes navales infligent +{n} % de dégâts en plus.',
       'foundations': 'Chaque bloc démarre avec +{n} % de PV.',
       'sharpBolts': 'Toutes les armes infligent +{n} % de dégâts par rang.',
       'unlockBrace': 'Débloque la caisse renforcée : deux fois les PV du bois.',
@@ -188,7 +209,7 @@ export default {
   'resources': {
     'wood': 'bois',
     'stone': 'pierre',
-    'coins': 'pièces'
+    'gold': 'or'
   },
 
   'ads': {

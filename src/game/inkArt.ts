@@ -108,6 +108,34 @@ export const rough = (pts: Pt[], amount: number, seed: number, freq = 0.9): Pt[]
   })
 }
 
+/**
+ * Sharpen an authored polygon so `trace` keeps its corners.
+ *
+ * `trace` runs a quadratic through the MIDPOINT of each edge using the vertex
+ * as the control point, which rounds every corner by half the edge length.
+ * That is exactly right for a jaw or a haunch, and exactly wrong for anything
+ * built by hand out of straight timber: a four-point casemate comes out as an
+ * oval and a plank tower as a brown egg.
+ *
+ * Doubling a point in close on either side of each vertex leaves the smoothing
+ * almost no distance to work with, so the curve hugs the corner. That lets hard
+ * subjects — siege engines, armour plate — share every other primitive here
+ * with the creature cast instead of needing a parallel set of their own.
+ */
+export const hard = (pts: Pt[], k = 0.1): Pt[] => {
+  const n = pts.length
+  const out: Pt[] = []
+  for (let i = 0; i < n; i++) {
+    const prev = pts[(i - 1 + n) % n]!
+    const cur = pts[i]!
+    const next = pts[(i + 1) % n]!
+    out.push([cur[0] + (prev[0] - cur[0]) * k, cur[1] + (prev[1] - cur[1]) * k])
+    out.push([cur[0], cur[1]])
+    out.push([cur[0] + (next[0] - cur[0]) * k, cur[1] + (next[1] - cur[1]) * k])
+  }
+  return out
+}
+
 /** Uniform scale about a point — used to derive shadow / highlight shapes. */
 export const shrink = (pts: Pt[], k: number, ox = 0, oy = 0): Pt[] =>
   pts.map(([x, y]) => [ox + (x - ox) * k, oy + (y - oy) * k] as Pt)

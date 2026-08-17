@@ -29,7 +29,7 @@ export interface ShapeDef {
    *  above a roofed cell. */
   roofs?: number[]
   /** Which offer lane this shape can be drawn into. */
-  lane: 'structure' | 'weapon' | 'support'
+  lane: 'structure' | 'weapon' | 'support' | 'naval'
   /** Relative draw weight within its lane. */
   weight: number
   /** Earliest wave the shape enters the deck (keeps wave 1 simple). */
@@ -93,7 +93,21 @@ export const SHAPE_DEFS: ReadonlyArray<ShapeDef> = [
   { id: 'quarry1', lane: 'support', weight: 10, cells: [[0, 0, 'quarry']] },
   { id: 'mint1', lane: 'support', weight: 8, cells: [[0, 0, 'mint']] },
   { id: 'repair1', lane: 'support', weight: 8, cells: [[0, 0, 'repair']] },
-  { id: 'sawmillPair', lane: 'support', weight: 4, cells: row(2, 'sawmill'), minWave: 5 }
+  { id: 'sawmillPair', lane: 'support', weight: 4, cells: row(2, 'sawmill'), minWave: 5 },
+
+  // ── Naval ────────────────────────────────────────────────────────────────
+  //
+  // Hulls are always 1x1 and always alone: a ship is moored in a berth, not
+  // assembled out of polyominoes, and a two-cell "shape" made of boats would
+  // be nonsense the moment the player tried to read it.
+  //
+  // `naval` is its own lane, and NO slot is locked to it — so ships only ever
+  // turn up in the two free slots. A harbour is a second front, not a
+  // replacement for the hand, and the structure and weapon lanes must keep
+  // doing their jobs whatever the player has unlocked.
+  { id: 'skiff1', lane: 'naval', weight: 10, cells: [[0, 0, 'skiff']] },
+  { id: 'longship1', lane: 'naval', weight: 8, cells: [[0, 0, 'longship']] },
+  { id: 'galley1', lane: 'naval', weight: 6, cells: [[0, 0, 'galley']] }
 ]
 
 export const SHAPE_BY_ID: Record<string, ShapeDef> = Object.fromEntries(
@@ -159,6 +173,47 @@ const SLOT_LANES: ReadonlyArray<ShapeDef['lane'] | 'any'> = [
   'any',
   'any'
 ]
+
+/** The slot whose lane is locked to weapons — the one the affordability net
+ *  below is allowed to overwrite. */
+export const WEAPON_SLOT = 1
+
+/** Total build cost collapsed to one comparable number. Gold is the scarcest
+ *  of the three within a run and stone the next, so they weigh more. */
+const costWeight = (id: string): number => {
+  const c = shapeCost(id)
+  return c.wood + c.stone * 1.3 + c.coins * 2.5
+}
+
+/**
+ * A gun the player can actually pay for right now.
+ *
+ * Locking slot 1 to the weapon lane guarantees a gun is on the table, but not
+ * that the player can BUY it — and an unaffordable gun is the same as no gun.
+ * A tesla (40 stone + 32 gold) rolled into the weapon lane on a wave where the
+ * player has spent down to nothing leaves them watching a wave arrive with a
+ * hand of four pieces they cannot place, which is a loss they were given no way
+ * to prevent.
+ *
+ * Among affordable guns the pick is RANDOM, not cheapest: always falling back
+ * to the archer would turn the safety net into a rut. Only when nothing is
+ * affordable does it hand over the cheapest one, so the player is at least
+ * looking at the gun they will be able to afford first.
+ */
+export const pickAffordableWeapon = (
+  wave: number,
+  unlockedBlocks: Set<string>,
+  canAfford: (shapeId: string) => boolean,
+  rand: () => number = Math.random
+): string | null => {
+  const guns = eligibleShapes(wave, unlockedBlocks).filter((s) => s.lane === 'weapon')
+  if (guns.length === 0) return null
+  const payable = guns.filter((s) => canAfford(s.id))
+  if (payable.length === 0) {
+    return guns.reduce((best, s) => (costWeight(s.id) < costWeight(best.id) ? s : best)).id
+  }
+  return payable[Math.min(payable.length - 1, Math.floor(rand() * payable.length))]!.id
+}
 
 /** Shapes whose every block type the player has unlocked, and whose `minWave`
  *  has been reached. */
