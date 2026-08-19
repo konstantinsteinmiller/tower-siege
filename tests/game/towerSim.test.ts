@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { OFFER_SLOTS } from '@/game/shapes'
 
 // The simulation is a module-level singleton (project convention), so each test
 // re-imports it fresh to get a clean tower.
@@ -238,7 +239,9 @@ describe('run persistence', () => {
 describe('shape placement', () => {
   const armAll = async (g: Awaited<ReturnType<typeof loadGame>>, ids: string[]) => {
     // Offers are rolled randomly; overwrite them so the test is deterministic.
-    g.offers.value = ids
+    // Padded to the real slot count so a test that only cares about the first
+    // few does not have to be rewritten every time a lane is added.
+    g.offers.value = Array.from({ length: OFFER_SLOTS }, (_, i) => ids[i] ?? 'w1')
   }
 
   it('places every cell of a multi-cell shape and charges the whole cost', async () => {
@@ -258,11 +261,11 @@ describe('shape placement', () => {
   it('rerolls the placed slot so the hand stays four live choices', async () => {
     const g = await loadGame()
     g.startRun()
-    await armAll(g, ['w1', 'archer1', 'w2h', 'spikes1'])
+    await armAll(g, ['w1', 'archer1', 'w2h', 'spikes1', 'banner1'])
     g.placeShape(0, 1, 0)
-    expect(g.offers.value).toHaveLength(4)
-    // The other three are untouched.
-    expect(g.offers.value.slice(1)).toEqual(['archer1', 'w2h', 'spikes1'])
+    expect(g.offers.value).toHaveLength(OFFER_SLOTS)
+    // Every other slot is untouched.
+    expect(g.offers.value.slice(1)).toEqual(['archer1', 'w2h', 'spikes1', 'banner1'])
   })
 
   it('refuses a shape the player cannot fully afford — and charges nothing', async () => {

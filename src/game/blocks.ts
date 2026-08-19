@@ -211,7 +211,7 @@ export const BLOCK_DEFS: Record<string, BlockDef> = {
     kind: 'economy',
     cost: { wood: 40 },
     hp: 60,
-    economy: { wood: 8 },
+    economy: { wood: 10 },
     unlockNode: 'unlockSawmill',
     order: 11,
     palette: 'sawmill'
@@ -222,7 +222,7 @@ export const BLOCK_DEFS: Record<string, BlockDef> = {
     cost: { stone: 40 },
     hp: 70,
     armor: 1,
-    economy: { stone: 6 },
+    economy: { stone: 7 },
     unlockNode: 'unlockQuarry',
     order: 12,
     palette: 'quarry'
@@ -232,9 +232,94 @@ export const BLOCK_DEFS: Record<string, BlockDef> = {
     kind: 'economy',
     cost: { wood: 45, stone: 45, coins: 40 },
     hp: 70,
-    economy: { coins: 5 },
+    economy: { coins: 6 },
     unlockNode: 'unlockMint',
     order: 13,
+    palette: 'mint'
+  },
+
+  // ── Buffs ────────────────────────────────────────────────────────────────
+  //
+  // A banner does nothing by itself. It has no gun, its hit points are ordinary
+  // and it produces nothing — everything it is worth lives in the four cells
+  // around it, and the multiplier stacks, so a cannon with a banner on each
+  // side is worth more than two cannons each with one.
+  //
+  // That is the whole design intent: until now the optimal tower was a pile of
+  // the best block the player could afford, and WHERE anything went mattered
+  // only for reach. A buff turns the tower into a shape with a middle.
+  banner: {
+    id: 'banner',
+    kind: 'buff',
+    // Deliberately un-gated. The support lane was empty for a player with no
+    // tech, which is the whole reason the fifth offer slot could not exist.
+    cost: { wood: 28 },
+    hp: 55,
+    buff: { statMul: 1.25, armor: 1 },
+    order: 14,
+    palette: 'banner'
+  },
+  obelisk: {
+    id: 'obelisk',
+    kind: 'buff',
+    cost: { stone: 46, coins: 16 },
+    hp: 120,
+    armor: 2,
+    // 1.4 against the banner's 1.25 — but the real jump is that two obelisks
+    // give 1.96 where two banners give 1.56, because the curve is a product.
+    buff: { statMul: 1.4, armor: 2 },
+    unlockNode: 'unlockObelisk',
+    order: 15,
+    palette: 'obelisk'
+  },
+
+  // ── Early economy ────────────────────────────────────────────────────────
+  //
+  // The deep economy blocks (sawmill / quarry / mint) sit behind 160-640 coins
+  // of tech, which puts them out of reach for exactly the player whose income
+  // cannot pay for their own attrition. These are the affordable tier: smaller
+  // yields, but buildable in the run where they would matter.
+  //
+  // Every yield in the game carries a +20 % pass over its first tuning. A
+  // producer is a cell that neither shoots nor soaks, so it competes with a gun
+  // for space AND for the resources that would have bought the gun — at the
+  // original rates the trade was close enough that building one was mostly a
+  // gesture.
+  //
+  // Yields are priced against `waveReward` — about a third of a wave's income
+  // each, so three of them roughly double it, at the cost of three cells that
+  // neither shoot nor soak.
+  lumberHut: {
+    id: 'lumberHut',
+    kind: 'economy',
+    cost: { wood: 30 },
+    hp: 50,
+    economy: { wood: 6 },
+    order: 16,
+    palette: 'sawmill'
+  },
+  stonepit: {
+    id: 'stonepit',
+    kind: 'economy',
+    cost: { wood: 18, stone: 22 },
+    hp: 65,
+    armor: 1,
+    economy: { stone: 5 },
+    unlockNode: 'logistics',
+    order: 17,
+    palette: 'quarry'
+  },
+  coffer: {
+    id: 'coffer',
+    kind: 'economy',
+    cost: { wood: 26, stone: 24 },
+    hp: 60,
+    // The first and only producer of RUN gold. Every other source is a kill
+    // drop, which is why a player who built a wall that never let anything
+    // close also never had gold to upgrade it with.
+    economy: { gold: 5 },
+    unlockNode: 'unlockCoffer',
+    order: 18,
     palette: 'mint'
   },
 
@@ -329,6 +414,60 @@ export const blockDef = (id: string): BlockDef => BLOCK_DEFS[id] ?? BLOCK_DEFS.w
 /** True for a hull: water row only, floats, holds nothing up. */
 export const isShip = (id: string): boolean => blockDef(id).waterOnly === true
 
+// ─── Merging ────────────────────────────────────────────────────────────────
+//
+// Two adjacent blocks of the same type and the same tier fuse into ONE of the
+// next tier. The trade is the whole design: four cannons' worth of material
+// ends up in a single cell doing nine times a cannon's damage, and the three
+// cells it vacates are yours to build on — but every point of that damage now
+// lives behind one block's worth of frontage, and one bomber run can take all
+// of it. Concentrating is a bet, not a free upgrade.
+//
+// Output triples per tier while hit points only double, and that gap is what
+// keeps the bet honest: a merged tower out-damages a flat one long before it
+// out-lasts it.
+
+/** Tiers a block can reach. Tier 1 is a plain block. */
+export const MAX_MERGE_TIER = 3
+
+/** A block's tier, treating the absent field as a plain block. */
+export const tierOf = (tier: number | undefined): number => tier ?? 1
+
+/** Output multiplier — damage, thorns, blast, per-wave yield. */
+export const mergePowerMul = (tier: number | undefined): number =>
+  Math.pow(3, tierOf(tier) - 1)
+
+/** Max-HP multiplier. Deliberately below the output curve; see above. */
+export const mergeHpMul = (tier: number | undefined): number =>
+  Math.pow(2, tierOf(tier) - 1)
+
+/** Only armed blocks fuse. */
+export const canMergeType = (typeId: string): boolean =>
+  typeId !== GATE_ID && blockDef(typeId).weapon !== undefined
+
+/**
+ * Can these two blocks fuse?
+ *
+ * WEAPONS ONLY, and only with the same weapon: same type, same tier, below the
+ * ceiling, never the Gate.
+ *
+ * Walls, crates, roofs and producers are excluded on purpose. Merging is a
+ * damage bet — trade frontage for one bigger gun — and a wall has no damage to
+ * bet. Letting masonry fuse also made ordinary building feel booby-trapped:
+ * placing a two-cell crate piece silently welded it into one block the player
+ * never asked for, and any roof or reinforcement that only one half carried was
+ * lost in the weld. Everything unarmed now behaves exactly as it did before
+ * merging existed.
+ */
+export const canMergeBlocks = (
+  a: { typeId: string; tier?: number },
+  b: { typeId: string; tier?: number }
+): boolean =>
+  a.typeId === b.typeId
+  && canMergeType(a.typeId)
+  && tierOf(a.tier) === tierOf(b.tier)
+  && tierOf(a.tier) < MAX_MERGE_TIER
+
 // ─── Enhanced blocks ────────────────────────────────────────────────────────
 //
 // The rewarded-ad hand deals REINFORCED versions of ordinary shapes. They are
@@ -400,13 +539,74 @@ export const blockUpgradeCost = (typeId: string, level: number): number => {
   return Math.max(5, Math.round(base * Math.pow(1.55, level)))
 }
 
-/** Coin/resource refund for selling a placed block: half the build cost,
- *  rounded down, so demolishing and rebuilding is never free churn. */
-export const sellRefund = (id: string): { wood: number; stone: number; coins: number } => {
-  const def = blockDef(id)
+// ─── Fortifying ─────────────────────────────────────────────────────────────
+//
+// Any wall already standing can be converted, in place, into a spiked one.
+//
+// Spikes were reachable only through the offer deck, which meant "I want a
+// thorned wall along the front" was a wish rather than a plan: the piece had to
+// be drawn, and drawn in a shape that happened to fit where the wall wanted it.
+// Converting turns a random hope into a decision the player can act on with
+// what is already built.
+//
+// It is deliberately NOT free, and deliberately not a discount either — the
+// player pays the difference in materials, exactly as if they had built the
+// spiked wall instead, plus a small gold fee for doing it to a block that is
+// already in the wall.
+
+/** What a wall becomes. */
+export const FORTIFY_TARGET = 'spikes'
+
+/** The gold premium for converting in place rather than building fresh. */
+export const FORTIFY_FEE = 6
+
+/** Only plain walls. Not the Gate, not a gun, not a producer or a buff. */
+export const canFortifyType = (typeId: string): boolean =>
+  typeId !== FORTIFY_TARGET && blockDef(typeId).kind === 'structure'
+
+/**
+ * What converting one wall cell costs.
+ *
+ * The material half is the SHORTFALL against the spiked wall's own build cost,
+ * so a braced crate — which already cost more wood than spikes do — pays only
+ * the stone, and a stone block pays only the wood. Nobody is charged twice for
+ * material they already put in the tower.
+ */
+export const fortifyCost = (
+  typeId: string, cells = 1
+): { wood: number; stone: number; coins: number } => {
+  const from = blockDef(typeId).cost
+  const to = blockDef(FORTIFY_TARGET).cost
+  const n = Math.max(1, cells)
   return {
-    wood: Math.floor((def.cost.wood ?? 0) * 0.5),
-    stone: Math.floor((def.cost.stone ?? 0) * 0.5),
-    coins: Math.floor((def.cost.coins ?? 0) * 0.5)
+    wood: Math.max(0, (to.wood ?? 0) - (from.wood ?? 0)) * n,
+    stone: Math.max(0, (to.stone ?? 0) - (from.stone ?? 0)) * n,
+    coins: FORTIFY_FEE * n
+  }
+}
+
+/**
+ * Coin/resource refund for selling a placed block: half the build cost, rounded
+ * down, so demolishing and rebuilding is never free churn.
+ *
+ * `cells` is the footprint a merged block occupies. A tier-3 battery was four
+ * blocks bought and four blocks paid for; refunding it as one would make the
+ * sell button a trap for exactly the players who used the merge system.
+ */
+export const sellRefund = (
+  id: string, cells = 1, level = 0
+): { wood: number; stone: number; coins: number } => {
+  const def = blockDef(id)
+  const n = Math.max(1, cells)
+  // Ranks bought with run gold come back as run gold, at the same half rate as
+  // the build cost. `sellRefund` used to read `def.cost` alone, so every coin a
+  // player invested in a block was destroyed the moment they sold it — which
+  // made upgrading a tower you might ever want to rearrange a trap.
+  let ranks = 0
+  for (let l = 0; l < Math.max(0, level); l++) ranks += blockUpgradeCost(id, l)
+  return {
+    wood: Math.floor((def.cost.wood ?? 0) * 0.5 * n),
+    stone: Math.floor((def.cost.stone ?? 0) * 0.5 * n),
+    coins: Math.floor((def.cost.coins ?? 0) * 0.5 * n + ranks * 0.5)
   }
 }

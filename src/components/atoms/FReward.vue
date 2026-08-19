@@ -26,13 +26,24 @@
             slot(name="ribbon")
               span.text-white.font-black.uppercase.italic.game-text {{ t('rewards') }}
 
-      //- Content area. In landscape it scrolls inside the remaining height
-      //- (min-h-0) so a tall reward block never collides with the inline
-      //- "tap to continue" footer below; elsewhere it stays vertically centred.
-      div.relative.w-full.flex.flex-col.items-center.justify-center(
-        :class="isCompact ? 'flex-1 min-h-0 overflow-y-auto py-1' : 'h-full'"
+      //- Content area — centred when it fits, scrollable when it does not.
+      //-
+      //- It used to be `justify-center` with `h-full` outside compact mode,
+      //- which centres beautifully right up until the content is taller than
+      //- the box and then clips it with no way to reach the rest. Flexbox
+      //- centring overflows in BOTH directions, so the top of a tall panel goes
+      //- off the screen and is unreachable — and the defeat screen is exactly
+      //- the panel that grows, because it gains a record line, a rank, a
+      //- rewarded offer, a continue offer and a tip depending on the run.
+      //-
+      //- `margin: auto` on the inner wrapper does what `justify-center` was
+      //- meant to: it centres while there is slack and collapses to zero when
+      //- there is not, leaving the scroll to do the rest.
+      div.f-reward__body.relative.w-full.flex.flex-col.items-center.flex-1.min-h-0(
+        :class="isCompact ? 'py-1' : ''"
       )
-        slot
+        div.f-reward__center
+          slot
 
       //- Tap-to-continue hint. In landscape it sits INLINE in the flow (shrink-0)
       //- so it can never overlap the centred reward content; otherwise it floats
@@ -124,6 +135,27 @@ onUnmounted(() => {
 
 .brawl-text
   text-shadow: 3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000
+
+// ─── Content area ───────────────────────────────────────────────────────────
+
+.f-reward__body
+  overflow-y: auto
+  overflow-x: hidden
+  // A dialog that has to scroll should say so with its own scrollbar rather
+  // than by handing the gesture to the page behind it.
+  overscroll-behavior: contain
+  // iOS keeps momentum scrolling inside a `touch-none` ancestor only if the
+  // scrollable child opts back in.
+  touch-action: pan-y
+
+.f-reward__center
+  display: flex
+  flex-direction: column
+  align-items: center
+  width: 100%
+  // The centring. Collapses to 0 the moment the content is taller than the
+  // body, which is what keeps the top reachable — see the template note.
+  margin-block: auto
 
 // ─── Parchment ribbon ────────────────────────────────────────────────────────
 

@@ -36,6 +36,11 @@ const GLYPHS: Record<string, Glyph> = {
   heal: { stroke: ['M12 20s-7-4.3-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 4.7-7 9-7 9z'], fill: ['M11.2 9.5h1.6v2h2v1.6h-2v2h-1.6v-2h-2v-1.6h2z'] },
   width: { stroke: ['M3 8v8', 'M21 8v8', 'M3 12h18'], fill: ['M6 9l-3 3 3 3z', 'M18 9l3 3-3 3z'] },
 
+  // ── Merging ─────────────────────────────────────────────────────────────
+  // Two squares closing on one, and a weld seam across a joint.
+  merge: { stroke: ['M9 12H4', 'M20 12h-5'], fill: ['M2 8h4v8H2z', 'M18 8h4v8h-4z', 'M9 7h6v10H9z'] },
+  weld: { stroke: ['M4 14h16'], fill: ['M3 8h18v3H3z', 'M7 17l2-3 2 3z', 'M13 17l2-3 2 3z'] },
+
   // ── The Harbour ─────────────────────────────────────────────────────────
   harbour: { stroke: ['M12 3v14', 'M6 13a6 6 0 0 0 12 0'], fill: ['M12 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4z', 'M8 7h8v2H8z'] },
   dock: { stroke: ['M2 15h20', 'M6 15v6', 'M12 15v6', 'M18 15v6'], fill: ['M4 11h16v3H4z'] },
@@ -44,6 +49,9 @@ const GLYPHS: Record<string, Glyph> = {
   longship: { stroke: ['M12 3v9'], fill: ['M2 14h20l-3 6H5z', 'M13 4l6 3-6 3z'] },
   galley: { stroke: ['M12 2v10', 'M4 20h16'], fill: ['M3 13h18l-2 5H5z', 'M13 3l7 3-7 3z', 'M20 14l3 2-3 2z'] },
   admiralty: { fill: ['M12 2l2.2 5.2 5.6.5-4.3 3.7 1.3 5.5L12 14l-4.8 2.9 1.3-5.5-4.3-3.7 5.6-.5z'], stroke: ['M4 20h16'] },
+  // ── The Works ──
+  banner: { fill: ['M9 3h2v18H9z', 'M11 4h9l-2.5 3.5L20 11h-9z'] },
+  obelisk: { fill: ['M12 2l3 5-.7 11H9.7L9 7z', 'M6 19h12v3H6z'] },
 
   // ── Offence ─────────────────────────────────────────────────────────────
   damage: { stroke: ['M4 20l7-7', 'M13 4l7 7'], fill: ['M13.5 3.5L20.5 10.5 18 13l-7-7z', 'M4.5 19.5l1-3 2.5 2.5z'] },

@@ -6,7 +6,9 @@ import {
   TOTAL_KILLS_KEY, TOTAL_WAVES_KEY, RUNS_KEY, TOTAL_BLOCKS_KEY, BEST_SCORE_KEY
 } from '@/keys'
 import useTowerEconomy from '@/use/useTowerEconomy'
-import { TECH_NODES, TECH_BY_ID, techCost, sumEffect, unlockedBlocks } from '@/game/tech'
+import {
+  TECH_NODES, TECH_BY_ID, techCost, sumEffect, hasEffect, unlockedBlocks
+} from '@/game/tech'
 import { BLOCK_DEFS } from '@/game/blocks'
 
 /**
@@ -93,6 +95,24 @@ export const thornsMul: ComputedRef<number> = computed(() => 1 + sumEffect(tech.
 /** Cavalry HP + damage multiplier. */
 export const cavalryMul: ComputedRef<number> = computed(() => 1 + sumEffect(tech.value.levels, 'cavalryPower') / 100)
 
+// ─── Merging ────────────────────────────────────────────────────────────────
+
+/** Whether adjacent blocks fuse at all. */
+export const mergeUnlocked: ComputedRef<boolean> = computed(
+  () => hasEffect(tech.value.levels, 'mergeUnlock')
+)
+
+/**
+ * Extra damage for MERGED blocks only.
+ *
+ * Deliberately not a general damage node: it rewards the player who has
+ * committed to concentrating their tower, and does nothing at all for one who
+ * has not. A flat damage bonus dressed up as a merge bonus would be neither.
+ */
+export const mergeDamageMul: ComputedRef<number> = computed(
+  () => 1 + sumEffect(tech.value.levels, 'mergePower') / 100
+)
+
 // ─── The Harbour ────────────────────────────────────────────────────────────
 //
 // Naval bonuses are their OWN multipliers rather than a share of the tower's.
@@ -107,6 +127,24 @@ export const navalDamageMul: ComputedRef<number> = computed(
 /** Max-HP multiplier for hulls only. */
 export const navalHpMul: ComputedRef<number> = computed(
   () => 1 + sumEffect(tech.value.levels, 'navalHp') / 100
+)
+
+// ─── The Works ──────────────────────────────────────────────────────────────
+
+/**
+ * How strong a buff block's aura is, as a multiplier on its EXCESS over 1.
+ *
+ * `rallyCry` scales what a banner is worth, not how far it reaches — a rank
+ * turns a ×1.25 aura into ×1.275, and because auras multiply across neighbours
+ * that compounds through every block touching more than one of them.
+ */
+export const buffPowerMul: ComputedRef<number> = computed(
+  () => 1 + sumEffect(tech.value.levels, 'buffPower') / 100
+)
+
+/** End-of-wave yield multiplier for every economy block. */
+export const economyMul: ComputedRef<number> = computed(
+  () => 1 + sumEffect(tech.value.levels, 'economyYield') / 100
 )
 
 /** Starting build resources for a fresh run. */
@@ -158,7 +196,7 @@ export const maxStageReached: ComputedRef<number> = computed(() => Math.max(1, b
 const persistTech = (): void => setState(TECH_KEY, tech.value)
 
 export default function useTowerProgress() {
-  const { coins, spendCoins } = useTowerEconomy()
+  const { coins, spendCoins, addCoins } = useTowerEconomy()
 
   /** A node is visible+purchasable once every prerequisite has ≥ 1 level. */
   const isUnlocked = (id: string): boolean => {
@@ -186,6 +224,57 @@ export default function useTowerProgress() {
     // both the blob debounce and the strategy's flush debounce.
     void flushSaveNow()
     return true
+  }
+
+  // ─── Refunds ──────────────────────────────────────────────────────────────
+  //
+  // A tech tree with no way back is a tree players stop spending in. The cost
+  // curve is steep and specialisation is the point, so the first branch anyone
+  // commits to is chosen with almost no information — and if that choice is
+  // permanent, the rational move is to hoard rather than commit.
+  //
+  // Half back, the same rate a sold block returns. Refunding in full would make
+  // respeccing free and the whole tree a scratchpad; refunding nothing is what
+  // we had.
+
+  /** Coins returned for selling the top rank of `id`. */
+  const refundOf = (id: string): number => {
+    const level = levelOf(id)
+    if (level <= 0) return 0
+    return Math.floor(techCost(id, level - 1) * 0.5)
+  }
+
+  /**
+   * Which OWNED nodes would lose their prerequisite if `id` dropped to zero.
+   *
+   * Selling the last rank of `foundations` out from under a bought
+   * `sharpBolts` would leave the tree in a state the player could never have
+   * built, so the sale is refused and the blockers are named.
+   */
+  const sellBlockers = (id: string): string[] => {
+    if (levelOf(id) !== 1) return []
+    return TECH_NODES
+      .filter((n) => n.requires.includes(id) && levelOf(n.id) > 0)
+      .map((n) => n.id)
+  }
+
+  const canSellTech = (id: string): boolean =>
+    levelOf(id) > 0 && sellBlockers(id).length === 0
+
+  /** Sell one rank back. Returns the coins refunded, or 0 if refused. */
+  const sellTech = (id: string): number => {
+    if (!canSellTech(id)) return 0
+    const refund = refundOf(id)
+    const next = levelOf(id) - 1
+    const levels = { ...tech.value.levels }
+    if (next <= 0) delete levels[id]
+    else levels[id] = next
+    tech.value = { levels }
+    persistTech()
+    addCoins(refund)
+    // Same hard checkpoint as a purchase: a refund MUST survive a reload.
+    void flushSaveNow()
+    return refund
   }
 
   /** Count of affordable, not-yet-maxed nodes — drives the Tech button badge
@@ -256,6 +345,10 @@ export default function useTowerProgress() {
     canBuy,
     costOf,
     buyTech,
+    refundOf,
+    sellBlockers,
+    canSellTech,
+    sellTech,
     affordableCount,
     availableBlocks,
     recordRunEnd,

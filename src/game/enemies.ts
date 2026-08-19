@@ -107,7 +107,13 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
     coins: 3,
     cost: 24,
     minWave: 8,
-    suicide: { damage: 45, radius: 1.7 },
+    // 34, not 45. Wood is 40 hp with no armour and `damageBlocksInRadius` hits
+    // EVERY block in the blast, so at 45 one bomber deleted every wood cell it
+    // touched outright — typically three to seven of them, against a wave-8
+    // income of about five. Below the crate's hit points it still guts a wall
+    // and still kills anything already damaged, but the wall survives to be
+    // repaired instead of evaporating.
+    suicide: { damage: 34, radius: 1.7 },
     scale: 0.66,
     palette: 'bomber'
   },
@@ -328,7 +334,12 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
     coins: 9,
     cost: 48,
     minWave: 15,
-    siege: { standoff: 9 },
+    // 8, not 9. Cannon reaches 8.5 and archer 7.5, so at 9 the ballista was the
+    // first enemy in the game that NEITHER starting weapon could touch — and it
+    // arrives at wave 16, long before a longer gun is realistically owned.
+    // Inside cannon range it is still a hard counter to an archer-only tower,
+    // which is the lesson it exists to teach.
+    siege: { standoff: 8 },
     // The standoff family sits a step above the contact engines (ram 1.15,
     // iron ram 1.35, tower 1.05): they are the ones you must ride out to, so
     // they read as the biggest, most valuable targets on the field.
@@ -346,7 +357,16 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
     coins: 14,
     cost: 70,
     minWave: 17,
-    siege: { standoff: 13, splash: 1.6 },
+    // The standoff ladder names a specific purchase per engine: ballista 8 (a
+    // CANNON answers it — free), catapult 9 (a BOMBARD, range 9, exactly
+    // reaches), trebuchet 12 (a MORTAR or a galley).
+    //
+    // 12 was too deep. Bombard reaches 9 and cannon 8.5, so a catapult parked
+    // at 12 could only be answered by a mortar, a galley or a cavalry sortie —
+    // and at wave 17 a player who has bought neither reach node simply watches
+    // it work. An engine should ask for a purchase, not for a purchase the
+    // player may not know exists.
+    siege: { standoff: 9, splash: 1.6 },
     scale: 1.45,
     palette: 'catapult'
   },
@@ -381,7 +401,16 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
     coins: 24,
     cost: 120,
     minWave: 22,
-    siege: { standoff: 20, splash: 2.2 },
+    // 12, not 20 and not 15.
+    //
+    // At 20 nothing the player could build reached a trebuchet at all, and the
+    // only counter was a cavalry sortie bought with the same meta coins they
+    // are saving for the tech tree — a tax, not a lesson. 15 was no better in
+    // practice: it is EXACTLY the mortar's range, so answering one meant having
+    // a mortar on the very edge of the tower facing the right way. At 12 a
+    // mortar or a war galley covers it with room to spare, and nothing cheaper
+    // does — which is the tension the unit was designed around.
+    siege: { standoff: 12, splash: 2.2 },
     scale: 1.7,
     palette: 'trebuchet'
   },

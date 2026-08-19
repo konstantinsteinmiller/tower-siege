@@ -4,12 +4,16 @@ import { useI18n } from 'vue-i18n'
 import BlockTile from '@/components/game/BlockTile.vue'
 import {
   blockDef, GATE_ID, sellRefund, ENHANCED_DAMAGE_MUL, ROOF_TOP_DEFENSE_DIV,
-  MAX_BLOCK_LEVEL, blockUpgradeCost, upgradePowerMul, upgradeArmorBonus
+  FORTIFY_TARGET, canFortifyType, fortifyCost,
+  MAX_BLOCK_LEVEL, blockUpgradeCost, upgradePowerMul, upgradeArmorBonus,
+  tierOf, mergePowerMul
 } from '@/game/blocks'
 import {
-  damageMul, fireRateMul, rangeMul, splashMul, thornsMul, armorBonus
+  damageMul, fireRateMul, rangeMul, splashMul, thornsMul, armorBonus,
+  buffPowerMul, economyMul, availableBlocks,
+  mergeDamageMul
 } from '@/use/useTowerProgress'
-import { runCoins, towerVersion } from '@/use/useTowerGame'
+import { runCoins, towerVersion, canFortifyBlock } from '@/use/useTowerGame'
 import type { Block } from '@/game/types'
 
 /**
@@ -34,6 +38,7 @@ const emit = defineEmits<{
   (e: 'sell'): void
   (e: 'close'): void
   (e: 'upgrade'): void
+  (e: 'fortify'): void
 }>()
 
 const { t } = useI18n()
@@ -65,7 +70,16 @@ const live = computed(() => {
     maxHp: b.maxHp,
     roof: b.roof === true,
     enhanced: b.enhanced === true,
-    level: b.level ?? 0
+    level: b.level ?? 0,
+    tier: tierOf(b.tier),
+    // Derived from where the block STANDS, so it has to come off the live
+    // instance rather than being recomputed from its type.
+    buffMul: b.buffMul ?? 1,
+    buffArmor: b.buffArmor ?? 0,
+    // The footprint, so the chip can say what SHAPE the weld produced —
+    // a 4×1 battery and a 2×2 bastion are both tier 3 and play differently.
+    w: b.w ?? 1,
+    h: b.h ?? 1
   }
 })
 
@@ -79,7 +93,9 @@ const stats = computed<Row[]>(() => {
   const b = live.value
   if (!d || !b) return []
 
-  const power = upgradePowerMul(b.level)
+  // A merged block's output curve, plus the forge-weld tech that rides on it.
+  const merge = b.tier > 1 ? mergePowerMul(b.tier) * mergeDamageMul.value : 1
+  const power = upgradePowerMul(b.level) * merge
   const enh = b.enhanced ? ENHANCED_DAMAGE_MUL : 1
   const rows: Row[] = [
     // `maxHp` already carries tech, the reinforced bonus, the gable and the
@@ -90,14 +106,17 @@ const stats = computed<Row[]>(() => {
   // Armour is FLAT damage reduction and the Iron Plating node adds it to every
   // block, including ones whose printed armour is zero — so this row has to be
   // computed, never read straight off the definition.
-  const armor = (d.armor ?? 0) + armorBonus.value + upgradeArmorBonus(b.level)
+  // Neighbouring buff blocks raise armour flatly and everything else by a
+  // product — the card has to show the numbers the block is actually fighting
+  // with, or a banner is a stat sheet the player cannot check.
+  const armor = (d.armor ?? 0) + armorBonus.value + upgradeArmorBonus(b.level) + b.buffArmor
   if (armor > 0) rows.push({ key: 'armor', value: `${armor}`, boosted: armor > (d.armor ?? 0) })
 
   // A gable divides every hit that lands on top of it by three.
   if (b.roof) rows.push({ key: 'topDefense', value: `×${ROOF_TOP_DEFENSE_DIV}`, boosted: true })
 
   if (d.weapon) {
-    const dmg = d.weapon.damage * damageMul.value * enh * power
+    const dmg = d.weapon.damage * damageMul.value * enh * power * b.buffMul
     rows.push({ key: 'dmg', value: `${Math.round(dmg)}`, boosted: dmg > d.weapon.damage + 0.5 })
     // Cooldown shrinks as fire rate grows, so present it already divided.
     rows.push({
@@ -119,15 +138,29 @@ const stats = computed<Row[]>(() => {
     }
   }
   if (d.economy) {
+    const yieldMul = power * economyMul.value
     const yields: Array<[string, number | undefined]> = [
       ['yieldWood', d.economy.wood],
       ['yieldStone', d.economy.stone],
+      ['yieldGold', d.economy.gold],
       ['yieldCoins', d.economy.coins]
     ]
     for (const [key, base] of yields) {
       if (!base) continue
-      rows.push({ key, value: `+${Math.round(base * power)}`, boosted: power > 1 })
+      rows.push({ key, value: `+${Math.round(base * yieldMul)}`, boosted: yieldMul > 1 })
     }
+  }
+
+  // What this block gives its neighbours — the whole value of a buff block, and
+  // invisible everywhere else on the card because it changes nothing about the
+  // block itself.
+  if (d.buff) {
+    const mul = 1 + (d.buff.statMul - 1) * buffPowerMul.value
+    rows.push({
+      key: 'buff',
+      value: `×${mul.toFixed(2)} · +${d.buff.armor}`,
+      boosted: buffPowerMul.value > 1
+    })
   }
   if (d.utility?.repairPerWave) {
     rows.push({
@@ -159,8 +192,28 @@ const canUpgrade = computed(() =>
   !isMaxLevel.value && runCoins.value >= upgradeCost.value
 )
 
+/**
+ * Turning this wall into a spiked one.
+ *
+ * Only offered on a plain wall, and only once the spiked wall itself is
+ * unlocked — the button is a shortcut past the offer deck, not past the tech
+ * node. Hidden rather than disabled when it does not apply: a greyed-out
+ * "Fortify" on a cannon is a question the card should never raise.
+ */
+const fortify = computed(() => {
+  const b = props.block
+  void towerVersion.value
+  if (!b || !canFortifyType(b.typeId) || !availableBlocks.value.has(FORTIFY_TARGET)) return null
+  return {
+    cost: fortifyCost(b.typeId, (b.w ?? 1) * (b.h ?? 1)),
+    can: canFortifyBlock(b.c, b.r)
+  }
+})
+
 const refund = computed(() =>
-  props.block ? sellRefund(props.block.typeId) : { wood: 0, stone: 0, coins: 0 }
+  live.value
+    ? sellRefund(live.value.typeId, live.value.w * live.value.h, live.value.level)
+    : { wood: 0, stone: 0, coins: 0 }
 )
 </script>
 
@@ -184,7 +237,13 @@ const refund = computed(() =>
 
         //- Why this block's numbers are above the printed base. Chips rather
         //- than prose: the card is read mid-siege with a wave incoming.
-        div.inspector__tags(v-if="live?.enhanced || live?.roof || level > 0")
+        div.inspector__tags(v-if="live?.enhanced || live?.roof || level > 0 || (live?.tier ?? 1) > 1")
+          span.inspector__tag.is-merge(v-if="(live?.tier ?? 1) > 1")
+            | {{ t('blocks.mergeTier', { n: live?.tier ?? 1 }) }}
+            //- Pure geometry — no words to translate, and the only honest way
+            //- to say "this one is long" vs "this one is square".
+            span.inspector__span(v-if="(live?.w ?? 1) * (live?.h ?? 1) > 1")
+              | &nbsp;· {{ live?.w }}×{{ live?.h }}
           span.inspector__tag.is-gold(v-if="live?.enhanced") {{ t('blocks.reinforced') }}
           span.inspector__tag.is-red(v-if="live?.roof") {{ t('blocks.roofed') }}
           span.inspector__tag.is-gold(v-if="level > 0")
@@ -212,6 +271,27 @@ const refund = computed(() =>
             span.inspector__upgrade-cost
               i.inspector__dot.is-gold
               | {{ upgradeCost }}
+
+        //- Turn a plain wall into a spiked one without waiting for the deck to
+        //- deal one. Sits between Upgrade and Sell because it is the third
+        //- thing a player can do to a block they already own.
+        button.inspector__fortify(
+          v-if="fortify"
+          type="button"
+          :disabled="!fortify.can"
+          @click="emit('fortify')"
+        )
+          span {{ t('blocks.fortify') }}
+          span.inspector__fortify-cost
+            template(v-if="fortify.cost.wood > 0")
+              span {{ fortify.cost.wood }}
+              i.inspector__dot.is-wood
+            template(v-if="fortify.cost.stone > 0")
+              span {{ fortify.cost.stone }}
+              i.inspector__dot.is-stone
+            template(v-if="fortify.cost.coins > 0")
+              span {{ fortify.cost.coins }}
+              i.inspector__dot.is-gold
 
         //- Rank pips, so "how much more is there" is answerable without maths.
         div.inspector__pips(v-if="!isMaxLevel || level > 0" :aria-hidden="true")
@@ -366,6 +446,14 @@ const refund = computed(() =>
     background-color: rgba(224, 87, 77, 0.18)
     border: 1px solid rgba(224, 87, 77, 0.6)
     color: #ff9a92
+  &.is-merge
+    background-color: rgba(255, 240, 168, 0.22)
+    border: 1px solid rgba(255, 240, 168, 0.75)
+    color: #fff0a8
+
+.inspector__span
+  opacity: 0.75
+  font-variant-numeric: tabular-nums
 
 .inspector__upgrade
   display: flex
@@ -433,6 +521,43 @@ const refund = computed(() =>
 
 // Wraps: a three-resource refund (the Mint and the Bombard both return wood,
 // stone AND gold) alongside a long localised verb can outrun the panel width.
+// Steel-blue, between the green Upgrade and the red Sell: it is neither
+// growth nor disposal, it is a conversion.
+.inspector__fortify
+  display: flex
+  flex-wrap: wrap
+  align-items: center
+  justify-content: center
+  gap: 0.2em 0.4em
+  min-height: 1.9rem
+  margin-top: 0.25rem
+  padding: 0.2rem 0.5rem
+  border: 2px solid #0f1a30
+  border-radius: 0.5rem
+  background-image: linear-gradient(to bottom, #7fa8c8, #3d6a92)
+  color: #fff
+  font-weight: 900
+  text-transform: uppercase
+  font-size: clamp(0.5rem, 2.3vw, 0.7rem)
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6)
+  cursor: pointer
+  -webkit-tap-highlight-color: transparent
+
+  &:active:not(:disabled)
+    translate: 0 2px
+    scale: 0.97
+
+  &:disabled
+    background-image: linear-gradient(to bottom, #4a5a72, #2b3548)
+    cursor: not-allowed
+    opacity: 0.85
+
+.inspector__fortify-cost
+  display: inline-flex
+  align-items: center
+  gap: 0.15em 0.3em
+  font-variant-numeric: tabular-nums
+
 .inspector__sell
   display: flex
   flex-wrap: wrap

@@ -518,7 +518,13 @@ const drawCatapult = (
       : cycle < 0.8
         ? COCKED
         : COCKED - (COCKED - STOP) * ((cycle - 0.8) / 0.2))
-    : 0.3
+    // Travelling pose. It used to rest at +0.3, which tucks the bowl and its
+    // stone down INSIDE the frame — so at play scale the only prominent thing
+    // left was the buffer, which sits forward and tall, and the machine read as
+    // leaning away from the tower rather than aimed at it. Carrying the arm a
+    // little high puts the loaded stone out front where it says which way this
+    // thing throws.
+    : -0.2
 
   cartWheel(ctx, S, -0.34 * S, GROUND * S - 0.14 * S, 0.14 * S, spin, m.woodBack, 100)
   cartWheel(ctx, S, 0.32 * S, GROUND * S - 0.14 * S, 0.14 * S, spin, m.woodBack, 101)
@@ -859,6 +865,24 @@ export const drawSiegeMachine = (
     case 'ballista': drawBallista(ctx, S, m, opts.spin, opts.engaged, opts.t); break
     case 'catapult': drawCatapult(ctx, S, m, opts.spin, opts.engaged, opts.t); break
     case 'siegeTower': drawSiegeTower(ctx, S, m, opts.spin, opts.engaged, opts.t); break
-    case 'trebuchet': drawTrebuchet(ctx, S, m, opts.engaged, opts.t); break
+    case 'trebuchet': {
+      // Authored with the counterweight on the +x side, which is backwards.
+      //
+      // A counterweight trebuchet loads by winching the LONG arm down on the
+      // side AWAY from the target — that is what raises the counterweight over
+      // the target side — and fires by letting the weight fall, sweeping the
+      // sling up and over the frame and releasing forward. Drawn as authored it
+      // did the opposite: weight raised at the back, sling hanging on the tower
+      // side, so its whole swing would have thrown the stone over its own tail.
+      //
+      // Mirrored rather than re-authored because the machine is an A-frame:
+      // flipping it swaps exactly the two things that are on the wrong sides
+      // and leaves everything else where it was.
+      ctx.save()
+      ctx.scale(-1, 1)
+      drawTrebuchet(ctx, S, m, opts.engaged, opts.t)
+      ctx.restore()
+      break
+    }
   }
 }

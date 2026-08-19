@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FModal from '@/components/molecules/FModal.vue'
 import FButton from '@/components/atoms/FButton.vue'
@@ -8,6 +8,9 @@ import TechIcon from '@/components/game/TechIcon.vue'
 import { TECH_NODES, TECH_BOUNDS, TECH_BY_ID, isUnlockNode } from '@/game/tech'
 import useTowerProgress from '@/use/useTowerProgress'
 import useSounds from '@/use/useSound'
+import { coins } from '@/use/useTowerEconomy'
+import { TECH_INTRO_KEY } from '@/keys'
+import { getState, setState } from '@/use/useTowerState'
 
 /**
  * The tech tree (reference image 5).
@@ -26,9 +29,45 @@ import useSounds from '@/use/useSound'
 
 const model = defineModel<boolean>({ required: true })
 
+const props = defineProps<{
+  /**
+   * Run the three-beat intro when this modal opens.
+   *
+   * Set by the defeat screen, and only there. A player who opens the tree
+   * mid-run out of curiosity does not need to be told what a run is; a player
+   * who just lost their first siege has never seen this screen and has no way
+   * to know the ranks on it are permanent.
+   */
+  intro?: boolean
+}>()
+
 const { t } = useI18n()
 const { playSound } = useSounds()
 const progress = useTowerProgress()
+
+// ─── First-death intro ──────────────────────────────────────────────────────
+//
+// Three beats, once per save. The tree is the whole reason a second run is
+// different from the first, and until now the only thing that said so was a
+// button labelled "Upgrade!" — a word this game already uses for the run-gold
+// upgrade in the block inspector.
+
+const INTRO_STEPS = 3
+const introStep = ref(0)
+const introOpen = ref(false)
+
+const startIntro = (): void => {
+  if (getState<boolean>(TECH_INTRO_KEY, false)) return
+  introStep.value = 0
+  introOpen.value = true
+}
+
+const advanceIntro = (): void => {
+  playSound('uiTap')
+  if (introStep.value < INTRO_STEPS - 1) { introStep.value++; return }
+  introOpen.value = false
+  setState(TECH_INTRO_KEY, true)
+}
 
 // ─── Board geometry ─────────────────────────────────────────────────────────
 
@@ -82,7 +121,12 @@ const pointers = new Map<number, { x: number; y: number }>()
 /** A press must travel this far before it counts as a pan rather than a tap. */
 const TAP_SLOP_PX = 8
 
+/** Set the moment the player pans or zooms; the auto-fit stops fighting them. */
+const userAdjusted = ref(false)
+
 const onPointerDown = (e: PointerEvent): void => {
+  // Any deliberate touch on the board hands control over — see `resetView`.
+  userAdjusted.value = true
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
   if (pointers.size === 2) {
     const [a, b] = [...pointers.values()]
@@ -137,6 +181,7 @@ const onPointerUp = (e: PointerEvent): void => {
 
 const onWheel = (e: WheelEvent): void => {
   e.preventDefault()
+  userAdjusted.value = true
   zoom.value = Math.max(0.45, Math.min(1.8, zoom.value * (e.deltaY < 0 ? 1.12 : 0.89)))
 }
 
@@ -148,28 +193,72 @@ const onNodeClick = (id: string): void => {
 
 /** Frame the tree on open: centre it and pick a zoom that fits the width. */
 /** Widest the viewport ever gets, so the fit below never overshoots. */
+/** Fallback width for the first open, before the viewport has been laid out. */
 const VIEWPORT_HINT_PX = 640
+const viewportEl = ref<HTMLElement | null>(null)
 
 /**
- * Open on a view that shows BOTH roots.
+ * Open on a view that shows EVERY root.
  *
- * The board is pan/zoomable, and at 1× it opens on the tower's root with the
- * harbour entirely off the right edge — a whole second tree the player has no
- * reason to suspect exists. Fitting the board's width on open is the cheapest
- * possible fix: the two roots are visible together, and the relationship
- * between them (there isn't one) is the first thing the layout says.
+ * The board is pan/zoomable, and at 1x it opens on the tower's root with the
+ * harbour and the Works entirely off the right edge — two whole trees the
+ * player has no reason to suspect exist. Fitting the board's width on open is
+ * the cheapest possible fix: the roots are visible together, and the
+ * relationship between them (there isn't one) is the first thing the layout
+ * says.
  *
- * Floored at 0.62 so a wide tree never shrinks the nodes into unreadable dots;
- * past that the player pans, which they already know how to do.
+ * Measured from the real viewport rather than a constant. The constant was a
+ * guess at the modal's width that happened to be right for two roots; adding a
+ * third widened the board past it and the tree opened clipped.
+ *
+ * Floored so a wide tree never shrinks the nodes into unreadable dots; past
+ * that the player pans, which they already know how to do.
  */
+const MIN_FIT_ZOOM = 0.5
+
 const resetView = (): void => {
   panX.value = 0
   panY.value = 0
-  zoom.value = Math.max(0.62, Math.min(1, VIEWPORT_HINT_PX / boardW))
+  userAdjusted.value = false
+  const w = viewportEl.value?.clientWidth || VIEWPORT_HINT_PX
+  zoom.value = Math.max(MIN_FIT_ZOOM, Math.min(1, w / boardW))
 }
 
-watch(model, (open) => { if (open) { resetView(); selected.value = 'foundations' } })
-onUnmounted(() => pointers.clear())
+/**
+ * Re-fit whenever the viewport's real width changes.
+ *
+ * A single measurement on open is not enough: the modal animates in, so the
+ * first frame reports a width the layout has not settled on yet and the tree
+ * opens at the wrong scale. Observing it also covers a device rotation and a
+ * resized desktop window for free.
+ *
+ * Stops as soon as the player touches the board — refitting under someone who
+ * has deliberately zoomed in is worse than opening slightly wrong.
+ */
+let sizeObserver: ResizeObserver | null = null
+
+watch(viewportEl, (el) => {
+  sizeObserver?.disconnect()
+  sizeObserver = null
+  if (!el || typeof ResizeObserver === 'undefined') return
+  sizeObserver = new ResizeObserver(() => {
+    if (model.value && !userAdjusted.value) resetView()
+  })
+  sizeObserver.observe(el)
+})
+
+watch(model, async (open) => {
+  if (!open) { introOpen.value = false; return }
+  // After the modal has actually laid out, or the viewport measures zero.
+  await nextTick()
+  resetView()
+  selected.value = 'foundations'
+  if (props.intro) startIntro()
+})
+onUnmounted(() => {
+  pointers.clear()
+  sizeObserver?.disconnect()
+})
 
 // ─── Selection / purchase ───────────────────────────────────────────────────
 
@@ -206,6 +295,35 @@ const buy = (): void => {
   if (!node) return
   if (progress.buyTech(node.id)) {
     playSound('level-up', 0.07)
+  }
+}
+
+// ─── Refunds ────────────────────────────────────────────────────────────────
+//
+// Half the rank's price back. The tree is deep, uncapped and deliberately
+// specialising, so the first branch anyone commits to is chosen with almost no
+// information — and a permanent choice made blind is one players avoid making
+// at all. Being able to walk a rank back is what makes committing to one safe.
+
+/** Refund for selling the selected node's top rank, or 0. */
+const sellValue = computed(() =>
+  selectedNode.value ? progress.refundOf(selectedNode.value.id) : 0
+)
+
+/** Owned nodes that would lose their prerequisite. Empty when the sale is legal. */
+const sellBlockedBy = computed(() =>
+  selectedNode.value ? progress.sellBlockers(selectedNode.value.id) : []
+)
+
+const canSell = computed(() =>
+  !!selectedNode.value && progress.canSellTech(selectedNode.value.id)
+)
+
+const sell = (): void => {
+  const node = selectedNode.value
+  if (!node) return
+  if (progress.sellTech(node.id) > 0) {
+    playSound('coin-pickup', 0.05)
   }
 }
 
@@ -250,8 +368,14 @@ const nodeTotal = (id: string, level: number): string | null => {
 <template lang="pug">
   FModal(v-model="model" :title="t('tech.title')")
     div.tech
+      //- The wallet, on the screen that spends it. Its absence was a real gap:
+      //- the tree priced 44 nodes and never once said what the player had.
+      div.tech__wallet
+        IconCoin(class="tech__wallet-icon")
+        span.tech__wallet-value {{ coins }}
       //- ── Board ────────────────────────────────────────────────────────────
       div.tech__viewport(
+        ref="viewportEl"
         @pointerdown="onPointerDown"
         @pointermove="onPointerMove"
         @pointerup="onPointerUp"
@@ -318,14 +442,239 @@ const nodeTotal = (id: string, level: number): string | null => {
             span.tech__buy
               IconCoin(class="tech__buy-icon")
               | {{ selectedDetail.cost }}
+
+          //- Sell one rank back. Hidden entirely on an unowned node rather than
+          //- shown disabled: a refund button on something never bought is noise.
+          //-
+          //- It is pinned to the LEFT edge of the row (see `order` / `auto`
+          //- margin in the styles) while buying stays on the right. Sitting
+          //- beside the buy button, it slid across into the buy button's exact
+          //- position the moment a node maxed out — so a second tap of a
+          //- double-tap bought the last rank and then sold it straight back.
+          //- Kept after the buy button in the DOM so reading and tab order
+          //- still go buy-then-sell.
+          button.tech__sell(
+            v-if="selectedDetail.level > 0"
+            type="button"
+            :class="{ 'is-disabled': !canSell }"
+            :disabled="!canSell"
+            :title="canSell ? '' : t('tech.sellBlocked', { n: sellBlockedBy.map(nodeLabel).join(', ') })"
+            @click="sell"
+          )
+            span.tech__sell-label {{ t('tech.sell') }}
+            span.tech__sell-value
+              IconCoin(class="tech__buy-icon")
+              | +{{ sellValue }}
+
+        //- Why the refund is refused, spelled out rather than left to a hover.
+        p.tech__detail-note(v-if="selectedDetail.level > 0 && !canSell")
+          | {{ t('tech.sellBlocked', { n: sellBlockedBy.map(nodeLabel).join(', ') }) }}
+
+      //- ── First-death intro ────────────────────────────────────────────────
+      //-
+      //- Three sentences, once per save, on the screen the player has just been
+      //- dropped onto by a button labelled "Upgrade!". Each beat spotlights the
+      //- thing it is talking about, so the copy never has to describe where to
+      //- look. Tapping anywhere advances it — a first-time player should not
+      //- have to find a target to get past a tooltip.
+      Transition(name="tech-intro")
+        div.tech-intro(v-if="introOpen" @click="advanceIntro")
+          div.tech-intro__spot(:class="`is-step${introStep}`")
+          div.tech-intro__card(:class="`is-step${introStep}`")
+            p.tech-intro__text {{ t(`tech.intro${introStep + 1}`) }}
+            div.tech-intro__foot
+              span.tech-intro__dots
+                i.tech-intro__dot(
+                  v-for="i in 3" :key="i" :class="{ 'is-on': i - 1 === introStep }"
+                )
+              button.tech-intro__go(type="button" @click.stop="advanceIntro")
+                | {{ introStep < 2 ? t('tutorial.next') : t('tech.introDone') }}
 </template>
 
 <style scoped lang="sass">
+.tech__sell
+  // Far left of the row, under the rank line, and never underneath whatever
+  // the right-hand slot is showing. `order` moves it visually without moving
+  // it in the DOM, so the tab order is unchanged.
+  order: -1
+  margin-right: auto
+  display: inline-flex
+  align-items: center
+  gap: 0.3em
+  min-height: 2rem
+  padding: 0.25rem 0.6rem
+  border: 2px solid #0f1a30
+  border-radius: 0.55rem
+  background-image: linear-gradient(to bottom, #ff8a5a, #c62828)
+  color: #fff
+  font-weight: 900
+  text-transform: uppercase
+  font-size: clamp(0.5rem, 2.3vw, 0.7rem)
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6)
+  cursor: pointer
+  -webkit-tap-highlight-color: transparent
+
+  &:active:not(.is-disabled)
+    translate: 0 2px
+    scale: 0.97
+
+  &.is-disabled
+    background-image: linear-gradient(to bottom, #4a5a72, #2b3548)
+    cursor: not-allowed
+    opacity: 0.85
+
+.tech__sell-value
+  display: inline-flex
+  align-items: center
+  gap: 0.15em
+  color: #ffe066
+  font-variant-numeric: tabular-nums
+
+.tech__detail-note
+  margin: 0.2rem 0 0
+  color: #ff9a92
+  font-size: clamp(0.5rem, 2.2vw, 0.66rem)
+  line-height: 1.25
+
 .tech
+  position: relative
   display: flex
   flex-direction: column
   gap: clamp(0.35rem, 1.8vw, 0.7rem)
   width: 100%
+
+// ─── Wallet ─────────────────────────────────────────────────────────────────
+
+.tech__wallet
+  align-self: flex-end
+  display: inline-flex
+  align-items: center
+  gap: 0.3em
+  padding: 0.12rem 0.5rem 0.12rem 0.35rem
+  border: 2px solid #0f1a30
+  border-radius: 999px
+  background-color: rgba(10, 16, 30, 0.7)
+  color: #ffe066
+  font-weight: 900
+  font-variant-numeric: tabular-nums
+  font-size: clamp(0.72rem, 3vw, 0.95rem)
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.55)
+
+.tech__wallet-icon
+  width: 1.15em
+  height: 1.15em
+
+// ─── First-death intro ──────────────────────────────────────────────────────
+//
+// A dim sheet over the whole modal with ONE hole punched in it. The hole is
+// what makes the copy short: the sentence never has to say "in the top right"
+// because the only lit thing on screen is the thing it means.
+
+.tech-intro
+  position: absolute
+  inset: 0
+  z-index: 8
+  display: flex
+  align-items: flex-end
+  justify-content: center
+  background-color: rgba(6, 10, 20, 0.74)
+  border-radius: 0.6rem
+  cursor: pointer
+
+.tech-intro__spot
+  position: absolute
+  border: 3px solid #ffd93c
+  border-radius: 0.6rem
+  box-shadow: 0 0 0 9999px rgba(6, 10, 20, 0.55), 0 0 1.2rem rgba(255, 217, 60, 0.55)
+  pointer-events: none
+  animation: tech-intro-pulse 1.5s ease-in-out infinite
+
+  // 1 — the board: "these ranks are permanent".
+  &.is-step0
+    inset: 0 0 40% 0
+  // 2 — the wallet: "this is what you spend".
+  &.is-step1
+    top: -0.2rem
+    right: -0.2rem
+    width: 6.5rem
+    height: 2rem
+    border-radius: 999px
+  // 3 — the board again, for the colour legend.
+  &.is-step2
+    inset: 1.9rem 0 40% 0
+
+@keyframes tech-intro-pulse
+  0%, 100%
+    opacity: 0.75
+  50%
+    opacity: 1
+
+.tech-intro__card
+  position: relative
+  margin: 0 0.5rem 0.6rem
+  max-width: 26rem
+  padding: 0.6rem 0.7rem
+  border: 3px solid #0f1a30
+  border-radius: 0.7rem
+  background-image: linear-gradient(to bottom, #2b3a5c, #1a2540)
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.45)
+
+  // Beat two points at the wallet in the top-right, so the card gets out of
+  // the way and sits high-left instead of under the thing it is describing.
+  &.is-step1
+    align-self: flex-start
+    margin-top: 3.2rem
+
+.tech-intro__text
+  margin: 0
+  color: #eaf2ff
+  font-weight: 800
+  line-height: 1.32
+  font-size: clamp(0.75rem, 3.2vw, 0.95rem)
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5)
+
+.tech-intro__foot
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 0.6rem
+  margin-top: 0.5rem
+
+.tech-intro__dots
+  display: inline-flex
+  gap: 0.3rem
+
+.tech-intro__dot
+  width: 0.45rem
+  height: 0.45rem
+  border-radius: 999px
+  background-color: rgba(234, 242, 255, 0.3)
+
+  &.is-on
+    background-color: #ffd93c
+
+.tech-intro__go
+  padding: 0.22rem 0.8rem
+  border: 2px solid #0f1a30
+  border-radius: 0.5rem
+  background-image: linear-gradient(to bottom, #ffd93c, #e0a81c)
+  color: #2a1c02
+  font-weight: 900
+  text-transform: uppercase
+  font-size: clamp(0.65rem, 2.8vw, 0.8rem)
+  cursor: pointer
+
+  &:active
+    translate: 0 2px
+    scale: 0.97
+
+.tech-intro-enter-active,
+.tech-intro-leave-active
+  transition: opacity 0.18s ease
+
+.tech-intro-enter-from,
+.tech-intro-leave-to
+  opacity: 0
 
 .tech__viewport
   position: relative
@@ -491,6 +840,7 @@ const nodeTotal = (id: string, level: number): string | null => {
   display: flex
   align-items: center
   justify-content: flex-end
+  gap: 0.5rem
   min-height: 2.25rem
   margin-top: 0.15rem
 

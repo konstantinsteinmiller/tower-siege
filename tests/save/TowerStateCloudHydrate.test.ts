@@ -152,8 +152,13 @@ describe('tower_state cloud hydrate → composable refresh', () => {
     await bootCloudOnly(data)
 
     const game = await import('@/use/useTowerGame')
+    const { OFFER_SLOTS } = await import('@/game/shapes')
     expect(game.resumeRun()).toBe(true)
-    expect(game.offers.value).toEqual(['w2h', 'cannon1', 'wO', 'spikes1'])
+    // The saved hand is honoured exactly; slots the snapshot predates (the
+    // support slot) are topped up with a fresh roll rather than rerolling the
+    // whole hand, which would make a reload a way to fish for a better one.
+    expect(game.offers.value.slice(0, 4)).toEqual(['w2h', 'cannon1', 'wO', 'spikes1'])
+    expect(game.offers.value).toHaveLength(OFFER_SLOTS)
   })
 
   it('keeps nothing but the two blobs in raw localStorage on a cloud-only build', async () => {

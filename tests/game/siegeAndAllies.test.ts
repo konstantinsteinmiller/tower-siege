@@ -3,6 +3,7 @@ import { ENEMY_DEFS, isSiege, siegePool } from '@/game/enemies'
 import { BLOCK_DEFS, ENHANCED_DAMAGE_MUL, ENHANCED_HP_MUL } from '@/game/blocks'
 import { ALLY_DEFS, CAVALRY_SQUAD } from '@/game/allies'
 import { countSiege, planWave, siegeShare } from '@/game/waves'
+import { OFFER_SLOTS } from '@/game/shapes'
 import { TECH_NODES, isUnlockNode, techCost } from '@/game/tech'
 
 // The simulation is a module-level singleton (project convention), so each test
@@ -50,13 +51,37 @@ describe('siege engines', () => {
     expect(siege).toEqual(['ballista', 'catapult', 'ironRam', 'ram', 'siegeTower', 'trebuchet'])
   })
 
-  it('gives the standoff engines more reach than any tower weapon', () => {
-    // This is the whole reason cavalry exist: a purely static defence has no
-    // answer to a machine parked beyond every turret's range.
+  it('ladders the standoff engines across the weapon roster', () => {
+    // Each engine asks for a specific piece of reach. Previously all three sat
+    // past the end of the arsenal, which made them one threat wearing three
+    // costumes and left cavalry — a META-coin purchase — as the only answer.
+    const rangeOf = (id: string): number => BLOCK_DEFS[id]!.weapon!.range
     const longestWeapon = Math.max(
       ...Object.values(BLOCK_DEFS).map((b) => b.weapon?.range ?? 0)
     )
-    expect(ENEMY_DEFS.trebuchet!.siege!.standoff!).toBeGreaterThan(longestWeapon)
+    const ballista = ENEMY_DEFS.ballista!.siege!.standoff!
+    const catapult = ENEMY_DEFS.catapult!.siege!.standoff!
+    const trebuchet = ENEMY_DEFS.trebuchet!.siege!.standoff!
+
+    expect(ballista).toBeLessThan(catapult)
+    expect(catapult).toBeLessThan(trebuchet)
+    // The ballista is answerable by a starting weapon; it arrives long before a
+    // longer gun is realistically owned.
+    expect(ballista).toBeLessThanOrEqual(rangeOf('cannon'))
+    expect(ballista).toBeGreaterThan(rangeOf('archer'))
+    // Nothing out-ranges the whole arsenal any more — the longest weapon in the
+    // game exactly reaches the deepest engine, so reach stays a real purchase.
+    expect(trebuchet).toBeLessThanOrEqual(longestWeapon)
+    expect(catapult).toBeGreaterThan(rangeOf('cannon'))
+  })
+
+  it('still leaves cavalry a job — every engine out-ranges the free guns', () => {
+    // A player who has bought no reach tech has archer and cannon only, and
+    // must ride out. That is the pressure siege engines exist to apply.
+    const free = Math.max(BLOCK_DEFS.archer!.weapon!.range, BLOCK_DEFS.cannon!.weapon!.range)
+    for (const id of ['catapult', 'trebuchet'] as const) {
+      expect(ENEMY_DEFS[id]!.siege!.standoff!).toBeGreaterThan(free)
+    }
   })
 
   it('keeps siege engines out of the early game entirely', () => {
@@ -178,7 +203,7 @@ describe('the build hand', () => {
     expect(g.offerEnhanced.value.some(Boolean)).toBe(false)
     g.dealEnhancedOffers()
     expect(g.offerEnhanced.value.every(Boolean)).toBe(true)
-    expect(g.offers.value).toHaveLength(4)
+    expect(g.offers.value).toHaveLength(OFFER_SLOTS)
   })
 })
 

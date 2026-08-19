@@ -95,6 +95,32 @@ export const SHAPE_DEFS: ReadonlyArray<ShapeDef> = [
   { id: 'repair1', lane: 'support', weight: 8, cells: [[0, 0, 'repair']] },
   { id: 'sawmillPair', lane: 'support', weight: 4, cells: row(2, 'sawmill'), minWave: 5 },
 
+  // ── Support: buffs + early economy ───────────────────────────────────────
+  //
+  // These carry the support slot for a player with no tech at all. `banner` and
+  // `lumberHut` are un-gated for exactly that reason: a fifth slot that deals
+  // nothing until a purchase is made is a fifth slot that does not exist.
+  //
+  // The buff shapes lean SINGLE and VERTICAL, because a banner is worth what it
+  // touches: one cell wedged into a wall touches four blocks, while a 2x2 of
+  // them mostly touches itself.
+  // Every one of these is PURE — producers and buffs only, no wall cell mixed
+  // in. The works slot picks by block kind (see `isWorksShape`), so a piece
+  // with a single crate in it would simply never be dealt there; authoring
+  // them clean keeps the multi-cell pieces available to that slot instead of
+  // stranding them in the two free lanes.
+  { id: 'banner1', lane: 'support', weight: 14, cells: [[0, 0, 'banner']] },
+  { id: 'bannerV', lane: 'support', weight: 6, cells: [[0, 0, 'banner'], [0, 1, 'banner']], minWave: 4 },
+  { id: 'bannerPair', lane: 'support', weight: 6, cells: row(2, 'banner'), minWave: 4 },
+  { id: 'obelisk1', lane: 'support', weight: 9, cells: [[0, 0, 'obelisk']] },
+  { id: 'obeliskCrown', lane: 'support', weight: 5, cells: [[0, 0, 'obelisk'], [0, 1, 'banner']], minWave: 6 },
+  { id: 'lumberHut1', lane: 'support', weight: 12, cells: [[0, 0, 'lumberHut']] },
+  { id: 'lumberHutPair', lane: 'support', weight: 5, cells: row(2, 'lumberHut'), minWave: 6 },
+  { id: 'stonepit1', lane: 'support', weight: 11, cells: [[0, 0, 'stonepit']] },
+  { id: 'worksYard', lane: 'support', weight: 6, cells: [[0, 0, 'lumberHut'], [1, 0, 'stonepit']], minWave: 5 },
+  { id: 'coffer1', lane: 'support', weight: 10, cells: [[0, 0, 'coffer']] },
+  { id: 'cofferBanner', lane: 'support', weight: 5, cells: [[0, 0, 'coffer'], [0, 1, 'banner']], minWave: 8 },
+
   // ── Naval ────────────────────────────────────────────────────────────────
   //
   // Hulls are always 1x1 and always alone: a ship is moored in a berth, not
@@ -165,18 +191,51 @@ export const shapeHasRoof = (id: string): boolean => (SHAPE_BY_ID[id]?.roofs?.le
 // to weapons guarantees a defensive option is always on the table; the two free
 // lanes supply the variety.
 
-export const OFFER_SLOTS = 4
+export const OFFER_SLOTS = 5
 
 const SLOT_LANES: ReadonlyArray<ShapeDef['lane'] | 'any'> = [
   'structure', // always something to build WITH
   'weapon',    // always something to shoot WITH
   'any',
-  'any'
+  'any',
+  'support'    // always a producer or a buff — see `SUPPORT_SLOT`
 ]
 
 /** The slot whose lane is locked to weapons — the one the affordability net
  *  below is allowed to overwrite. */
 export const WEAPON_SLOT = 1
+
+/**
+ * The WORKS slot: producers and buffs, and nothing else.
+ *
+ * Its pool is defined by block KIND rather than by lane — see `isWorksShape`.
+ * The `support` lane is broader than this slot wants: it also carries the
+ * spiked wall and the repair bay, which are utility blocks that fight, and a
+ * lane check would have dealt them here alongside the economy pieces.
+ *
+ * It is STRICT, unlike the others. Every other lane falls through to the whole
+ * catalogue when its own pool is empty, which is right for them — an empty
+ * weapon lane should still deal something. But a works slot that falls through
+ * is just a third "any" slot, and the entire point of it is to keep a producer
+ * and a buff permanently on the table, because both are cells that do not
+ * shoot and a player deciding between four guns will never choose one.
+ *
+ * `banner` and `lumberHut` carry no `unlockNode` so the pool is never empty.
+ */
+export const SUPPORT_SLOT = 4
+
+/**
+ * Is every cell of this shape a producer or a buff?
+ *
+ * Checked per BLOCK, so it cannot drift: a shape that mixes in a single crate
+ * is not a works piece however it is laned, and a new economy block becomes
+ * eligible the moment it is authored.
+ */
+export const isWorksShape = (s: ShapeDef): boolean =>
+  s.cells.every(([, , typeId]) => {
+    const kind = blockDef(typeId).kind
+    return kind === 'economy' || kind === 'buff'
+  })
 
 /** Total build cost collapsed to one comparable number. Gold is the scarcest
  *  of the three within a run and stone the next, so they weigh more. */
@@ -224,25 +283,77 @@ export const eligibleShapes = (wave: number, unlockedBlocks: Set<string>): Shape
   )
 
 /**
+ * What a shape is ABOUT, for the purposes of "give me a different one".
+ *
+ * A shape's id is too fine a grain: `archer1` and `archerPerch` are different
+ * ids and the same decision, so a reroll that swapped one for the other read as
+ * the button doing nothing. The signature is the WEAPON a piece carries if it
+ * carries one — that is the choice the player is rerolling — and otherwise the
+ * set of block types it is built from.
+ */
+export const shapeSignature = (id: string): string => {
+  const def = SHAPE_BY_ID[id]
+  if (!def) return ''
+  const types = [...new Set(def.cells.map(([, , t]) => t))]
+  const weapons = types.filter((t) => blockDef(t).weapon).sort()
+  return (weapons.length > 0 ? weapons : types.sort()).join('+')
+}
+
+/**
  * Draw one shape for `slot`. `exclude` holds the ids currently on offer so the
  * tray never shows the same piece twice — four identical dominoes would be a
  * non-choice.
+ *
+ * `avoid` is the piece being REPLACED. A reroll that can return what it just
+ * took away is not a reroll, and the shape id alone is not enough to prevent
+ * that — see `shapeSignature`. Honoured only when the pool has something else
+ * to offer: a player with one gun unlocked still gets that gun.
  */
 export const rollOffer = (
   slot: number,
   wave: number,
   unlockedBlocks: Set<string>,
   exclude: ReadonlyArray<string> = [],
-  rand: () => number = Math.random
+  rand: () => number = Math.random,
+  avoid?: string
 ): string => {
   const lane = SLOT_LANES[slot % OFFER_SLOTS] ?? 'any'
   const all = eligibleShapes(wave, unlockedBlocks)
 
-  const inLane = lane === 'any' ? all : all.filter((s) => s.lane === lane)
-  // Fall back through: lane → any → the whole catalogue. A brand-new player has
-  // no economy blocks unlocked, so the `support` lane can legitimately be empty.
+  const isWorks = slot % OFFER_SLOTS === SUPPORT_SLOT
+
+  // Producers and buffs live in the works slot and NOWHERE else.
+  //
+  // The two free lanes used to draw from the whole catalogue, so an economy
+  // block could turn up in any of the first four as well — which made the hand
+  // harder to read, not richer: the player scanning for a gun or a wall had to
+  // skip past a lumber hut that has a permanent home one slot to the right.
+  // Utility pieces (spikes, the repair bay) are NOT works and stay in the free
+  // lanes, because those genuinely are wall-and-weapon decisions.
+  const catalogue = isWorks ? all.filter(isWorksShape) : all.filter((s) => !isWorksShape(s))
+
+  const inLane = isWorks || lane === 'any'
+    ? catalogue
+    : catalogue.filter((s) => s.lane === lane)
+  // Fall back through: lane → the rest of this slot's catalogue — EXCEPT the
+  // works slot, which holds its pool even when every piece in it is already on
+  // the table (see `SUPPORT_SLOT`). Everything else would rather repeat a wall
+  // than deal nothing.
+  const strict = isWorks && inLane.length > 0
   let pool = inLane.filter((s) => !exclude.includes(s.id))
-  if (pool.length === 0) pool = all.filter((s) => !exclude.includes(s.id))
+
+  // Drop anything that is the same DECISION as the piece being replaced, but
+  // only while something else remains — a reroll that empties the lane has
+  // taught the player nothing and left them with fewer options than before.
+  if (avoid) {
+    const sig = shapeSignature(avoid)
+    const different = pool.filter((s) => shapeSignature(s.id) !== sig)
+    if (different.length > 0) pool = different
+  }
+
+  if (pool.length === 0 && strict) pool = inLane
+  if (pool.length === 0) pool = catalogue.filter((s) => !exclude.includes(s.id))
+  if (pool.length === 0) pool = catalogue
   if (pool.length === 0) pool = all
   if (pool.length === 0) return 'w1'
 

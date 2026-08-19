@@ -17,6 +17,13 @@ export default {
     'speedFor': '{n} min', 'recenter': 'Beeld centreren'
   },
 
+  'warnings': {
+    'hoard': 'Voorraad +{n}%',
+    'air': 'Lucht ×{n}',
+    'sea': 'Zee ×{n}',
+    'bombers': 'Explosief ×{n}',
+    'siege': 'Beleg ×{n}'
+  },
   'hints': {
     'selectBlock': { 'touch': 'Tik hieronder op een blok om het te kiezen', 'desktop': 'Klik hieronder op een blok om het te kiezen' },
     'placeBlock': { 'touch': 'Tik nu op een oplichtend vak om te bouwen', 'desktop': 'Klik nu op een oplichtend vak om te bouwen' },
@@ -25,8 +32,20 @@ export default {
     'inspect': { 'touch': 'Houd een blok ingedrukt om het te bekijken', 'desktop': 'Klik op een blok om het te bekijken' }
   },
 
+  'tips': {
+    'eco': 'Houthutten en steengroeves betalen elke golf. Twee of drie veranderen wat je kunt betalen.',
+    'buff': 'Banieren versterken alles wat ze raken, en ze vermenigvuldigen. Omsingel één kanon in plaats van ze te spreiden.',
+    'mergeLocked': 'Koop Fusie in de techboom: twee gelijke wapens versmelten dan tot één die drie keer zo hard slaat.',
+    'merge': 'Twee gelijke wapens naast elkaar versmelten. Stapel er twee om een 2×2 te maken.',
+    'spend': 'Je hebt munten over. Rangen in de techboom zijn permanent en gaan mee in elke run.',
+    'branches': 'Drie losse bomen: de toren, de haven en de werkplaats. Geen ervan heeft de andere nodig.',
+    'shape': 'Muren voor, geschut erachter. Een blok dat nooit geraakt wordt, bouw je nooit opnieuw.',
+    'gold': 'Goud koopt blokupgrades — tik op een blok. Schatkisten slaan er elke golf meer.'
+  },
   'blocks': {
+    'fortify': 'Stekels',
     'sell': 'Verkopen',
+    'mergeTier': 'Samengevoegd {n}×',
     'upgrade': 'Upgraden',
     'upgradeMax': 'Volledig geüpgraded',
     'rank': 'Niv {n}/{max}',
@@ -36,8 +55,11 @@ export default {
     'enhancedNote': 'Versterkt — +{hp}% HP, +{dmg}% schade.',
     'enhancedHand': 'Versterkte hand',
     'reroll': 'Dit stuk ruilen',
-    'kinds': { 'core': 'Kern', 'structure': 'Structuur', 'weapon': 'Wapen', 'economy': 'Economie', 'utility': 'Speciaal', 'ship': 'Schip' },
+    'kinds': {
+      'buff': 'Versterking', 'core': 'Kern', 'structure': 'Structuur', 'weapon': 'Wapen', 'economy': 'Economie', 'utility': 'Speciaal', 'ship': 'Schip' },
     'stats': {
+      'yieldGold': 'Goud / golf',
+      'buff': 'Burenbonus',
       'topDefense': 'Verdediging boven',
       'hp': 'HP', 'armor': 'Pantser', 'dmg': 'Schade', 'cooldown': 'Afkoeling', 'range': 'Bereik',
       'splash': 'Gebied', 'yieldWood': 'Hout / golf', 'yieldStone': 'Steen / golf', 'yieldCoins': 'Munten / golf',
@@ -45,6 +67,11 @@ export default {
       'thorns': 'Stekels'
     },
     'names': {
+      'banner': 'Banier',
+      'obelisk': 'Obelisk',
+      'lumberHut': 'Houthut',
+      'stonepit': 'Steengroeve',
+      'coffer': 'Schatkist',
       'skiff': 'Wachtsloep', 'longship': 'Langschip', 'galley': 'Oorlogsgalei',
       'gate': 'Poort', 'wood': 'Houten kist', 'brace': 'Verstevigde kist', 'stone': 'Stenen blok',
       'archer': 'Boogschuttertoren', 'cannon': 'Kanon', 'mortar': 'Mortier', 'tesla': 'Bliksemspoel',
@@ -54,6 +81,11 @@ export default {
       'bombard': 'Bombarde'
     },
     'descriptions': {
+      'banner': 'Versterkt elk aangrenzend blok. Twee banieren op één blok stapelen.',
+      'obelisk': 'Een sterkere banier. Aura’s vermenigvuldigen — twee zijn veel meer waard dan dubbel.',
+      'lumberHut': 'Levert hout aan het eind van elke voltooide golf.',
+      'stonepit': 'Levert steen aan het eind van elke voltooide golf.',
+      'coffer': 'Slaat elke golf goud — de munt voor blokupgrades.',
       'skiff': 'Ligt op het water. Raakt vijanden onder de oppervlakte.',
       'longship': 'Zware harpoen. Geschild en verder dan de oever.',
       'galley': 'Bronzen ram en dekbombarde. Het meer is van jou.',
@@ -133,6 +165,12 @@ export default {
   },
 
   'tech': {
+    'intro1': 'Alles wat je hier koopt is permanent en gaat mee in elke volgende run.',
+    'intro2': 'Munten komen uit elk beleg, of je nu wint of verliest. Hier geef je ze uit.',
+    'intro3': 'Gouden knopen kun je nu betalen. Blauwe vragen meer munten, doffe de knoop ervoor.',
+    'introDone': 'Begrepen',
+    'sell': 'Rang verkopen',
+    'sellBlocked': 'Verkoop eerst {n} — die heeft dit nodig.',
     'title': 'Techboom',
     'rank': 'Rang {current}/{total}',
     'maxed': 'Maximaal',
@@ -142,6 +180,13 @@ export default {
     'requires': 'Vereist {n}',
     'spotlight': 'Uitgeven!',
     'names': {
+      'logistics': 'Logistiek',
+      'unlockCoffer': 'Schatkisten',
+      'yields': 'Opbrengsten',
+      'unlockObelisk': 'Staande stenen',
+      'rallyCry': 'Strijdkreet',
+      'stockpiles': 'Voorraden',
+      'unlockMerge': 'Fusie', 'forgeWelds': 'Smeedlassen',
       'harbour': 'Haven', 'dockWorks': 'Havenwerken',
       'unlockLongship': 'Langschip', 'seasonedHulls': 'Geharde rompen',
       'navalGunnery': 'Scheepsgeschut', 'unlockGalley': 'Oorlogsgalei',
@@ -163,6 +208,14 @@ export default {
       'artilleryDoctrine': 'Artilleriedoctrine'
     },
     'descriptions': {
+      'logistics': 'Ontgrendelt de steengroeve — een goedkope producent die je in de run zelf kunt betalen.',
+      'unlockCoffer': 'Ontgrendelt de schatkist, het enige blok dat goud slaat.',
+      'yields': 'Elk economieblok levert +{n}% meer op.',
+      'unlockObelisk': 'Ontgrendelt de obelisk, een veel sterkere burenbonus.',
+      'rallyCry': 'Versterkingsblokken zijn +{n}% sterker.',
+      'stockpiles': 'Elk economieblok levert +{n}% meer op.',
+      'unlockMerge': 'Twee gelijke blokken naast elkaar versmelten, tot drie diep.',
+      'forgeWelds': 'Samengevoegde blokken doen +{n}% schade.',
       'harbour': 'Meer schepen af op het water. Alleen zij raken duikers.',
       'dockWorks': 'Meer {n} vak verder af per rang.',
       'unlockLongship': 'Een geschilde romp met een zware harpoen.',

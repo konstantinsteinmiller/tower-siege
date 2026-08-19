@@ -37,7 +37,13 @@ export const isBossWave = (wave: number): boolean => wave > 0 && wave % 10 === 0
  * push against, and no reason to spend. This curve assumes the player is
  * building, and `adaptiveFactor` closes the gap for whichever way they aren't.
  *
- *   w1 → 62    w3 → 164   w5 → 292   w10 → 707   w20 → 1755   w30 → 2976
+ * The figures below are the CODE's, re-derived rather than remembered: the
+ * previous comment advertised a curve roughly twice this one (w3 → 164,
+ * w10 → 707, w20 → 1755), which is presumably the shape someone tuned against
+ * before the exponent came down to 1.06. Numbers in a comment that the function
+ * does not produce are worse than no numbers at all.
+ *
+ *   w1 → 60    w3 → 126   w5 → 195   w10 → 374   w20 → 748    w30 → 1128
  */
 export const waveBudget = (wave: number, difficulty = 1): number =>
   Math.round((30 * Math.pow(Math.max(1, wave), 1.06) + 30) * difficulty)
@@ -167,11 +173,29 @@ export const seaShare = (wave: number): number => {
  * random pool, and a preview is the opposite of random. They are PAID FOR out of
  * the wave's own budget (see `planWave`), so a preview wave trades chaff for the
  * new thing instead of simply being harder than its neighbours.
+ *
+ * Three mechanics used to arrive with no preview at all, and each was the
+ * sharpest wall in its stretch of the game:
+ *
+ *  - **The bomber (w8).** It has `damage: 0` — everything it does is a 45-point
+ *    blast in a 1.7-cell radius, which one-shots every un-armoured wood cell it
+ *    touches. Eight of them landed at once, and the FIRST one a player ever saw
+ *    was one of those eight. A single bomber at wave 6 costs a crate and
+ *    teaches the entire mechanic.
+ *  - **The armoured bulwark and the bomb-run bombardier (w12).** Wave 12 opened
+ *    the sea lane after a seven-wave gap AND debuted two new rules on the same
+ *    wave. One preview each moves the teaching off the wave that tests it.
+ *  - **The standoff ballista (w16).** The first enemy in the game that neither
+ *    starting weapon can reach. Seeing exactly one park out of range and shoot
+ *    is a different lesson from meeting two while the wall is already burning.
  */
 const PREVIEWS: Readonly<Record<number, ReadonlyArray<readonly [string, number]>>> = {
   4: [['bat', 2]],
   5: [['bat', 2], ['eel', 1]],
-  6: [['bat', 2]]
+  6: [['bat', 2], ['bomber', 1]],
+  10: [['bulwark', 1]],
+  11: [['bombardier', 1]],
+  14: [['ballista', 1]]
 }
 
 /** The scripted preview spawns for a wave, as `[typeId, count]` pairs. */
@@ -262,8 +286,24 @@ export const waveReward = (wave: number): { coins: number; wood: number; stone: 
   // spiral, because a tower losing ten blocks a wave against two blocks of
   // income can never come back. Simulated: at −25% the run died at wave 11
   // every time, from full health, purely to compounding attrition.
-  wood: 15 + wave * 2.4,
-  stone: 10 + wave * 1.85
+  //
+  // ── The attrition band ──
+  //
+  // The linear term alone was tuned against the early game, where a wave costs
+  // two or three blocks. It does not survive contact with waves 12-20, where
+  // the comment above records the authors' own measurement: 14-17 blocks lost
+  // against ~4 rebuilt. The shipped rate had closed that to about 7 rebuilt —
+  // still roughly half — and a fresh player has none of the mitigations that
+  // were meant to cover the difference (`repair`, `fieldRepairs`, `sawmill`,
+  // `quarry` are all behind tech).
+  //
+  // So income gets a SECOND, later slope that only opens once attrition
+  // outpaces the first: nothing before wave 10, ramping to about +35 % by wave
+  // 20. The early game stays as scarce as it was — that scarcity is what makes
+  // the offer deck a decision — and the late game stops being a subtraction
+  // problem the player cannot win.
+  wood: 15 + wave * 2.4 + Math.max(0, wave - 9) * 2.0,
+  stone: 10 + wave * 1.85 + Math.max(0, wave - 9) * 1.5
 })
 
 /**
@@ -430,3 +470,19 @@ export const countSiege = (plan: WavePlan): number =>
 /** How many bombers a wave carries — the cue that the CROWN needs cover. */
 export const countBombers = (plan: WavePlan): number =>
   plan.orders.filter((o) => !!enemyDef(o.typeId).bombRun).length
+
+/**
+ * How many BLAST carriers a wave brings — the cue that a wall of bare crates is
+ * about to become a hole.
+ *
+ * Both kinds, which is why it is not `countBombers`. The suicide bomber has
+ * `damage: 0`, so it is invisible to every DPS-based read of a wave — its whole
+ * output is a blast that hits every block in its radius at once, and eight of
+ * them arrive together at wave 8. A warning that counted only the flying
+ * bombardier would stay silent through the sharpest wall in the early game.
+ */
+export const countBlast = (plan: WavePlan): number =>
+  plan.orders.filter((o) => {
+    const d = enemyDef(o.typeId)
+    return !!d.bombRun || !!d.suicide
+  }).length

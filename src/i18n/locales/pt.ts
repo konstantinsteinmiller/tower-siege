@@ -17,6 +17,13 @@ export default {
     'speedFor': '{n} min', 'recenter': 'Centralizar a vista'
   },
 
+  'warnings': {
+    'hoard': 'Reservas +{n}%',
+    'air': 'Ar ×{n}',
+    'sea': 'Mar ×{n}',
+    'bombers': 'Explosivos ×{n}',
+    'siege': 'Cerco ×{n}'
+  },
   'hints': {
     'selectBlock': { 'touch': 'Toque num bloco abaixo para escolhê-lo', 'desktop': 'Clique num bloco abaixo para escolhê-lo' },
     'placeBlock': { 'touch': 'Agora toque num espaço iluminado para construir', 'desktop': 'Agora clique num espaço iluminado para construir' },
@@ -25,8 +32,20 @@ export default {
     'inspect': { 'touch': 'Segure um bloco para inspecioná-lo', 'desktop': 'Clique num bloco para inspecioná-lo' }
   },
 
+  'tips': {
+    'eco': 'Cabanas e pedreiras pagam a cada vaga. Duas ou três mudam o que consegues pagar.',
+    'buff': 'Os estandartes reforçam tudo o que tocam e multiplicam-se. Rodeia um canhão em vez de os espalhar.',
+    'mergeLocked': 'Compra Fusão na árvore: duas armas iguais fundem-se numa que bate o triplo.',
+    'merge': 'Duas armas iguais lado a lado fundem-se. Empilha duas dessas para fazer um 2×2.',
+    'spend': 'Tens moedas por gastar. Os níveis da árvore são permanentes e valem em todas as partidas.',
+    'branches': 'Três árvores separadas: a torre, o porto e a oficina. Nenhuma precisa das outras.',
+    'shape': 'Muros à frente, armas atrás. Um bloco que nunca é atingido é um bloco que nunca reconstróis.',
+    'gold': 'O ouro compra melhorias de bloco — toca num bloco. Os cofres cunham mais a cada vaga.'
+  },
   'blocks': {
+    'fortify': 'Adicionar espinhos',
     'sell': 'Vender',
+    'mergeTier': 'Fundido {n}×',
     'upgrade': 'Melhorar',
     'upgradeMax': 'Totalmente melhorado',
     'rank': 'Nv {n}/{max}',
@@ -36,8 +55,11 @@ export default {
     'enhancedNote': 'Reforçado: +{hp}% de PV e +{dmg}% de dano.',
     'enhancedHand': 'Mão reforçada',
     'reroll': 'Trocar esta peça',
-    'kinds': { 'core': 'Núcleo', 'structure': 'Estrutura', 'weapon': 'Arma', 'economy': 'Economia', 'utility': 'Utilidade', 'ship': 'Navio' },
+    'kinds': {
+      'buff': 'Reforço', 'core': 'Núcleo', 'structure': 'Estrutura', 'weapon': 'Arma', 'economy': 'Economia', 'utility': 'Utilidade', 'ship': 'Navio' },
     'stats': {
+      'yieldGold': 'Ouro / vaga',
+      'buff': 'Reforço vizinho',
       'topDefense': 'Defesa superior',
       'hp': 'PV', 'armor': 'Armadura', 'dmg': 'Dano', 'cooldown': 'Recarga', 'range': 'Alcance',
       'splash': 'Área', 'yieldWood': 'Madeira / onda', 'yieldStone': 'Pedra / onda', 'yieldCoins': 'Moedas / onda',
@@ -45,6 +67,11 @@ export default {
       'thorns': 'Espinhos'
     },
     'names': {
+      'banner': 'Estandarte',
+      'obelisk': 'Obelisco',
+      'lumberHut': 'Cabana de lenha',
+      'stonepit': 'Pedreira',
+      'coffer': 'Cofre',
       'skiff': 'Escaler de guarda', 'longship': 'Drakkar', 'galley': 'Galé de guerra',
       'gate': 'Portão', 'wood': 'Caixa de madeira', 'brace': 'Caixa reforçada', 'stone': 'Bloco de pedra',
       'archer': 'Torre de arqueiros', 'cannon': 'Canhão', 'mortar': 'Morteiro', 'tesla': 'Bobina elétrica',
@@ -54,6 +81,11 @@ export default {
       'bombard': 'Bombarda'
     },
     'descriptions': {
+      'banner': 'Reforça todos os blocos vizinhos. Dois estandartes num bloco acumulam.',
+      'obelisk': 'Um estandarte mais forte. As auras multiplicam-se: dois valem muito mais que o dobro.',
+      'lumberHut': 'Produz madeira no fim de cada vaga superada.',
+      'stonepit': 'Produz pedra no fim de cada vaga superada.',
+      'coffer': 'Cunha ouro a cada vaga — a moeda das melhorias de bloco.',
       'skiff': 'Ancorado na água. Atinge inimigos submersos.',
       'longship': 'Arpão pesado. Escudado e com mais alcance que a margem.',
       'galley': 'Aríete de bronze e bombarda de convés. O lago é seu.',
@@ -133,6 +165,12 @@ export default {
   },
 
   'tech': {
+    'intro1': 'Tudo o que compras aqui é permanente e acompanha-te em todas as partidas.',
+    'intro2': 'As moedas vêm de cada cerco, ganhes ou percas. É aqui que as gastas.',
+    'intro3': 'Os nós dourados já podes pagar. Os azuis pedem mais moedas; os apagados, o nó anterior.',
+    'introDone': 'Entendi',
+    'sell': 'Vender nível',
+    'sellBlocked': 'Venda antes {n} — ele precisa disto.',
     'title': 'Árvore tecnológica',
     'rank': 'Nível {current}/{total}',
     'maxed': 'No máximo',
@@ -142,6 +180,13 @@ export default {
     'requires': 'Requer {n}',
     'spotlight': 'Gaste!',
     'names': {
+      'logistics': 'Logística',
+      'unlockCoffer': 'Cofres',
+      'yields': 'Rendimentos',
+      'unlockObelisk': 'Pedras erguidas',
+      'rallyCry': 'Grito de guerra',
+      'stockpiles': 'Reservas',
+      'unlockMerge': 'Fusão', 'forgeWelds': 'Soldas de forja',
       'harbour': 'Porto', 'dockWorks': 'Obras do cais',
       'unlockLongship': 'Drakkar', 'seasonedHulls': 'Cascos curados',
       'navalGunnery': 'Artilharia naval', 'unlockGalley': 'Galé de guerra',
@@ -163,6 +208,14 @@ export default {
       'artilleryDoctrine': 'Doutrina de artilharia'
     },
     'descriptions': {
+      'logistics': 'Desbloqueia a pedreira — um produtor barato que consegues pagar na partida em que importa.',
+      'unlockCoffer': 'Desbloqueia o cofre, o único bloco que cunha ouro.',
+      'yields': 'Cada bloco de economia rende +{n}% mais.',
+      'unlockObelisk': 'Desbloqueia o obelisco, um reforço vizinho muito mais forte.',
+      'rallyCry': 'Os blocos de reforço são +{n}% mais fortes.',
+      'stockpiles': 'Cada bloco de economia rende +{n}% mais.',
+      'unlockMerge': 'Dois blocos iguais lado a lado fundem-se, até três níveis.',
+      'forgeWelds': 'Blocos fundidos causam +{n}% de dano.',
       'harbour': 'Ancore navios na água. Só eles atingem inimigos submersos.',
       'dockWorks': 'Ancore {n} casa mais longe por nível.',
       'unlockLongship': 'Um casco escudado com um arpão pesado.',

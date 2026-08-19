@@ -17,6 +17,13 @@ export default {
     'speedFor': '{n} Min.', 'recenter': 'Ansicht zentrieren'
   },
 
+  'warnings': {
+    'hoard': 'Hortung +{n}%',
+    'air': 'Luft ×{n}',
+    'sea': 'See ×{n}',
+    'bombers': 'Sprengung ×{n}',
+    'siege': 'Belagerung ×{n}'
+  },
   'hints': {
     'selectBlock': { 'touch': 'Tippe unten auf einen Block', 'desktop': 'Klicke unten auf einen Block' },
     'placeBlock': { 'touch': 'Tippe jetzt auf einen leuchtenden Platz', 'desktop': 'Klicke jetzt auf einen leuchtenden Platz' },
@@ -25,8 +32,20 @@ export default {
     'inspect': { 'touch': 'Halte einen Block gedrückt, um ihn zu prüfen', 'desktop': 'Klicke einen Block an, um ihn zu prüfen' }
   },
 
+  'tips': {
+    'eco': 'Holzhütten und Steingruben zahlen jede Welle. Zwei oder drei ändern, was du dir leisten kannst.',
+    'buff': 'Banner stärken alle angrenzenden Blöcke – und sie multiplizieren sich. Umzingle ein Geschütz, statt sie zu verteilen.',
+    'mergeLocked': 'Kaufe Fusion im Techbaum: zwei gleiche Waffen verschmelzen dann zu einer mit dreifachem Schaden.',
+    'merge': 'Zwei gleiche Waffen nebeneinander verschmelzen. Staple zwei davon zu einem 2×2.',
+    'spend': 'Du hast Münzen übrig. Techbaum-Ränge sind dauerhaft und gelten in jedem weiteren Lauf.',
+    'branches': 'Drei getrennte Bäume: Turm, Hafen und Werk. Keiner braucht die anderen.',
+    'shape': 'Mauern vorn, Geschütze dahinter. Ein Block, der nie getroffen wird, muss nie ersetzt werden.',
+    'gold': 'Gold kauft Block-Upgrades – tippe einen Block an. Schatztruhen prägen jede Welle mehr.'
+  },
   'blocks': {
+    'fortify': 'Stacheln',
     'sell': 'Verkaufen',
+    'mergeTier': 'Verschmolzen {n}×',
     'upgrade': 'Ausbauen',
     'upgradeMax': 'Voll ausgebaut',
     'rank': 'St. {n}/{max}',
@@ -36,8 +55,11 @@ export default {
     'enhancedNote': 'Verstärkt – +{hp} % TP, +{dmg} % Schaden.',
     'enhancedHand': 'Verstärkte Hand',
     'reroll': 'Teil tauschen',
-    'kinds': { 'core': 'Kern', 'structure': 'Struktur', 'weapon': 'Waffe', 'economy': 'Wirtschaft', 'utility': 'Spezial', 'ship': 'Schiff' },
+    'kinds': {
+      'buff': 'Verstärkung', 'core': 'Kern', 'structure': 'Struktur', 'weapon': 'Waffe', 'economy': 'Wirtschaft', 'utility': 'Spezial', 'ship': 'Schiff' },
     'stats': {
+      'yieldGold': 'Gold / Welle',
+      'buff': 'Nachbar-Bonus',
       'topDefense': 'Abwehr von oben',
       'hp': 'TP', 'armor': 'Panzerung', 'dmg': 'Schaden', 'cooldown': 'Abklingzeit', 'range': 'Reichweite',
       'splash': 'Splash', 'yieldWood': 'Holz / Welle', 'yieldStone': 'Stein / Welle', 'yieldCoins': 'Münzen / Welle',
@@ -45,6 +67,11 @@ export default {
       'thorns': 'Dornen'
     },
     'names': {
+      'banner': 'Banner',
+      'obelisk': 'Obelisk',
+      'lumberHut': 'Holzhütte',
+      'stonepit': 'Steingrube',
+      'coffer': 'Schatztruhe',
       'skiff': 'Wachboot', 'longship': 'Langschiff', 'galley': 'Kriegsgaleere',
       'gate': 'Tor', 'wood': 'Holzkiste', 'brace': 'Verstärkte Kiste', 'stone': 'Steinblock',
       'archer': 'Bogenturm', 'cannon': 'Kanone', 'mortar': 'Mörser', 'tesla': 'Blitzspule',
@@ -54,6 +81,11 @@ export default {
       'bombard': 'Bombarde'
     },
     'descriptions': {
+      'banner': 'Stärkt alle angrenzenden Blöcke. Zwei Banner an einem Block stapeln sich.',
+      'obelisk': 'Ein stärkeres Banner. Auren multiplizieren sich — Paare sind weit mehr als doppelt wert.',
+      'lumberHut': 'Produziert Holz am Ende jeder abgeschlossenen Welle.',
+      'stonepit': 'Produziert Stein am Ende jeder abgeschlossenen Welle.',
+      'coffer': 'Prägt jede Welle Gold – die Währung für Block-Upgrades.',
       'skiff': 'Liegt im Wasser. Trifft Gegner unter der Oberfläche.',
       'longship': 'Schwere Harpune. Beschildet und weiter als das Ufer.',
       'galley': 'Bronzeramme und Deckbombarde. Der See gehört dir.',
@@ -133,6 +165,12 @@ export default {
   },
 
   'tech': {
+    'intro1': 'Alles, was du hier kaufst, ist dauerhaft und gilt in jedem weiteren Lauf.',
+    'intro2': 'Münzen gibt es nach jeder Belagerung – ob Sieg oder Niederlage. Hier gibst du sie aus.',
+    'intro3': 'Goldene Knoten kannst du dir jetzt leisten. Blaue brauchen mehr Münzen, dunkle den Knoten davor.',
+    'introDone': 'Alles klar',
+    'sell': 'Rang verkaufen',
+    'sellBlocked': 'Verkaufe zuerst {n} — es braucht dies.',
     'title': 'Techbaum',
     'rank': 'Rang {current}/{total}',
     'maxed': 'Maximal',
@@ -142,6 +180,13 @@ export default {
     'requires': 'Benötigt {n}',
     'spotlight': 'Ausgeben!',
     'names': {
+      'logistics': 'Logistik',
+      'unlockCoffer': 'Schatztruhen',
+      'yields': 'Erträge',
+      'unlockObelisk': 'Menhire',
+      'rallyCry': 'Schlachtruf',
+      'stockpiles': 'Vorräte',
+      'unlockMerge': 'Fusion', 'forgeWelds': 'Schmiedenähte',
       'harbour': 'Hafen', 'dockWorks': 'Hafenanlagen',
       'unlockLongship': 'Langschiff', 'seasonedHulls': 'Gehärtete Rümpfe',
       'navalGunnery': 'Seeartillerie', 'unlockGalley': 'Kriegsgaleere',
@@ -163,6 +208,14 @@ export default {
       'artilleryDoctrine': 'Artilleriedoktrin'
     },
     'descriptions': {
+      'logistics': 'Schaltet die Steingrube frei – ein günstiger Produzent, den du dir im Lauf leisten kannst.',
+      'unlockCoffer': 'Schaltet die Schatztruhe frei, den einzigen Block, der Gold prägt.',
+      'yields': 'Jeder Wirtschaftsblock liefert +{n} % mehr.',
+      'unlockObelisk': 'Schaltet den Obelisken frei, einen deutlich stärkeren Nachbar-Bonus.',
+      'rallyCry': 'Verstärkungsblöcke sind +{n} % stärker.',
+      'stockpiles': 'Jeder Wirtschaftsblock liefert +{n} % mehr.',
+      'unlockMerge': 'Zwei gleiche Blöcke nebeneinander verschmelzen, bis zu dreifach.',
+      'forgeWelds': 'Verschmolzene Blöcke verursachen +{n} % Schaden.',
       'harbour': 'Verankere Schiffe im Wasser. Nur sie treffen getauchte Gegner.',
       'dockWorks': 'Liegeplätze pro Rang {n} Feld breiter.',
       'unlockLongship': 'Ein beschildeter Rumpf mit schwerer Harpune.',

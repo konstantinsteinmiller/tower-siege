@@ -17,6 +17,13 @@ export default {
     'speedFor': '{n}分', 'recenter': '視点を戻す'
   },
 
+  'warnings': {
+    'hoard': '備蓄 +{n}%',
+    'air': '空 ×{n}',
+    'sea': '海 ×{n}',
+    'bombers': '爆発 ×{n}',
+    'siege': '攻城 ×{n}'
+  },
   'hints': {
     'selectBlock': { 'touch': '下のブロックをタップして選択', 'desktop': '下のブロックをクリックして選択' },
     'placeBlock': { 'touch': '光っているマスをタップして建設', 'desktop': '光っているマスをクリックして建設' },
@@ -25,8 +32,20 @@ export default {
     'inspect': { 'touch': 'ブロックを長押しで詳細を表示', 'desktop': 'ブロックをクリックで詳細を表示' }
   },
 
+  'tips': {
+    'eco': '木こり小屋と石切り場は毎ウェーブ産出します。2〜3個で買えるものが変わります。',
+    'buff': '軍旗は隣接ブロックすべてを強化し、効果は乗算されます。散らさず1門を囲みましょう。',
+    'mergeLocked': 'テックツリーで融合を購入。同じ武器2つが合体し、3倍の威力になります。',
+    'merge': '隣り合う同じ武器は合体します。それを2つ重ねて2×2にしましょう。',
+    'spend': 'コインが余っています。ツリーのランクは永続で、以降すべてのプレイに残ります。',
+    'branches': '独立した3つのツリー：塔・港・工房。どれも他を必要としません。',
+    'shape': '壁は前、砲は後ろ。当たらないブロックは建て直す必要もありません。',
+    'gold': '金はブロック強化に使えます。ブロックをタップ。金庫が毎ウェーブ鋳造します。'
+  },
   'blocks': {
+    'fortify': '棘を付ける',
     'sell': '売却',
+    'mergeTier': '合成 {n}×',
     'upgrade': 'アップグレード',
     'upgradeMax': '最大強化済み',
     'rank': 'Lv {n}/{max}',
@@ -36,8 +55,11 @@ export default {
     'enhancedNote': '強化済み — HP +{hp}%、ダメージ +{dmg}%。',
     'enhancedHand': '強化ブロック',
     'reroll': 'このピースを交換',
-    'kinds': { 'core': 'コア', 'structure': '構造', 'weapon': '兵器', 'economy': '経済', 'utility': '特殊', 'ship': '艦船' },
+    'kinds': {
+      'buff': '強化', 'core': 'コア', 'structure': '構造', 'weapon': '兵器', 'economy': '経済', 'utility': '特殊', 'ship': '艦船' },
     'stats': {
+      'yieldGold': '金 / ウェーブ',
+      'buff': '隣接強化',
       'topDefense': '上面防御',
       'hp': 'HP', 'armor': '装甲', 'dmg': 'ダメージ', 'cooldown': 'クールダウン', 'range': '射程',
       'splash': '範囲', 'yieldWood': '木材 / ウェーブ', 'yieldStone': '石材 / ウェーブ', 'yieldCoins': 'コイン / ウェーブ',
@@ -45,6 +67,11 @@ export default {
       'thorns': '棘'
     },
     'names': {
+      'banner': '軍旗',
+      'obelisk': 'オベリスク',
+      'lumberHut': '木こり小屋',
+      'stonepit': '石切り場',
+      'coffer': '金庫',
       'skiff': '哨戒艇', 'longship': 'ロングシップ', 'galley': '戦闘ガレー',
       'gate': 'ゲート', 'wood': '木箱', 'brace': '補強木箱', 'stone': '石ブロック',
       'archer': '弓塔', 'cannon': 'キャノン', 'mortar': '迫撃砲', 'tesla': '雷コイル',
@@ -54,6 +81,11 @@ export default {
       'bombard': '臼砲'
     },
     'descriptions': {
+      'banner': '隣接するブロックをすべて強化します。1つのブロックに2本の旗が重なります。',
+      'obelisk': 'より強力な軍旗。オーラは乗算されるため、2つは2倍よりはるかに強力です。',
+      'lumberHut': 'ウェーブを凌ぐたびに木材を産出します。',
+      'stonepit': 'ウェーブを凌ぐたびに石材を産出します。',
+      'coffer': '毎ウェーブ金を鋳造します。ブロック強化に使う通貨です。',
       'skiff': '水上に係留。水面下の敵にも当たる。',
       'longship': '重銛。盾を並べ、岸より射程が長い。',
       'galley': '青銅の衝角と甲板砲。湖はあなたのものだ。',
@@ -133,6 +165,12 @@ export default {
   },
 
   'tech': {
+    'intro1': 'ここで買ったものはすべて永続します。以降のすべてのプレイに引き継がれます。',
+    'intro2': 'コインは勝敗を問わず、包囲戦ごとに手に入ります。使う場所はここです。',
+    'intro3': '金色のノードは今すぐ買えます。青はコイン不足、暗いものは前提ノードが必要です。',
+    'introDone': 'わかった',
+    'sell': 'ランクを売却',
+    'sellBlocked': 'まず{n}を売却してください（前提です）。',
     'title': 'テックツリー',
     'rank': 'ランク {current}/{total}',
     'maxed': '最大',
@@ -142,6 +180,13 @@ export default {
     'requires': '必要：{n}',
     'spotlight': '使おう！',
     'names': {
+      'logistics': '兵站',
+      'unlockCoffer': '金庫',
+      'yields': '産出',
+      'unlockObelisk': '立石',
+      'rallyCry': '鬨の声',
+      'stockpiles': '備蓄',
+      'unlockMerge': '融合', 'forgeWelds': '鍛接',
       'harbour': '港', 'dockWorks': '埠頭工事',
       'unlockLongship': 'ロングシップ', 'seasonedHulls': '熟成船体',
       'navalGunnery': '艦砲術', 'unlockGalley': '戦闘ガレー',
@@ -163,6 +208,14 @@ export default {
       'artilleryDoctrine': '砲兵ドクトリン'
     },
     'descriptions': {
+      'logistics': '石切り場を解放。必要なその走行中に買える安価な産出ブロックです。',
+      'unlockCoffer': '金を鋳造する唯一のブロック、金庫を解放します。',
+      'yields': '経済ブロックの産出量 +{n}%。',
+      'unlockObelisk': 'はるかに強力な隣接強化、オベリスクを解放します。',
+      'rallyCry': '強化ブロックの効果 +{n}%。',
+      'stockpiles': '経済ブロックの産出量 +{n}%。',
+      'unlockMerge': '隣り合う同じブロック同士が合体します。最大3段階。',
+      'forgeWelds': '合成ブロックのダメージ+{n}%。',
       'harbour': '水上に艦を係留。潜行中の敵を撃てるのは艦だけ。',
       'dockWorks': 'ランクごとに係留域が{n}マス広がる。',
       'unlockLongship': '盾を並べた船体に重銛を搭載。',

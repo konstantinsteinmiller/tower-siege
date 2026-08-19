@@ -135,15 +135,33 @@ describe('the flawless streak', () => {
     expect(f.multiplier).toBeCloseTo(1.2 ** 3, 5)
   })
 
-  it('resets the count on a single lost block but keeps the bonus earned', () => {
+  it('bleeds the bonus back down when a wave costs blocks', () => {
     const f = new FlawlessTracker()
     f.recordWave(false)
     f.recordWave(false)
     expect(f.multiplier).toBeCloseTo(1.2, 5)
     f.recordWave(true)
-    expect(f.multiplier).toBeCloseTo(1.2, 5) // not clawed back
+    // Decays rather than ratcheting. As a one-way ratchet the bonus survived
+    // every setback, so a player who banked a long clean streak carried it into
+    // the collapse — and the adaptive FLOOR for them stopped being 0.75.
+    expect(f.multiplier).toBeCloseTo(1.2 / 1.1, 5)
     f.recordWave(false)
-    expect(f.multiplier).toBeCloseTo(1.2, 5) // count restarted, not at 2 yet
+    expect(f.multiplier).toBeCloseTo(1.2 / 1.1, 5) // count restarted, not at 2 yet
+  })
+
+  it('decays slower than it grows, so feeding a block is never a good trade', () => {
+    const f = new FlawlessTracker()
+    for (let i = 0; i < FLAWLESS_STREAK_LENGTH; i++) f.recordWave(false)
+    const earned = f.multiplier - 1
+    f.recordWave(true)
+    const givenBack = 1.2 - f.multiplier
+    expect(givenBack).toBeLessThan(earned)
+  })
+
+  it('never decays below neutral', () => {
+    const f = new FlawlessTracker()
+    for (let i = 0; i < 12; i++) f.recordWave(true)
+    expect(f.multiplier).toBe(1)
   })
 
   it('wipes completely on death', () => {

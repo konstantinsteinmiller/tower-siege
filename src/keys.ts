@@ -82,6 +82,8 @@ export const BATTLE_PASS_KEY = 'ts_battle_pass'
 export const DAILY_REWARDS_KEY = 'ts_daily_rewards'
 /** Idle treasure chest: `{ readyAt }`. */
 export const CHEST_KEY = 'ts_chest'
+/** `{ day, coins }` — how much the chest has paid out today. See its daily cap. */
+export const CHEST_DAY_KEY = 'ts_chest_day'
 /** Rewarded-ad button cooldown timestamp. */
 export const AD_COOLDOWN_KEY = 'ts_ad_cooldown'
 
@@ -94,6 +96,13 @@ export const ONBOARDED_KEY = 'ts_onboarded'
 export const TUTORIAL_KEY = 'ts_tutorial'
 /** One-time "you can afford a tech node" spotlight on the Tech button. */
 export const TECH_SPOTLIGHT_KEY = 'ts_tech_spotlight_seen'
+/** Rotating cursor into the defeat-screen tip pool, so two deaths in a row
+ *  never teach the same thing twice. */
+export const TIP_CURSOR_KEY = 'ts_tip_cursor'
+/** One-time tech-tree intro, shown when the tree is first opened from a defeat.
+ *  Separate from the spotlight: the spotlight says "there is a button", the
+ *  intro says what the screen behind it is FOR. */
+export const TECH_INTRO_KEY = 'ts_tech_intro'
 /** Which control hints the player has already followed (bitmask-ish string[]). */
 export const HINTS_SEEN_KEY = 'ts_hints_seen'
 

@@ -17,6 +17,13 @@ export default {
     'speedFor': '{n} dk', 'recenter': 'Görünümü ortala'
   },
 
+  'warnings': {
+    'hoard': 'Stok +{n}%',
+    'air': 'Hava ×{n}',
+    'sea': 'Deniz ×{n}',
+    'bombers': 'Patlayıcı ×{n}',
+    'siege': 'Kuşatma ×{n}'
+  },
   'hints': {
     'selectBlock': { 'touch': 'Seçmek için aşağıdaki bir bloğa dokun', 'desktop': 'Seçmek için aşağıdaki bir bloğa tıkla' },
     'placeBlock': { 'touch': 'Şimdi inşa etmek için parlayan bir yuvaya dokun', 'desktop': 'Şimdi inşa etmek için parlayan bir yuvaya tıkla' },
@@ -25,8 +32,20 @@ export default {
     'inspect': { 'touch': 'İncelemek için bir bloğu basılı tut', 'desktop': 'İncelemek için bir bloğa tıkla' }
   },
 
+  'tips': {
+    'eco': 'Kereste kulübeleri ve taş ocakları her dalga ödeme yapar. İki üç tanesi neye gücünün yeteceğini değiştirir.',
+    'buff': 'Sancaklar dokundukları her bloğu güçlendirir ve çarpılır. Dağıtmak yerine bir topu çevrele.',
+    'mergeLocked': 'Ağaçtan Füzyon’u al: iki aynı silah o zaman üç kat vuran tek silaha dönüşür.',
+    'merge': 'Yan yana iki aynı silah birleşir. Bunlardan ikisini üst üste koyup 2×2 yap.',
+    'spend': 'Harcanacak paran var. Ağaç rütbeleri kalıcıdır, sonraki her tura taşınır.',
+    'branches': 'Üç ayrı ağaç: kule, liman ve atölye. Hiçbiri diğerine ihtiyaç duymaz.',
+    'shape': 'Duvarlar önde, silahlar arkada. Hiç vurulmayan blok, hiç yeniden yapılmayan bloktur.',
+    'gold': 'Altın blok yükseltmesi alır — bir bloğa dokun. Kasalar her dalga daha fazlasını basar.'
+  },
   'blocks': {
+    'fortify': 'Diken ekle',
     'sell': 'Sat',
+    'mergeTier': 'Birleşik {n}×',
     'upgrade': 'Yükselt',
     'upgradeMax': 'Tam yükseltildi',
     'rank': 'Sv {n}/{max}',
@@ -36,8 +55,11 @@ export default {
     'enhancedNote': 'Takviyeli — +%{hp} CP, +%{dmg} hasar.',
     'enhancedHand': 'Takviyeli el',
     'reroll': 'Bu parçayı değiştir',
-    'kinds': { 'core': 'Çekirdek', 'structure': 'Yapı', 'weapon': 'Silah', 'economy': 'Ekonomi', 'utility': 'Yardımcı', 'ship': 'Gemi' },
+    'kinds': {
+      'buff': 'Güçlendirme', 'core': 'Çekirdek', 'structure': 'Yapı', 'weapon': 'Silah', 'economy': 'Ekonomi', 'utility': 'Yardımcı', 'ship': 'Gemi' },
     'stats': {
+      'yieldGold': 'Altın / dalga',
+      'buff': 'Komşu bonusu',
       'topDefense': 'Üstten savunma',
       'hp': 'CP', 'armor': 'Zırh', 'dmg': 'Hasar', 'cooldown': 'Bekleme', 'range': 'Menzil',
       'splash': 'Alan', 'yieldWood': 'Odun / dalga', 'yieldStone': 'Taş / dalga', 'yieldCoins': 'Altın / dalga',
@@ -45,6 +67,11 @@ export default {
       'thorns': 'Dikenler'
     },
     'names': {
+      'banner': 'Sancak',
+      'obelisk': 'Dikilitaş',
+      'lumberHut': 'Kereste Kulübesi',
+      'stonepit': 'Taş Ocağı',
+      'coffer': 'Kasa',
       'skiff': 'Gözcü kayığı', 'longship': 'Uzun gemi', 'galley': 'Savaş kadırgası',
       'gate': 'Kapı', 'wood': 'Ahşap Sandık', 'brace': 'Takviyeli Sandık', 'stone': 'Taş Blok',
       'archer': 'Okçu Kulesi', 'cannon': 'Top', 'mortar': 'Havan', 'tesla': 'Yıldırım Bobini',
@@ -54,6 +81,11 @@ export default {
       'bombard': 'Bombarda'
     },
     'descriptions': {
+      'banner': 'Komşu tüm blokları güçlendirir. Bir bloktaki iki sancak birikir.',
+      'obelisk': 'Daha güçlü bir sancak. Auralar çarpılır — iki tanesi iki katından çok daha değerli.',
+      'lumberHut': 'Temizlenen her dalganın sonunda odun üretir.',
+      'stonepit': 'Temizlenen her dalganın sonunda taş üretir.',
+      'coffer': 'Her dalgada altın basar — blok yükseltmelerinin para birimi.',
       'skiff': 'Suya demirli. Yüzeyin altındaki düşmanlara vurur.',
       'longship': 'Ağır zıpkın. Kalkanlı ve kıyıdan daha uzun menzilli.',
       'galley': 'Bronz mahmuz ve güverte bombardası. Göl senindir.',
@@ -133,6 +165,12 @@ export default {
   },
 
   'tech': {
+    'intro1': 'Burada aldığın her şey kalıcıdır ve sonraki tüm turlara taşınır.',
+    'intro2': 'Paralar her kuşatmadan gelir, kazan ya da kaybet. Onları burada harcarsın.',
+    'intro3': 'Altın düğümleri şimdi alabilirsin. Maviler daha çok para, sönükler önceki düğümü ister.',
+    'introDone': 'Anladım',
+    'sell': 'Rütbe sat',
+    'sellBlocked': 'Önce {n} sat — buna ihtiyacı var.',
     'title': 'Teknoloji Ağacı',
     'rank': 'Kademe {current}/{total}',
     'maxed': 'Maksimum',
@@ -142,6 +180,13 @@ export default {
     'requires': 'Gerekli: {n}',
     'spotlight': 'Harca!',
     'names': {
+      'logistics': 'Lojistik',
+      'unlockCoffer': 'Kasalar',
+      'yields': 'Verim',
+      'unlockObelisk': 'Dikili Taşlar',
+      'rallyCry': 'Savaş Narası',
+      'stockpiles': 'Stoklar',
+      'unlockMerge': 'Füzyon', 'forgeWelds': 'Dövme kaynaklar',
       'harbour': 'Liman', 'dockWorks': 'Rıhtım işleri',
       'unlockLongship': 'Uzun gemi', 'seasonedHulls': 'Sertleştirilmiş gövdeler',
       'navalGunnery': 'Deniz topçuluğu', 'unlockGalley': 'Savaş kadırgası',
@@ -163,6 +208,14 @@ export default {
       'artilleryDoctrine': 'Topçu Doktrini'
     },
     'descriptions': {
+      'logistics': 'Taş ocağını açar — tam ihtiyaç duyduğun turda alabileceğin ucuz bir üretici.',
+      'unlockCoffer': 'Altın basan tek blok olan kasayı açar.',
+      'yields': 'Her ekonomi bloğu +%{n} daha fazla verir.',
+      'unlockObelisk': 'Çok daha güçlü bir komşu bonusu olan dikilitaşı açar.',
+      'rallyCry': 'Güçlendirme blokları +%{n} daha güçlü.',
+      'stockpiles': 'Her ekonomi bloğu +%{n} daha fazla verir.',
+      'unlockMerge': 'Yan yana iki aynı blok birleşir, üç kademeye kadar.',
+      'forgeWelds': 'Birleşik bloklar +%{n} hasar verir.',
       'harbour': 'Gemileri suya demirle. Batıklara yalnızca onlar vurur.',
       'dockWorks': 'Her rütbede rıhtım {n} kare genişler.',
       'unlockLongship': 'Ağır zıpkınlı, kalkanlı bir gövde.',

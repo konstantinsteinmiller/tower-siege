@@ -17,6 +17,13 @@ export default {
     'speedFor': '{n} min', 'recenter': 'Ricentra la vista'
   },
 
+  'warnings': {
+    'hoard': 'Riserve +{n}%',
+    'air': 'Aria ×{n}',
+    'sea': 'Mare ×{n}',
+    'bombers': 'Esplosivi ×{n}',
+    'siege': 'Assedio ×{n}'
+  },
   'hints': {
     'selectBlock': { 'touch': 'Tocca un blocco in basso per sceglierlo', 'desktop': 'Clicca un blocco in basso per sceglierlo' },
     'placeBlock': { 'touch': 'Ora tocca uno spazio illuminato per costruire', 'desktop': 'Ora clicca uno spazio illuminato per costruire' },
@@ -25,8 +32,20 @@ export default {
     'inspect': { 'touch': 'Tieni premuto un blocco per esaminarlo', 'desktop': 'Clicca un blocco per esaminarlo' }
   },
 
+  'tips': {
+    'eco': 'Capanne e cave pagano a ogni ondata. Due o tre cambiano ciò che puoi permetterti.',
+    'buff': 'Gli stendardi potenziano tutto ciò che toccano e si moltiplicano. Circonda un cannone invece di spargerli.',
+    'mergeLocked': 'Compra Fusione nell’albero: due armi uguali si fondono in una che colpisce tre volte tanto.',
+    'merge': 'Due armi uguali affiancate si fondono. Impilane due per ottenere un 2×2.',
+    'spend': 'Ti avanzano monete. I gradi dell’albero sono permanenti: valgono in ogni partita futura.',
+    'branches': 'Tre alberi separati: torre, porto e officina. Nessuno dipende dagli altri.',
+    'shape': 'Muri davanti, armi dietro. Un blocco mai colpito è un blocco mai ricostruito.',
+    'gold': 'L’oro compra i potenziamenti dei blocchi: tocca un blocco. I forzieri ne coniano a ogni ondata.'
+  },
   'blocks': {
+    'fortify': 'Aggiungi punte',
     'sell': 'Vendi',
+    'mergeTier': 'Fuso {n}×',
     'upgrade': 'Potenzia',
     'upgradeMax': 'Al massimo',
     'rank': 'Liv {n}/{max}',
@@ -36,8 +55,11 @@ export default {
     'enhancedNote': 'Rinforzato: +{hp}% PS, +{dmg}% danni.',
     'enhancedHand': 'Mano rinforzata',
     'reroll': 'Cambia questo pezzo',
-    'kinds': { 'core': 'Nucleo', 'structure': 'Struttura', 'weapon': 'Arma', 'economy': 'Economia', 'utility': 'Utilità', 'ship': 'Nave' },
+    'kinds': {
+      'buff': 'Potenziamento', 'core': 'Nucleo', 'structure': 'Struttura', 'weapon': 'Arma', 'economy': 'Economia', 'utility': 'Utilità', 'ship': 'Nave' },
     'stats': {
+      'yieldGold': 'Oro / ondata',
+      'buff': 'Bonus adiacenti',
       'topDefense': 'Difesa dall’alto',
       'hp': 'PS', 'armor': 'Armatura', 'dmg': 'Danno', 'cooldown': 'Ricarica', 'range': 'Gittata',
       'splash': 'Area', 'yieldWood': 'Legno / ondata', 'yieldStone': 'Pietra / ondata', 'yieldCoins': 'Monete / ondata',
@@ -45,6 +67,11 @@ export default {
       'thorns': 'Spine'
     },
     'names': {
+      'banner': 'Stendardo',
+      'obelisk': 'Obelisco',
+      'lumberHut': 'Capanna del legname',
+      'stonepit': 'Cava',
+      'coffer': 'Forziere',
       'skiff': 'Scialuppa di guardia', 'longship': 'Drakkar', 'galley': 'Galea da guerra',
       'gate': 'Portone', 'wood': 'Cassa di legno', 'brace': 'Cassa rinforzata', 'stone': 'Blocco di pietra',
       'archer': 'Torre arcieri', 'cannon': 'Cannone', 'mortar': 'Mortaio', 'tesla': 'Bobina elettrica',
@@ -54,6 +81,11 @@ export default {
       'bombard': 'Bombarda'
     },
     'descriptions': {
+      'banner': 'Potenzia ogni blocco adiacente. Due stendardi su un blocco si sommano.',
+      'obelisk': 'Uno stendardo più forte. Le aure si moltiplicano: due valgono ben più del doppio.',
+      'lumberHut': 'Produce legno alla fine di ogni ondata superata.',
+      'stonepit': 'Produce pietra alla fine di ogni ondata superata.',
+      'coffer': 'Conia oro a ogni ondata — la valuta dei potenziamenti dei blocchi.',
       'skiff': 'Ormeggiata sull’acqua. Colpisce i nemici sommersi.',
       'longship': 'Arpione pesante. Scudata e con più gittata della riva.',
       'galley': 'Rostro di bronzo e bombarda di coperta. Il lago è tuo.',
@@ -133,6 +165,12 @@ export default {
   },
 
   'tech': {
+    'intro1': 'Tutto ciò che compri qui è permanente e resta in ogni partita futura.',
+    'intro2': 'Le monete arrivano da ogni assedio, vinto o perso. È qui che si spendono.',
+    'intro3': 'I nodi dorati sono già alla tua portata. I blu chiedono più monete, gli spenti il nodo precedente.',
+    'introDone': 'Capito',
+    'sell': 'Vendi grado',
+    'sellBlocked': 'Vendi prima {n}: ne ha bisogno.',
     'title': 'Albero tecnologico',
     'rank': 'Grado {current}/{total}',
     'maxed': 'Al massimo',
@@ -142,6 +180,13 @@ export default {
     'requires': 'Richiede {n}',
     'spotlight': 'Spendi!',
     'names': {
+      'logistics': 'Logistica',
+      'unlockCoffer': 'Forzieri',
+      'yields': 'Rendimenti',
+      'unlockObelisk': 'Pietre erette',
+      'rallyCry': 'Grido di raccolta',
+      'stockpiles': 'Scorte',
+      'unlockMerge': 'Fusione', 'forgeWelds': 'Saldature di forgia',
       'harbour': 'Porto', 'dockWorks': 'Opere portuali',
       'unlockLongship': 'Drakkar', 'seasonedHulls': 'Scafi stagionati',
       'navalGunnery': 'Artiglieria navale', 'unlockGalley': 'Galea da guerra',
@@ -163,6 +208,14 @@ export default {
       'artilleryDoctrine': 'Dottrina d’artiglieria'
     },
     'descriptions': {
+      'logistics': 'Sblocca la cava: un produttore economico che puoi permetterti nella partita in cui serve.',
+      'unlockCoffer': 'Sblocca il forziere, l’unico blocco che conia oro.',
+      'yields': 'Ogni blocco economico rende +{n}% in più.',
+      'unlockObelisk': 'Sblocca l’obelisco, un bonus adiacenti molto più forte.',
+      'rallyCry': 'I blocchi di potenziamento sono +{n}% più forti.',
+      'stockpiles': 'Ogni blocco economico rende +{n}% in più.',
+      'unlockMerge': 'Due blocchi uguali affiancati si fondono, fino a tre livelli.',
+      'forgeWelds': 'I blocchi fusi infliggono +{n}% di danni.',
       'harbour': 'Ormeggia navi sull’acqua. Solo loro colpiscono i sommersi.',
       'dockWorks': 'Ormeggia {n} casella più al largo per grado.',
       'unlockLongship': 'Uno scafo scudato con un arpione pesante.',

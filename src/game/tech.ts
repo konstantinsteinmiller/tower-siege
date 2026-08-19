@@ -44,7 +44,12 @@ export const TECH_NODES: ReadonlyArray<TechNode> = [
   {
     id: 'unlockBrace',
     tier: 1, col: 0, maxLevel: 1,
-    costBase: 90, costGrowth: 1,
+    // 60, not 90. A first run pays out roughly 60-115 coins, and the three
+    // cheapest nodes in the tree were `foundations` (+6 % block HP),
+    // `sharpBolts` (+7 % damage) and `lumberStock` (+20 wood) — two of which a
+    // player cannot see the effect of at all. The first purchase after a first
+    // death should visibly change the next run, and a whole new block does.
+    costBase: 60, costGrowth: 1,
     requires: ['foundations'],
     effect: { kind: 'unlock', blockId: 'brace' },
     icon: 'brace'
@@ -70,7 +75,13 @@ export const TECH_NODES: ReadonlyArray<TechNode> = [
   {
     id: 'rapidFire',
     tier: 2, col: -1, maxLevel: UNCAPPED,
-    costBase: 140, costGrowth: 1.32,
+    // Re-costed from 140. Enemy armour is percentage-based, so +7 % fire rate
+    // and +7 % damage are the SAME number — and this node sat a tier deeper and
+    // cost 2.3x `sharpBolts` for it. Nobody should ever buy a strictly worse
+    // version of something they already own. At 80 the first rank prices in
+    // between `sharpBolts` r1 and r2, so which one to take next is a real
+    // question rather than an arithmetic error.
+    costBase: 80, costGrowth: 1.32,
     requires: ['sharpBolts'],
     effect: { kind: 'fireRate', pct: 7 },
     icon: 'fireRate'
@@ -86,10 +97,35 @@ export const TECH_NODES: ReadonlyArray<TechNode> = [
   {
     id: 'unlockSpikes',
     tier: 2, col: 1, maxLevel: 1,
-    costBase: 150, costGrowth: 1,
+    // 90, not 150. Spikes are the only node that fills the SUPPORT offer lane,
+    // which is empty for a player with no tech — so buying it visibly changes
+    // the hand they are dealt, not just a number inside a block.
+    costBase: 90, costGrowth: 1,
     requires: ['foundations'],
     effect: { kind: 'unlock', blockId: 'spikes' },
     icon: 'spikes'
+  },
+
+  // ── Merging ──────────────────────────────────────────────────────────────
+  //
+  // Off the SPINE rather than a lane, because merging is not an offensive or
+  // an economic idea — it changes how every block in the tower is placed. A
+  // player who owns it stops thinking in single cells.
+  {
+    id: 'unlockMerge',
+    tier: 1, col: 2, maxLevel: 1,
+    costBase: 200, costGrowth: 1,
+    requires: ['foundations'],
+    effect: { kind: 'mergeUnlock' },
+    icon: 'merge'
+  },
+  {
+    id: 'forgeWelds',
+    tier: 2, col: 3, maxLevel: UNCAPPED,
+    costBase: 260, costGrowth: 1.31,
+    requires: ['unlockMerge'],
+    effect: { kind: 'mergePower', pct: 12 },
+    icon: 'weld'
   },
   {
     id: 'quarryStock',
@@ -286,7 +322,12 @@ export const TECH_NODES: ReadonlyArray<TechNode> = [
   {
     id: 'cavalryDrill',
     tier: 6, col: 0, maxLevel: UNCAPPED,
-    costBase: 500, costGrowth: 1.34,
+    // Cavalry only exist while siege engines are inbound, and `siegeShare` is
+    // zero below wave 14 — so this node buys nothing at all for the first
+    // thirteen waves of every run, and each sortie it improves is paid for in
+    // META coins, competing with the tree it sits in. Cut from 500 so the deep
+    // spine is not asking full price for a conditional effect.
+    costBase: 360, costGrowth: 1.34,
     requires: ['fieldRepairs'],
     effect: { kind: 'cavalryPower', pct: 14 },
     icon: 'cavalry'
@@ -316,7 +357,17 @@ export const TECH_NODES: ReadonlyArray<TechNode> = [
   {
     id: 'harbour',
     tier: 0, col: 6, maxLevel: 1,
-    costBase: 140, costGrowth: 1,
+    // 210, not 140.
+    //
+    // At 140 this was the strongest purchase in the game by a wide margin, and
+    // for reasons that read as unintended: ground infantry cannot target hulls
+    // at all, and there are no sea enemies before wave 12 — so a harbour bought
+    // on run 1 was seven berths of turret that nothing in waves 1-11 could
+    // answer, consuming no foundation footprint. Ranged ground attackers can
+    // now shoot moored hulls (see `groundFrontier`), which removes the free
+    // lunch; the price puts it behind the land tree's opening as a considered
+    // second purchase rather than the obvious first one.
+    costBase: 210, costGrowth: 1,
     requires: [],
     effect: { kind: 'unlock', blockId: 'skiff' },
     icon: 'harbour'
@@ -368,6 +419,85 @@ export const TECH_NODES: ReadonlyArray<TechNode> = [
     requires: ['unlockGalley'],
     effect: { kind: 'navalDamage', pct: 13 },
     icon: 'admiralty'
+  },
+
+  // ── The Works ────────────────────────────────────────────────────────────
+  //
+  // A THIRD ROOT, for the two block families that do not fight: producers and
+  // buffs. Like the Harbour it connects to nothing, because it is not a deeper
+  // rank of the tower — it is a different reason to place a block.
+  //
+  // The two halves answer the two things a tower made only of walls and guns
+  // cannot do:
+  //
+  //  - ECONOMY. Wave income is the replacement rate for attrition, and past
+  //    wave 12 it is roughly half what the waves destroy. A producer is a cell
+  //    that neither shoots nor soaks, paid for by the cells it lets you rebuild.
+  //  - BUFFS. Every optimal tower before this was a pile of the best affordable
+  //    block. A banner is worth nothing on its own and multiplies with every
+  //    other one touching the same block, so the question stops being WHAT to
+  //    build and starts being WHERE.
+  //
+  // Column 8 is the gutter between this and the Harbour, for the same reason
+  // column 4 is the gutter between the Harbour and the land tree — one empty
+  // column each, so no two trees ever appear to share an edge.
+  {
+    id: 'logistics',
+    tier: 0, col: 10, maxLevel: 1,
+    // The cheapest root in the tree, and deliberately so: it is the one a
+    // player reaches on their first or second run, and what it opens — a stone
+    // producer — is legible in a way that "+6 % block HP" is not.
+    costBase: 110, costGrowth: 1,
+    requires: [],
+    effect: { kind: 'unlock', blockId: 'stonepit' },
+    icon: 'quarry'
+  },
+  {
+    id: 'unlockCoffer',
+    tier: 1, col: 9, maxLevel: 1,
+    // A coffer is the only producer of RUN gold in the game. Every other source
+    // is a kill drop, which is why a player whose wall held perfectly also
+    // finished the run with nothing to upgrade it with.
+    costBase: 230, costGrowth: 1,
+    requires: ['logistics'],
+    effect: { kind: 'unlock', blockId: 'coffer' },
+    icon: 'mint'
+  },
+  {
+    id: 'yields',
+    tier: 1, col: 11, maxLevel: UNCAPPED,
+    costBase: 150, costGrowth: 1.3,
+    requires: ['logistics'],
+    effect: { kind: 'economyYield', pct: 12 },
+    icon: 'sawmill'
+  },
+  {
+    id: 'unlockObelisk',
+    tier: 2, col: 10, maxLevel: 1,
+    // The heavy buff. 1.4 against the banner's 1.25 sounds small; two of them
+    // give 1.96 where two banners give 1.56, because the auras multiply.
+    costBase: 320, costGrowth: 1,
+    requires: ['unlockCoffer', 'yields'],
+    effect: { kind: 'unlock', blockId: 'obelisk' },
+    icon: 'obelisk'
+  },
+  {
+    id: 'rallyCry',
+    tier: 3, col: 9, maxLevel: UNCAPPED,
+    // Scales the aura's STRENGTH, so it compounds with itself through the
+    // product — which is why its growth is the steepest in the tree.
+    costBase: 300, costGrowth: 1.42,
+    requires: ['unlockObelisk'],
+    effect: { kind: 'buffPower', pct: 10 },
+    icon: 'banner'
+  },
+  {
+    id: 'stockpiles',
+    tier: 3, col: 11, maxLevel: UNCAPPED,
+    costBase: 260, costGrowth: 1.34,
+    requires: ['unlockObelisk'],
+    effect: { kind: 'economyYield', pct: 15 },
+    icon: 'mint'
   }
 ]
 
@@ -428,6 +558,19 @@ export const sumEffect = (
   }
   return total
 }
+
+/**
+ * Is any node carrying `kind` owned?
+ *
+ * `sumEffect` cannot answer this for a flagless effect — it adds up `pct`/`add`
+ * and a switch has neither, so a bought `mergeUnlock` sums to zero exactly like
+ * an unbought one.
+ */
+export const hasEffect = (
+  levels: Record<string, number>,
+  kind: TechEffect['kind']
+): boolean =>
+  TECH_NODES.some((n) => n.effect.kind === kind && (levels[n.id] ?? 0) > 0)
 
 /** Set of block ids unlocked by the player's tech levels. */
 export const unlockedBlocks = (levels: Record<string, number>): Set<string> => {

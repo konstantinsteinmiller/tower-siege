@@ -17,6 +17,13 @@ export default {
     'speedFor': '{n} 分钟', 'recenter': '视角复位'
   },
 
+  'warnings': {
+    'hoard': '囤积 +{n}%',
+    'air': '空中 ×{n}',
+    'sea': '海上 ×{n}',
+    'bombers': '爆破 ×{n}',
+    'siege': '攻城 ×{n}'
+  },
   'hints': {
     'selectBlock': { 'touch': '点击下方的方块来选择', 'desktop': '单击下方的方块来选择' },
     'placeBlock': { 'touch': '现在点击发光的格子进行建造', 'desktop': '现在单击发光的格子进行建造' },
@@ -25,8 +32,20 @@ export default {
     'inspect': { 'touch': '长按方块查看详情', 'desktop': '单击方块查看详情' }
   },
 
+  'tips': {
+    'eco': '伐木屋和采石坑每波都会产出。两三个就能改变你买得起什么。',
+    'buff': '战旗强化相邻的每个方块，而且相乘。围住一门炮，别分散摆放。',
+    'mergeLocked': '在科技树买下融合：两个相同武器就能合成一个，伤害三倍。',
+    'merge': '相邻的两个相同武器会合成。把两组这样的叠起来就是 2×2。',
+    'spend': '你还有金币没花。科技树等级是永久的，会带入之后每一局。',
+    'branches': '三棵独立的树：高塔、港口和工坊。彼此互不依赖。',
+    'shape': '墙在前，炮在后。挨不到打的方块，永远不用重建。',
+    'gold': '金用来升级方块——点一下任意方块。金匣每波都会产出更多。'
+  },
   'blocks': {
+    'fortify': '加装尖刺',
     'sell': '出售',
+    'mergeTier': '合成 {n}×',
     'upgrade': '升级',
     'upgradeMax': '已满级',
     'rank': '等级 {n}/{max}',
@@ -36,8 +55,11 @@ export default {
     'enhancedNote': '强化——生命值 +{hp}%，伤害 +{dmg}%。',
     'enhancedHand': '强化积木',
     'reroll': '更换此方块',
-    'kinds': { 'core': '核心', 'structure': '结构', 'weapon': '武器', 'economy': '经济', 'utility': '功能', 'ship': '战船' },
+    'kinds': {
+      'buff': '增益', 'core': '核心', 'structure': '结构', 'weapon': '武器', 'economy': '经济', 'utility': '功能', 'ship': '战船' },
     'stats': {
+      'yieldGold': '金 / 波',
+      'buff': '相邻增益',
       'topDefense': '顶部防御',
       'hp': '生命', 'armor': '护甲', 'dmg': '伤害', 'cooldown': '冷却', 'range': '射程',
       'splash': '溅射', 'yieldWood': '木材 / 波', 'yieldStone': '石材 / 波', 'yieldCoins': '金币 / 波',
@@ -45,6 +67,11 @@ export default {
       'thorns': '尖刺'
     },
     'names': {
+      'banner': '战旗',
+      'obelisk': '方尖碑',
+      'lumberHut': '伐木屋',
+      'stonepit': '采石坑',
+      'coffer': '金匣',
       'skiff': '巡哨小艇', 'longship': '长船', 'galley': '战斗桨帆船',
       'gate': '城门', 'wood': '木箱', 'brace': '加固木箱', 'stone': '石块',
       'archer': '弓箭塔', 'cannon': '加农炮', 'mortar': '迫击炮', 'tesla': '闪电线圈',
@@ -54,6 +81,11 @@ export default {
       'bombard': '臼炮'
     },
     'descriptions': {
+      'banner': '强化所有相邻方块。同一方块旁的两面战旗会叠加。',
+      'obelisk': '更强的战旗。光环相乘，两个的价值远超两倍。',
+      'lumberHut': '每清完一波产出木材。',
+      'stonepit': '每清完一波产出石料。',
+      'coffer': '每波铸造金币——升级方块所用的货币。',
       'skiff': '停泊在水面。能打到水下的敌人。',
       'longship': '重型鱼叉。挂盾防护，射程超过岸上。',
       'galley': '青铜撞角与甲板臼炮。湖面归你了。',
@@ -133,6 +165,12 @@ export default {
   },
 
   'tech': {
+    'intro1': '在这里购买的一切都是永久的，会带入之后的每一局。',
+    'intro2': '每场攻城战都会给你金币，无论输赢。金币就在这里花。',
+    'intro3': '金色节点你现在就买得起，蓝色还差金币，暗色需要先解锁前置节点。',
+    'introDone': '知道了',
+    'sell': '出售等级',
+    'sellBlocked': '请先出售 {n}——它依赖此项。',
     'title': '科技树',
     'rank': '等级 {current}/{total}',
     'maxed': '已满级',
@@ -142,6 +180,13 @@ export default {
     'requires': '需要 {n}',
     'spotlight': '快花掉！',
     'names': {
+      'logistics': '后勤',
+      'unlockCoffer': '金匣',
+      'yields': '产出',
+      'unlockObelisk': '立石',
+      'rallyCry': '战吼',
+      'stockpiles': '囤积',
+      'unlockMerge': '融合', 'forgeWelds': '锻焊',
       'harbour': '港口', 'dockWorks': '码头工程',
       'unlockLongship': '长船', 'seasonedHulls': '熟化船体',
       'navalGunnery': '舰炮术', 'unlockGalley': '战斗桨帆船',
@@ -163,6 +208,14 @@ export default {
       'artilleryDoctrine': '炮兵学说'
     },
     'descriptions': {
+      'logistics': '解锁采石坑——一种在需要它的那一局里就买得起的廉价产出方块。',
+      'unlockCoffer': '解锁金匣，唯一能铸造金币的方块。',
+      'yields': '所有经济方块产出 +{n}%。',
+      'unlockObelisk': '解锁方尖碑，一种强得多的相邻增益。',
+      'rallyCry': '增益方块强度 +{n}%。',
+      'stockpiles': '所有经济方块产出 +{n}%。',
+      'unlockMerge': '相邻的两个同种方块会合成一个，最多三级。',
+      'forgeWelds': '合成方块伤害 +{n}%。',
       'harbour': '在水面停泊战船。只有它们能打到潜行的敌人。',
       'dockWorks': '每级停泊区加宽 {n} 格。',
       'unlockLongship': '挂盾船体，配重型鱼叉。',

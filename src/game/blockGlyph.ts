@@ -248,6 +248,57 @@ export const BLOCK_GLYPHS: Record<string, GlyphFn> = {
     }
   },
 
+  // ── Buffs ──
+  // A pennant on a staff, and a standing stone. Both read as "not a weapon and
+  // not a wall" at 14 px, which is the distinction that matters: the player has
+  // to be able to spot the block that only works because of what is beside it.
+  banner: (c) => {
+    box(c, -0.06, -0.46, 0.12, 0.92)
+    c.beginPath()
+    c.moveTo(0.04, -0.42)
+    c.lineTo(0.46, -0.24)
+    c.lineTo(0.04, -0.06)
+    c.closePath()
+    c.fill()
+  },
+  obelisk: (c) => {
+    c.beginPath()
+    c.moveTo(0, -0.48)
+    c.lineTo(0.2, -0.2)
+    c.lineTo(0.14, 0.3)
+    c.lineTo(-0.14, 0.3)
+    c.lineTo(-0.2, -0.2)
+    c.closePath()
+    c.fill()
+    box(c, -0.34, 0.32, 0.68, 0.14)
+  },
+
+  // ── Early economy ──
+  // Deliberately near-cousins of their deep counterparts — a lumber hut reads
+  // as a smaller sawmill, a stonepit as a smaller quarry — because that is
+  // exactly the relationship the player should infer.
+  lumberHut: (c) => {
+    tri(c, 0, -0.46, 0.44, -0.06, -0.44, -0.06)
+    box(c, -0.34, -0.06, 0.68, 0.46)
+    box(c, -0.1, 0.08, 0.2, 0.32)
+  },
+  stonepit: (c) => {
+    c.beginPath()
+    c.moveTo(-0.46, 0.34)
+    c.lineTo(-0.22, -0.16)
+    c.lineTo(0.06, 0.06)
+    c.lineTo(0.28, -0.34)
+    c.lineTo(0.46, 0.34)
+    c.closePath()
+    c.fill()
+  },
+  coffer: (c) => {
+    // A strongbox: lid, body and a fat keyhole.
+    box(c, -0.42, -0.3, 0.84, 0.2)
+    box(c, -0.42, -0.08, 0.84, 0.44)
+    dot(c, 0, 0.1, 0.13)
+  },
+
   // ── Ships ──
   // All three read as a hull on a waterline; the rig above it is what
   // separates them, which is the same cue the in-world art uses.

@@ -17,6 +17,13 @@ export default {
     'speedFor': '{n}분', 'recenter': '화면 중앙 정렬'
   },
 
+  'warnings': {
+    'hoard': '비축 +{n}%',
+    'air': '공중 ×{n}',
+    'sea': '해상 ×{n}',
+    'bombers': '폭발 ×{n}',
+    'siege': '공성 ×{n}'
+  },
   'hints': {
     'selectBlock': { 'touch': '아래 블록을 탭해 선택하세요', 'desktop': '아래 블록을 클릭해 선택하세요' },
     'placeBlock': { 'touch': '이제 빛나는 칸을 탭해 건설하세요', 'desktop': '이제 빛나는 칸을 클릭해 건설하세요' },
@@ -25,8 +32,20 @@ export default {
     'inspect': { 'touch': '블록을 길게 눌러 확인하세요', 'desktop': '블록을 클릭해 확인하세요' }
   },
 
+  'tips': {
+    'eco': '벌목 오두막과 채석 구덩이는 매 웨이브 지급합니다. 두세 개면 살 수 있는 것이 달라집니다.',
+    'buff': '깃발은 인접한 모든 블록을 강화하며 효과가 곱해집니다. 흩지 말고 포 하나를 둘러싸세요.',
+    'mergeLocked': '테크 트리에서 융합을 사세요. 같은 무기 둘이 합쳐져 3배로 때립니다.',
+    'merge': '나란한 같은 무기는 합쳐집니다. 그런 쌍을 두 개 쌓아 2×2로 만드세요.',
+    'spend': '쓸 코인이 남았습니다. 트리 등급은 영구적이며 이후 모든 판에 이어집니다.',
+    'branches': '독립된 세 트리: 탑, 항구, 공방. 서로를 필요로 하지 않습니다.',
+    'shape': '벽은 앞, 포는 뒤. 맞지 않는 블록은 다시 지을 일도 없습니다.',
+    'gold': '골드로 블록을 강화합니다 — 블록을 누르세요. 금고가 매 웨이브 더 만듭니다.'
+  },
   'blocks': {
+    'fortify': '가시 설치',
     'sell': '판매',
+    'mergeTier': '합성 {n}×',
     'upgrade': '업그레이드',
     'upgradeMax': '최대 강화',
     'rank': 'Lv {n}/{max}',
@@ -36,8 +55,11 @@ export default {
     'enhancedNote': '강화됨 — 체력 +{hp}%, 피해 +{dmg}%.',
     'enhancedHand': '강화 블록',
     'reroll': '이 조각 교체',
-    'kinds': { 'core': '핵심', 'structure': '구조', 'weapon': '무기', 'economy': '경제', 'utility': '보조', 'ship': '함선' },
+    'kinds': {
+      'buff': '강화', 'core': '핵심', 'structure': '구조', 'weapon': '무기', 'economy': '경제', 'utility': '보조', 'ship': '함선' },
     'stats': {
+      'yieldGold': '골드 / 웨이브',
+      'buff': '인접 강화',
       'topDefense': '상단 방어',
       'hp': '체력', 'armor': '방어', 'dmg': '피해', 'cooldown': '재사용', 'range': '사거리',
       'splash': '범위', 'yieldWood': '목재 / 웨이브', 'yieldStone': '석재 / 웨이브', 'yieldCoins': '코인 / 웨이브',
@@ -45,6 +67,11 @@ export default {
       'thorns': '가시'
     },
     'names': {
+      'banner': '깃발',
+      'obelisk': '오벨리스크',
+      'lumberHut': '벌목 오두막',
+      'stonepit': '채석 구덩이',
+      'coffer': '금고',
       'skiff': '초계정', 'longship': '롱십', 'galley': '전투 갤리선',
       'gate': '성문', 'wood': '나무 상자', 'brace': '보강 상자', 'stone': '석재 블록',
       'archer': '궁수탑', 'cannon': '대포', 'mortar': '박격포', 'tesla': '번개 코일',
@@ -54,6 +81,11 @@ export default {
       'bombard': '박격포탑'
     },
     'descriptions': {
+      'banner': '인접한 모든 블록을 강화합니다. 한 블록에 깃발 두 개는 중첩됩니다.',
+      'obelisk': '더 강한 깃발. 오라는 곱해지므로 두 개는 두 배보다 훨씬 강합니다.',
+      'lumberHut': '웨이브를 막아낼 때마다 목재를 생산합니다.',
+      'stonepit': '웨이브를 막아낼 때마다 석재를 생산합니다.',
+      'coffer': '매 웨이브 골드를 주조합니다 — 블록 강화에 쓰는 화폐입니다.',
       'skiff': '물 위에 정박. 수면 아래의 적도 공격합니다.',
       'longship': '중작살. 방패를 두르고 해안보다 사거리가 깁니다.',
       'galley': '청동 충각과 갑판 포. 호수는 당신 것입니다.',
@@ -133,6 +165,12 @@ export default {
   },
 
   'tech': {
+    'intro1': '여기서 구매한 것은 모두 영구적이며, 이후 모든 플레이에 이어집니다.',
+    'intro2': '코인은 승패와 상관없이 모든 공성전에서 얻습니다. 여기서 사용하세요.',
+    'intro3': '금색 노드는 지금 구매 가능합니다. 파란색은 코인이 더 필요하고, 흐린 것은 앞 노드가 필요합니다.',
+    'introDone': '알겠어요',
+    'sell': '등급 판매',
+    'sellBlocked': '먼저 {n}을(를) 파세요 — 선행 조건입니다.',
     'title': '테크 트리',
     'rank': '등급 {current}/{total}',
     'maxed': '최대',
@@ -142,6 +180,13 @@ export default {
     'requires': '필요: {n}',
     'spotlight': '사용하세요!',
     'names': {
+      'logistics': '병참',
+      'unlockCoffer': '금고',
+      'yields': '산출',
+      'unlockObelisk': '선돌',
+      'rallyCry': '전투 함성',
+      'stockpiles': '비축',
+      'unlockMerge': '융합', 'forgeWelds': '단조 용접',
       'harbour': '항구', 'dockWorks': '부두 공사',
       'unlockLongship': '롱십', 'seasonedHulls': '숙성 선체',
       'navalGunnery': '함포술', 'unlockGalley': '전투 갤리선',
@@ -163,6 +208,14 @@ export default {
       'artilleryDoctrine': '포병 교리'
     },
     'descriptions': {
+      'logistics': '채석 구덩이 해금 — 필요한 그 판에서 살 수 있는 저렴한 생산 블록입니다.',
+      'unlockCoffer': '골드를 주조하는 유일한 블록, 금고를 해금합니다.',
+      'yields': '경제 블록 산출량 +{n}%.',
+      'unlockObelisk': '훨씬 강한 인접 강화인 오벨리스크를 해금합니다.',
+      'rallyCry': '강화 블록이 +{n}% 강해집니다.',
+      'stockpiles': '경제 블록 산출량 +{n}%.',
+      'unlockMerge': '나란한 같은 블록끼리 합쳐집니다. 최대 3단계.',
+      'forgeWelds': '합성 블록 피해 +{n}%.',
       'harbour': '물 위에 함선을 정박. 잠수한 적은 함선만 공격합니다.',
       'dockWorks': '등급마다 정박지가 {n}칸 넓어집니다.',
       'unlockLongship': '방패를 두른 선체에 중작살을 얹었습니다.',

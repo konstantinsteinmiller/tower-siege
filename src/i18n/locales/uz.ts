@@ -17,6 +17,13 @@ export default {
     'speedFor': '{n} daq', 'recenter': 'Ko‘rinishni markazlash'
   },
 
+  'warnings': {
+    'hoard': 'Zaxira +{n}%',
+    'air': 'Havo ×{n}',
+    'sea': 'Dengiz ×{n}',
+    'bombers': 'Portlash ×{n}',
+    'siege': 'Qamal ×{n}'
+  },
   'hints': {
     'selectBlock': { 'touch': 'Tanlash uchun pastdagi blokni bosing', 'desktop': 'Tanlash uchun pastdagi blokni cherting' },
     'placeBlock': { 'touch': 'Endi qurish uchun yorqin katakni bosing', 'desktop': 'Endi qurish uchun yorqin katakni cherting' },
@@ -25,8 +32,20 @@ export default {
     'inspect': { 'touch': 'Ko‘rish uchun blokni bosib turing', 'desktop': 'Ko‘rish uchun blokni cherting' }
   },
 
+  'tips': {
+    'eco': 'Kulbalar va tosh konlari har to‘lqinda to‘laydi. Ikki-uchtasi imkoniyatingizni o‘zgartiradi.',
+    'buff': 'Bayroqlar tekkan hamma narsani kuchaytiradi va ko‘payadi. Bitta to‘pni o‘rab oling, sochmang.',
+    'mergeLocked': 'Daraxtdan «Birlashuv»ni oling: shunda ikki bir xil qurol uch barobar kuchli bittaga birlashadi.',
+    'merge': 'Yonma-yon turgan ikki bir xil qurol birlashadi. Shundaylardan ikkitasini 2×2 qilib joylang.',
+    'spend': 'Sizda tanga bor. Daraxt darajalari doimiy — har bir keyingi yurishga o‘tadi.',
+    'branches': 'Uchta alohida daraxt: minora, port va ustaxona. Hech biri boshqasini talab qilmaydi.',
+    'shape': 'Devor oldinda, qurol orqada. Tegmaydigan blokni qayta qurish shart emas.',
+    'gold': 'Oltin blok yaxshilashlarini sotib oladi — blokka bosing. Sandiqlar uni har to‘lqinda zarb qiladi.'
+  },
   'blocks': {
+    'fortify': 'Tikanlar',
     'sell': 'Sotish',
+    'mergeTier': 'Birlashgan {n}×',
     'upgrade': 'Yaxshilash',
     'upgradeMax': 'Toʻliq yaxshilangan',
     'rank': 'Dar. {n}/{max}',
@@ -36,8 +55,11 @@ export default {
     'enhancedNote': 'Mustahkamlangan — +{hp}% HP, +{dmg}% zarar.',
     'enhancedHand': 'Kuchaytirilgan qo‘l',
     'reroll': 'Bu bo‘lakni almashtirish',
-    'kinds': { 'core': 'Yadro', 'structure': 'Tuzilma', 'weapon': 'Qurol', 'economy': 'Iqtisod', 'utility': 'Yordamchi', 'ship': 'Kema' },
+    'kinds': {
+      'buff': 'Kuchaytirish', 'core': 'Yadro', 'structure': 'Tuzilma', 'weapon': 'Qurol', 'economy': 'Iqtisod', 'utility': 'Yordamchi', 'ship': 'Kema' },
     'stats': {
+      'yieldGold': 'Oltin / to‘lqin',
+      'buff': 'Qo‘shnilarga bonus',
       'topDefense': 'Yuqoridan himoya',
       'hp': 'JS', 'armor': 'Zirh', 'dmg': 'Zarar', 'cooldown': 'Kutish', 'range': 'Masofa',
       'splash': 'Hudud', 'yieldWood': 'Yog‘och / to‘lqin', 'yieldStone': 'Tosh / to‘lqin', 'yieldCoins': 'Tanga / to‘lqin',
@@ -45,6 +67,11 @@ export default {
       'thorns': 'Tikanlar'
     },
     'names': {
+      'banner': 'Bayroq',
+      'obelisk': 'Obelisk',
+      'lumberHut': 'O‘rmon kulbasi',
+      'stonepit': 'Tosh koni',
+      'coffer': 'Sandiq',
       'skiff': 'Qorovul qayigʻi', 'longship': 'Uzun kema', 'galley': 'Jangovar galera',
       'gate': 'Darvoza', 'wood': 'Yog‘och quti', 'brace': 'Mustahkamlangan quti', 'stone': 'Tosh blok',
       'archer': 'Kamonchi minorasi', 'cannon': 'To‘p', 'mortar': 'Minomyot', 'tesla': 'Chaqmoq g‘altagi',
@@ -54,6 +81,11 @@ export default {
       'bombard': 'Bombarda'
     },
     'descriptions': {
+      'banner': 'Barcha qo‘shni bloklarni kuchaytiradi. Bitta blokdagi ikki bayroq qo‘shiladi.',
+      'obelisk': 'Kuchliroq bayroq. Auralar ko‘payadi — ikkitasi ikki barobardan ancha ko‘p.',
+      'lumberHut': 'Har bir yakunlangan to‘lqin oxirida yog‘och beradi.',
+      'stonepit': 'Har bir yakunlangan to‘lqin oxirida tosh beradi.',
+      'coffer': 'Har to‘lqinda oltin zarb qiladi — blok yaxshilashlari valyutasi.',
       'skiff': 'Suvda turadi. Suv ostidagi dushmanlarga tegadi.',
       'longship': 'Ogʻir garpun. Qalqonli va qirgʻoqdan uzoqroq otadi.',
       'galley': 'Bronza qoʻchqor va paluba bombardasi. Koʻl sizniki.',
@@ -133,6 +165,12 @@ export default {
   },
 
   'tech': {
+    'intro1': 'Bu yerda sotib olganingizning hammasi doimiy — har bir keyingi yurishga o‘tadi.',
+    'intro2': 'Tangalar har qamaldan tushadi: yutasizmi yoki yutqazasizmi. Ularni shu yerda sarflaysiz.',
+    'intro3': 'Oltin tugunlarga hozir kuchingiz yetadi. Ko‘klarga ko‘proq tanga, xiralarga oldingi tugun kerak.',
+    'introDone': 'Tushunarli',
+    'sell': 'Darajani sotish',
+    'sellBlocked': 'Avval {n} ni soting — unga shu kerak.',
     'title': 'Texnologiya daraxti',
     'rank': 'Daraja {current}/{total}',
     'maxed': 'Maksimal',
@@ -142,6 +180,13 @@ export default {
     'requires': 'Kerak: {n}',
     'spotlight': 'Sarflang!',
     'names': {
+      'logistics': 'Logistika',
+      'unlockCoffer': 'Sandiqlar',
+      'yields': 'Hosildorlik',
+      'unlockObelisk': 'Tik toshlar',
+      'rallyCry': 'Jang hayqirig‘i',
+      'stockpiles': 'Zaxiralar',
+      'unlockMerge': 'Birlashuv', 'forgeWelds': 'Chilangar choklari',
       'harbour': 'Bandargoh', 'dockWorks': 'Bandargoh ishlari',
       'unlockLongship': 'Uzun kema', 'seasonedHulls': 'Chiniqqan korpuslar',
       'navalGunnery': 'Dengiz artilleriyasi', 'unlockGalley': 'Jangovar galera',
@@ -163,6 +208,14 @@ export default {
       'artilleryDoctrine': 'Artilleriya doktrinasi'
     },
     'descriptions': {
+      'logistics': 'Tosh konini ochadi — yurishning o‘zida sotib olsa bo‘ladigan arzon ishlab chiqaruvchi.',
+      'unlockCoffer': 'Sandiqni ochadi — oltin zarb qiladigan yagona blok.',
+      'yields': 'Har bir iqtisodiy blok +{n}% ko‘proq beradi.',
+      'unlockObelisk': 'Obeliskni ochadi — qo‘shnilarga ancha kuchli bonus.',
+      'rallyCry': 'Kuchaytirish bloklari +{n}% kuchliroq.',
+      'stockpiles': 'Har bir iqtisodiy blok +{n}% ko‘proq beradi.',
+      'unlockMerge': 'Yonma-yon turgan bir xil ikki blok birlashadi, uch darajagacha.',
+      'forgeWelds': 'Birlashgan bloklar +{n}% zarar yetkazadi.',
       'harbour': 'Kemalarni suvga qoʻying. Faqat ular suv ostidagilarga tegadi.',
       'dockWorks': 'Har daraja uchun bandargoh {n} katak kengroq.',
       'unlockLongship': 'Ogʻir garpunli qalqonli korpus.',

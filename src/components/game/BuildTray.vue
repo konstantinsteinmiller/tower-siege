@@ -220,6 +220,10 @@ const infoEntry = computed(() => {
       return {
         id,
         name: t(`blocks.names.${id}`),
+        // What the block is FOR, in one line. These strings ship translated into
+        // every locale and had no consumer — including `archer: "Hits fliers."`,
+        // which was the only place the game ever explained anti-air.
+        desc: t(`blocks.descriptions.${id}`),
         count: shapeDef(e.shapeId).cells.filter(([, , tId]) => tId === id).length,
         hp: Math.round(d.hp * hpMul),
         boostedHp: hpMul > 1,
@@ -248,6 +252,7 @@ const infoEntry = computed(() => {
                 | {{ part.hp }} {{ t('blocks.stats.hp') }}
               span.build-tray__part-dmg(v-if="part.dmg > 0" :class="{ 'is-boosted': part.boostedDmg }")
                 | {{ part.dmg }} {{ t('blocks.stats.dmg') }}
+            span.build-tray__part-desc(v-if="part.desc") {{ part.desc }}
         div.build-tray__info-cost
           span.build-tray__cost-item(v-if="infoEntry.wood > 0" :class="{ 'is-short': wood < infoEntry.wood }")
             i.build-tray__dot.is-wood
@@ -651,7 +656,11 @@ const infoEntry = computed(() => {
   list-style: none
 
   li
+    // The description wraps onto its own line under the stats rather than
+    // competing with them for the row — at 320 px "Hits fliers." and "16 dmg"
+    // on one line means neither is legible.
     display: flex
+    flex-wrap: wrap
     align-items: baseline
     gap: 0.35em
     font-size: clamp(0.55rem, 2.4vw, 0.72rem)
@@ -663,6 +672,14 @@ const infoEntry = computed(() => {
 .build-tray__part-name
   color: #dbe6ff
   flex: 1
+
+.build-tray__part-desc
+  flex-basis: 100%
+  margin-left: 1.9em
+  color: #93a6c8
+  font-weight: 700
+  line-height: 1.2
+  font-size: 0.92em
 
 .build-tray__part-stats
   display: inline-flex

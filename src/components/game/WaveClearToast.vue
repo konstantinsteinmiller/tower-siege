@@ -5,6 +5,8 @@ import { ENEMY_DEFS } from '@/game/enemies'
 import { themedPalette } from '@/game/art'
 import { canOfferReward, adInFlight } from '@/use/useAdGate'
 import FRewardButton from '@/components/atoms/FRewardButton.vue'
+import IconGold from '@/components/icons/IconGold.vue'
+import IconCoin from '@/components/icons/IconCoin.vue'
 
 /**
  * The "wave survived" payout toast (a compact take on reference image 7).
@@ -25,6 +27,7 @@ import FRewardButton from '@/components/atoms/FRewardButton.vue'
 interface Reward {
   wave: number
   coins: number
+  gold: number
   wood: number
   stone: number
   bonusPct: number
@@ -115,6 +118,9 @@ const payouts = computed(() => {
   return ([
     { id: 'wood', amount: r.wood },
     { id: 'stone', amount: r.stone },
+    // Coffer output, shown beside the resources it sits alongside. Kill drops
+    // are deliberately absent — those already floated off the enemy.
+    { id: 'gold', amount: r.gold },
     { id: 'coin', amount: r.coins }
   ] as const).filter((p) => p.amount > 0)
 })
@@ -157,10 +163,12 @@ const payouts = computed(() => {
               svg.wave-toast__icon(v-else-if="p.id === 'stone'" viewBox="0 0 24 24" aria-hidden="true")
                 path(d="M4 16 L7 7 L17 6 L20 15 L13 19 Z" fill="#767e88" stroke="#4a5058" stroke-width="1.4" stroke-linejoin="round")
                 path(d="M7 7 L13 11 L20 15" fill="none" stroke="#a8b2bd" stroke-width="1.2")
-              svg.wave-toast__icon(v-else viewBox="0 0 24 24" aria-hidden="true")
-                circle(cx="12" cy="12" r="9" fill="#e0a81c" stroke="#8a6410" stroke-width="1.6")
-                circle(cx="12" cy="12" r="5.5" fill="none" stroke="#ffe066" stroke-width="1.6")
-                path(d="M12 8.5 v7 M10 10.5 h4 M10 13.5 h4" stroke="#8a6410" stroke-width="1.4" stroke-linecap="round")
+              //- The RUN currency is an INGOT, not a coin. A round coin here
+              //- while the bar at the top of the screen shows a bar taught the
+              //- player that the wave paid out the meta wallet, which it does
+              //- not — that is the tech tree's balance.
+              IconGold.wave-toast__icon(v-else-if="p.id === 'gold'")
+              IconCoin.wave-toast__icon(v-else)
               span.wave-toast__plus +
               span.wave-toast__amount {{ p.amount }}
 
@@ -301,6 +309,12 @@ const payouts = computed(() => {
   &.is-coin
     color: #ffd93c
     box-shadow: inset 0 0 0 1px rgba(255, 217, 60, 0.55)
+
+  // Run gold sits beside wallet coins on this row, so it gets its own tone —
+  // two identical yellow chips would undo the work the two glyphs are doing.
+  &.is-gold
+    color: #ffb648
+    box-shadow: inset 0 0 0 1px rgba(255, 182, 72, 0.55)
 
 .wave-toast__icon
   flex: 0 0 auto

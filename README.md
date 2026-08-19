@@ -15,27 +15,19 @@ Yandex Games from one codebase.
 
 
 
-eco blocks, buff blocks(buffing neighbors, multiplicative buffs), callable knights on horses going out.
-princess tower buff block.
-
-make blocks merge into bigger version 2 cannons next to each other merge into a level 2 cannon doing 3x damage of a normal cannon block, up to level 3 blocks.
-add tech tree skill that increases merged block damage by 12% per upgrade level.
-tech skill merge enabling(allow selling of skills ranks, e.g. enforced crates and merge skill).
-
-5th support block spot that only spawns buffs and eco blocks from upgrade tier 0 skill.
-
 wizard block(fire, ice) that shoots fireballs and freezing/slowing bolts.
 wizard skilltree unlockable.
-
-add short and precise tips to the player about eco blocks, how to build an efficient tower, the tech tree and its multiple branches,
-merge mechanic on death screen, so that he can understand mechanic easier and fast for more in depth fun.
-Arrange the tips carefully so that they always fit on the screen and not overlay important buttons or push them out of the UI even on smaller screen.
-The Death screen must stay fully responsive and have a well defined layout even on small height viewports and small width viewports(adjust other elements size and element arragement if needed).
+princess tower buff block.
 
 
-siege weapons redesign needed, ballista looks bad. Make the design look like real siege weapons in this projects art style.
-Improve overall consistency and design quality.
-
+I need you to do a full game progress balance check by playing the
+game with a first time player account  and recording when the player
+encounters hard challenges and how easy it is for him to overcome the
+problems with the tech tree skilling, then smooth out potential
+balancing imbalances(but document the imbalances in balancing.md and
+ask me before you start applying the rebalancing). The player also
+need a short and precise tech tree tutorial after he died the first
+time. fan out subagents.
 ---
 
 ## Quick start

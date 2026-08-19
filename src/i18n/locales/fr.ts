@@ -17,6 +17,13 @@ export default {
     'speedFor': '{n} min', 'recenter': 'Recentrer la vue'
   },
 
+  'warnings': {
+    'hoard': 'Trésor +{n}%',
+    'air': 'Air ×{n}',
+    'sea': 'Mer ×{n}',
+    'bombers': 'Explosifs ×{n}',
+    'siege': 'Siège ×{n}'
+  },
   'hints': {
     'selectBlock': { 'touch': 'Touchez un bloc en bas pour le choisir', 'desktop': 'Cliquez sur un bloc en bas pour le choisir' },
     'placeBlock': { 'touch': 'Touchez maintenant un emplacement lumineux', 'desktop': 'Cliquez maintenant sur un emplacement lumineux' },
@@ -25,8 +32,20 @@ export default {
     'inspect': { 'touch': 'Maintenez un bloc pour l’inspecter', 'desktop': 'Cliquez sur un bloc pour l’inspecter' }
   },
 
+  'tips': {
+    'eco': 'Cabanes et carrières rapportent à chaque vague. Deux ou trois changent ce que vous pouvez payer.',
+    'buff': 'Les bannières renforcent tout ce qu’elles touchent, et se multiplient. Entourez un canon plutôt que de les disperser.',
+    'mergeLocked': 'Achetez Fusion dans l’arbre : deux armes identiques fusionnent alors en une qui frappe trois fois plus fort.',
+    'merge': 'Deux armes identiques côte à côte fusionnent. Empilez-en deux pour obtenir un 2×2.',
+    'spend': 'Il vous reste des pièces. Les rangs de l’arbre sont permanents : ils suivent chaque partie.',
+    'branches': 'Trois arbres distincts : la tour, le port et l’atelier. Aucun ne dépend des autres.',
+    'shape': 'Les murs devant, les canons derrière. Un bloc jamais touché est un bloc jamais reconstruit.',
+    'gold': 'L’or paie les améliorations de bloc — touchez un bloc. Les coffres en frappent à chaque vague.'
+  },
   'blocks': {
+    'fortify': 'Ajouter des pointes',
     'sell': 'Vendre',
+    'mergeTier': 'Fusionné {n}×',
     'upgrade': 'Améliorer',
     'upgradeMax': 'Amélioration max',
     'rank': 'Niv {n}/{max}',
@@ -36,8 +55,11 @@ export default {
     'enhancedNote': 'Renforcé — +{hp} % de PV, +{dmg} % de dégâts.',
     'enhancedHand': 'Main renforcée',
     'reroll': 'Changer cette pièce',
-    'kinds': { 'core': 'Cœur', 'structure': 'Structure', 'weapon': 'Arme', 'economy': 'Économie', 'utility': 'Utilitaire', 'ship': 'Navire' },
+    'kinds': {
+      'buff': 'Renfort', 'core': 'Cœur', 'structure': 'Structure', 'weapon': 'Arme', 'economy': 'Économie', 'utility': 'Utilitaire', 'ship': 'Navire' },
     'stats': {
+      'yieldGold': 'Or / vague',
+      'buff': 'Renfort voisin',
       'topDefense': 'Défense (haut)',
       'hp': 'PV', 'armor': 'Armure', 'dmg': 'Dégâts', 'cooldown': 'Recharge', 'range': 'Portée',
       'splash': 'Zone', 'yieldWood': 'Bois / vague', 'yieldStone': 'Pierre / vague', 'yieldCoins': 'Pièces / vague',
@@ -45,6 +67,11 @@ export default {
       'thorns': 'Épines'
     },
     'names': {
+      'banner': 'Bannière',
+      'obelisk': 'Obélisque',
+      'lumberHut': 'Cabane de bûcheron',
+      'stonepit': 'Carrière',
+      'coffer': 'Coffre',
       'skiff': 'Chaloupe de garde', 'longship': 'Drakkar', 'galley': 'Galère de guerre',
       'gate': 'Porte', 'wood': 'Caisse en bois', 'brace': 'Caisse renforcée', 'stone': 'Bloc de pierre',
       'archer': 'Tour d’archers', 'cannon': 'Canon', 'mortar': 'Mortier', 'tesla': 'Bobine électrique',
@@ -54,6 +81,11 @@ export default {
       'bombard': 'Bombarde'
     },
     'descriptions': {
+      'banner': 'Renforce tous les blocs adjacents. Deux bannières sur un bloc se cumulent.',
+      'obelisk': 'Une bannière plus forte. Les auras se multiplient : deux valent bien plus que le double.',
+      'lumberHut': 'Produit du bois à la fin de chaque vague nettoyée.',
+      'stonepit': 'Produit de la pierre à la fin de chaque vague nettoyée.',
+      'coffer': 'Frappe de l’or à chaque vague — la monnaie des améliorations de bloc.',
       'skiff': 'Amarré sur l’eau. Touche les ennemis immergés.',
       'longship': 'Harpon lourd. Bardé de boucliers et plus long que la rive.',
       'galley': 'Éperon de bronze et bombarde de pont. Le lac est à vous.',
@@ -133,6 +165,12 @@ export default {
   },
 
   'tech': {
+    'intro1': 'Tout ce que vous achetez ici est permanent et vous suit dans chaque partie.',
+    'intro2': 'Les pièces tombent après chaque siège, victoire ou défaite. C’est ici qu’on les dépense.',
+    'intro3': 'Les nœuds dorés sont abordables. Les bleus exigent plus de pièces, les ternes le nœud précédent.',
+    'introDone': 'Compris',
+    'sell': 'Vendre un rang',
+    'sellBlocked': 'Vendez d’abord {n} — il en dépend.',
     'title': 'Arbre technologique',
     'rank': 'Rang {current}/{total}',
     'maxed': 'Au maximum',
@@ -142,6 +180,13 @@ export default {
     'requires': 'Nécessite {n}',
     'spotlight': 'Dépensez !',
     'names': {
+      'logistics': 'Logistique',
+      'unlockCoffer': 'Coffres',
+      'yields': 'Rendements',
+      'unlockObelisk': 'Pierres levées',
+      'rallyCry': 'Cri de ralliement',
+      'stockpiles': 'Réserves',
+      'unlockMerge': 'Fusion', 'forgeWelds': 'Soudures de forge',
       'harbour': 'Port', 'dockWorks': 'Travaux portuaires',
       'unlockLongship': 'Drakkar', 'seasonedHulls': 'Coques traitées',
       'navalGunnery': 'Artillerie navale', 'unlockGalley': 'Galère de guerre',
@@ -163,6 +208,14 @@ export default {
       'artilleryDoctrine': 'Doctrine d’artillerie'
     },
     'descriptions': {
+      'logistics': 'Débloque la carrière — un producteur bon marché, payable dans la partie où il compte.',
+      'unlockCoffer': 'Débloque le coffre, le seul bloc qui frappe de l’or.',
+      'yields': 'Chaque bloc d’économie rapporte +{n} % de plus.',
+      'unlockObelisk': 'Débloque l’obélisque, un renfort voisin bien plus puissant.',
+      'rallyCry': 'Les blocs de renfort sont +{n} % plus forts.',
+      'stockpiles': 'Chaque bloc d’économie rapporte +{n} % de plus.',
+      'unlockMerge': 'Deux blocs identiques côte à côte fusionnent, jusqu’à trois niveaux.',
+      'forgeWelds': 'Les blocs fusionnés infligent +{n} % de dégâts.',
       'harbour': 'Amarrez des navires. Eux seuls touchent les ennemis immergés.',
       'dockWorks': 'Amarrez {n} case plus loin par rang.',
       'unlockLongship': 'Une coque bardée avec un harpon lourd.',

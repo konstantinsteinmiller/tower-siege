@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { towerBounds, towerVersion } from '@/use/useTowerGame'
+import { towerBounds, towerVersion, setViewSpan } from '@/use/useTowerGame'
 import { isMobilePortrait, isMobileLandscape } from '@/use/useUser'
 import { SEA_SWIM_Y } from '@/game/world'
 
@@ -272,6 +272,27 @@ export const updateCamera = (dtMs: number): void => {
   x += (tx - x) * k
   y += (ty - y) * k
   zoom += (tzoom - zoom) * k
+
+  publishSpan()
+}
+
+/**
+ * Tell the simulation how wide the frame currently is.
+ *
+ * Spawning is the only thing that needs it: enemies have to walk on from
+ * OUTSIDE the view, and only the camera knows where that is. Pushed rather than
+ * pulled because the sim must not import this module — see `setViewSpan`.
+ */
+const publishSpan = (): void => {
+  if (viewW <= 0 || zoom <= 0 || tzoom <= 0) return
+  // The union of where the camera IS and where it is heading. A wave call is
+  // exactly when the tower grows and the auto-fit pulls back, so an enemy
+  // placed against the current edge was on screen a quarter of a second later,
+  // mid-spring. Spawning against the wider of the two edges outlasts the
+  // animation.
+  const hNow = viewW / 2 / zoom
+  const hEnd = viewW / 2 / tzoom
+  setViewSpan(Math.min(x - hNow, tx - hEnd), Math.max(x + hNow, tx + hEnd))
 }
 
 /** Force the camera to its auto-fit target with no animation. Used on scene
@@ -283,6 +304,7 @@ export const snapToFit = (): void => {
   x = tx
   y = ty
   zoom = tzoom
+  publishSpan()
 }
 
 export default function useTowerCamera() {

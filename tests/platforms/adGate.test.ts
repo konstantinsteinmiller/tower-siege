@@ -30,6 +30,15 @@ const loadGate = async (opts: {
     return { isRewardedReady: ref(opts.rewardedReady ?? true), showRewardedAd }
   })
   const economy = await import('@/use/useTowerEconomy')
+  // ...and then set the balance on the ref as well.
+  //
+  // Seeding storage alone is not enough: the state layer DEBOUNCES its writes,
+  // so a pending write from whichever test file ran before this one can land
+  // after the `localStorage.clear()` above and put its balance back. That made
+  // this file fail intermittently in full runs and pass in isolation, which is
+  // the worst kind of test — it looks like whatever change happened to be in
+  // flight. Writing the ref is immune to the race.
+  economy.coins.value = opts.wallet ?? 1000
   const mod = await import('@/use/useAdGate')
   return { ...mod, showRewardedAd, wallet: economy.coins }
 }

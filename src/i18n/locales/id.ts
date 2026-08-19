@@ -17,6 +17,13 @@ export default {
     'speedFor': '{n} mnt', 'recenter': 'Pusatkan tampilan'
   },
 
+  'warnings': {
+    'hoard': 'Timbunan +{n}%',
+    'air': 'Udara ×{n}',
+    'sea': 'Laut ×{n}',
+    'bombers': 'Peledak ×{n}',
+    'siege': 'Pengepung ×{n}'
+  },
   'hints': {
     'selectBlock': { 'touch': 'Ketuk blok di bawah untuk memilihnya', 'desktop': 'Klik blok di bawah untuk memilihnya' },
     'placeBlock': { 'touch': 'Sekarang ketuk kotak bercahaya untuk membangun', 'desktop': 'Sekarang klik kotak bercahaya untuk membangun' },
@@ -25,8 +32,20 @@ export default {
     'inspect': { 'touch': 'Tahan blok untuk memeriksanya', 'desktop': 'Klik blok untuk memeriksanya' }
   },
 
+  'tips': {
+    'eco': 'Pondok kayu dan galian batu membayar tiap gelombang. Dua atau tiga mengubah apa yang sanggup kamu beli.',
+    'buff': 'Panji memperkuat semua blok di sebelahnya, dan efeknya dikalikan. Kelilingi satu meriam, jangan disebar.',
+    'mergeLocked': 'Beli Fusi di pohon teknologi: dua senjata sama lalu menyatu jadi satu yang tiga kali lebih kuat.',
+    'merge': 'Dua senjata sama berdampingan menyatu. Tumpuk dua pasang untuk membuat 2×2.',
+    'spend': 'Koinmu masih ada. Peringkat di pohon bersifat permanen dan terbawa ke setiap ronde.',
+    'branches': 'Tiga pohon terpisah: menara, pelabuhan, dan bengkel. Tidak ada yang saling membutuhkan.',
+    'shape': 'Dinding di depan, senjata di belakang. Blok yang tak pernah kena tak pernah perlu dibangun ulang.',
+    'gold': 'Emas membeli peningkatan blok — ketuk blok mana pun. Peti harta mencetaknya tiap gelombang.'
+  },
   'blocks': {
+    'fortify': 'Tambah duri',
     'sell': 'Jual',
+    'mergeTier': 'Digabung {n}×',
     'upgrade': 'Tingkatkan',
     'upgradeMax': 'Sudah maksimal',
     'rank': 'Lv {n}/{max}',
@@ -36,8 +55,11 @@ export default {
     'enhancedNote': 'Diperkuat — +{hp}% HP, +{dmg}% kerusakan.',
     'enhancedHand': 'Set diperkuat',
     'reroll': 'Tukar bagian ini',
-    'kinds': { 'core': 'Inti', 'structure': 'Struktur', 'weapon': 'Senjata', 'economy': 'Ekonomi', 'utility': 'Utilitas', 'ship': 'Kapal' },
+    'kinds': {
+      'buff': 'Penguat', 'core': 'Inti', 'structure': 'Struktur', 'weapon': 'Senjata', 'economy': 'Ekonomi', 'utility': 'Utilitas', 'ship': 'Kapal' },
     'stats': {
+      'yieldGold': 'Emas / gelombang',
+      'buff': 'Penguat tetangga',
       'topDefense': 'Pertahanan atas',
       'hp': 'HP', 'armor': 'Armor', 'dmg': 'Kerusakan', 'cooldown': 'Jeda', 'range': 'Jangkauan',
       'splash': 'Area', 'yieldWood': 'Kayu / gelombang', 'yieldStone': 'Batu / gelombang', 'yieldCoins': 'Koin / gelombang',
@@ -45,6 +67,11 @@ export default {
       'thorns': 'Duri'
     },
     'names': {
+      'banner': 'Panji',
+      'obelisk': 'Obelisk',
+      'lumberHut': 'Pondok Kayu',
+      'stonepit': 'Galian Batu',
+      'coffer': 'Peti Harta',
       'skiff': 'Sekoci penjaga', 'longship': 'Kapal panjang', 'galley': 'Galai perang',
       'gate': 'Gerbang', 'wood': 'Peti Kayu', 'brace': 'Peti Diperkuat', 'stone': 'Blok Batu',
       'archer': 'Menara Pemanah', 'cannon': 'Meriam', 'mortar': 'Mortir', 'tesla': 'Kumparan Petir',
@@ -54,6 +81,11 @@ export default {
       'bombard': 'Bombardir'
     },
     'descriptions': {
+      'banner': 'Memperkuat setiap blok tetangga. Dua panji pada satu blok bertumpuk.',
+      'obelisk': 'Panji yang lebih kuat. Aura dikalikan — dua bernilai jauh lebih dari dua kali.',
+      'lumberHut': 'Menghasilkan kayu di akhir setiap gelombang yang tuntas.',
+      'stonepit': 'Menghasilkan batu di akhir setiap gelombang yang tuntas.',
+      'coffer': 'Mencetak emas tiap gelombang — mata uang untuk meningkatkan blok.',
       'skiff': 'Ditambat di air. Mengenai musuh di bawah permukaan.',
       'longship': 'Harpun berat. Berperisai dan jangkauannya melebihi pantai.',
       'galley': 'Pendobrak perunggu dan bombarde geladak. Danau ini milikmu.',
@@ -133,6 +165,12 @@ export default {
   },
 
   'tech': {
+    'intro1': 'Semua yang kamu beli di sini permanen dan terbawa ke setiap ronde berikutnya.',
+    'intro2': 'Koin datang dari setiap pengepungan, menang atau kalah. Di sinilah kamu membelanjakannya.',
+    'intro3': 'Node emas sudah terjangkau. Yang biru butuh lebih banyak koin, yang redup butuh node sebelumnya.',
+    'introDone': 'Mengerti',
+    'sell': 'Jual peringkat',
+    'sellBlocked': 'Jual {n} dulu — ia membutuhkannya.',
     'title': 'Pohon Teknologi',
     'rank': 'Peringkat {current}/{total}',
     'maxed': 'Maksimum',
@@ -142,6 +180,13 @@ export default {
     'requires': 'Butuh {n}',
     'spotlight': 'Belanjakan!',
     'names': {
+      'logistics': 'Logistik',
+      'unlockCoffer': 'Peti Harta',
+      'yields': 'Hasil',
+      'unlockObelisk': 'Batu Berdiri',
+      'rallyCry': 'Seruan Perang',
+      'stockpiles': 'Persediaan',
+      'unlockMerge': 'Fusi', 'forgeWelds': 'Las Tempa',
       'harbour': 'Pelabuhan', 'dockWorks': 'Pekerjaan dermaga',
       'unlockLongship': 'Kapal panjang', 'seasonedHulls': 'Lambung matang',
       'navalGunnery': 'Meriam laut', 'unlockGalley': 'Galai perang',
@@ -163,6 +208,14 @@ export default {
       'artilleryDoctrine': 'Doktrin Artileri'
     },
     'descriptions': {
+      'logistics': 'Membuka Galian Batu — produsen murah yang terjangkau di ronde yang membutuhkannya.',
+      'unlockCoffer': 'Membuka Peti Harta, satu-satunya blok yang mencetak emas.',
+      'yields': 'Setiap blok ekonomi menghasilkan +{n}% lebih banyak.',
+      'unlockObelisk': 'Membuka Obelisk, penguat tetangga yang jauh lebih kuat.',
+      'rallyCry': 'Blok penguat +{n}% lebih kuat.',
+      'stockpiles': 'Setiap blok ekonomi menghasilkan +{n}% lebih banyak.',
+      'unlockMerge': 'Dua blok sama berdampingan menyatu, hingga tiga tingkat.',
+      'forgeWelds': 'Blok yang digabung memberi +{n}% kerusakan.',
       'harbour': 'Tambatkan kapal di air. Hanya kapal yang mengenai musuh menyelam.',
       'dockWorks': 'Dermaga {n} petak lebih lebar per peringkat.',
       'unlockLongship': 'Lambung berperisai dengan harpun berat.',

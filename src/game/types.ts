@@ -11,7 +11,8 @@
 
 // ─── Blocks ─────────────────────────────────────────────────────────────────
 
-export type BlockKind = 'core' | 'structure' | 'weapon' | 'economy' | 'utility' | 'ship'
+export type BlockKind =
+  | 'core' | 'structure' | 'weapon' | 'economy' | 'utility' | 'ship' | 'buff'
 
 /** `bomb` and `fire` are dropped BY enemies onto the tower, not fired at them. */
 export type ProjectileKind = 'bolt' | 'ball' | 'shell' | 'zap' | 'frost' | 'bomb' | 'fire'
@@ -53,7 +54,37 @@ export interface EconomySpec {
   /** Yield granted at the END of each cleared wave. */
   wood?: number
   stone?: number
+  /**
+   * META wallet coins — the tech-tree currency, banked immediately.
+   *
+   * Distinct from `gold` on purpose. These two are the game's two balances and
+   * a producer has to say which one it fills; `mint` prints wallet coins and
+   * `coffer` mints run gold, and reading them off one field would make the
+   * difference invisible at the only place it is authored.
+   */
   coins?: number
+  /** RUN gold — the in-run currency that pays for block ranks. */
+  gold?: number
+}
+
+/**
+ * What a BUFF block does to the blocks around it.
+ *
+ * Applied to every orthogonal neighbour of the buff block's footprint, and
+ * MULTIPLICATIVELY across however many of them a block is touching: two banners
+ * either side of a cannon give 1.25² = 1.56, four give 2.44. That curve is the
+ * whole point — it turns "where does this go" into the interesting question,
+ * and rewards a tower built as a shape rather than as a pile.
+ *
+ * Armour is the exception and stacks ADDITIVELY, because armour is already a
+ * flat subtraction with a 1-damage floor: multiplying it would either do
+ * nothing or make a block immune, with very little in between.
+ */
+export interface BuffSpec {
+  /** Multiplier applied to a neighbour's max HP and damage output. */
+  statMul: number
+  /** Flat armour added to a neighbour, summed across adjacent buffs. */
+  armor: number
 }
 
 export interface UtilitySpec {
@@ -82,6 +113,7 @@ export interface BlockDef {
   weapon?: WeaponSpec
   economy?: EconomySpec
   utility?: UtilitySpec
+  buff?: BuffSpec
   /** Tech-tree node id that unlocks this block. Absent = available at start. */
   unlockNode?: string
   /**
@@ -112,6 +144,33 @@ export interface Block {
   /** Ranks bought with run gold from the inspector. Raises HP, output and
    *  armour; dies with the run. Absent is the same as 0. */
   level?: number
+  /**
+   * Merge tier: 1 (a plain block), 2 or 3.
+   *
+   * Two adjacent blocks of the SAME type and SAME tier fuse into one of the
+   * next tier. Absent is the same as 1.
+   */
+  tier?: number
+  /**
+   * Footprint in cells, anchored at `(c, r)` as the LOW corner.
+   *
+   * A merged block keeps every cell its halves occupied — it grows sideways or
+   * upwards rather than collapsing into one square — so the tower never loses
+   * frontage to a merge and WHERE the halves sat decides the shape you get.
+   * Absent is the same as 1.
+   */
+  /**
+   * Cached neighbour-buff multiplier and flat armour bonus.
+   *
+   * Derived, not authored: `refreshBuffs` recomputes both whenever the tower's
+   * shape changes. Cached rather than queried per frame because the turret loop
+   * and every damage calculation read them, and walking four neighbours per
+   * block per hit is work the tower's shape has already decided.
+   */
+  buffMul?: number
+  buffArmor?: number
+  w?: number
+  h?: number
   hp: number
   maxHp: number
   /** Weapon cooldown remaining, ms. */
@@ -390,9 +449,12 @@ export interface RunSnapshot {
   kills: number
   killsByType: KillTally
   /** Compact tuples keep the blob small:
-   *  `[c, r, typeId, hp, roof, enhanced, level]`.
+   *  `[c, r, typeId, hp, roof, enhanced, level, tier, w, h]`.
    *  The trailing fields are optional so older snapshots still load. */
-  blocks: Array<[number, number, string, number, (0 | 1)?, (0 | 1)?, number?]>
+  blocks: Array<[
+    number, number, string, number,
+    (0 | 1)?, (0 | 1)?, number?, number?, number?, number?
+  ]>
   /** The four shape ids currently on offer. Persisted so a reload cannot be
    *  used to reroll a hand the player doesn't like. */
   offers: string[]
@@ -422,6 +484,14 @@ export type TechEffect =
   | { kind: 'navalDamage'; pct: number }
   | { kind: 'navalHp'; pct: number }
   | { kind: 'dockWidth'; add: number }
+  /** Permits merging at all. Binary. */
+  | { kind: 'mergeUnlock' }
+  /** Extra damage for MERGED blocks only (tier 2 and 3). */
+  | { kind: 'mergePower'; pct: number }
+  /** Strengthens what a BUFF block's aura is worth, not how many it reaches. */
+  | { kind: 'buffPower'; pct: number }
+  /** Raises every economy block's end-of-wave yield. */
+  | { kind: 'economyYield'; pct: number }
 
 export interface TechNode {
   id: string

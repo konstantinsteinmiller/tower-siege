@@ -17,6 +17,13 @@ export default {
     'speedFor': '{n} phút', 'recenter': 'Căn giữa khung nhìn'
   },
 
+  'warnings': {
+    'hoard': 'Tích trữ +{n}%',
+    'air': 'Đường không ×{n}',
+    'sea': 'Đường biển ×{n}',
+    'bombers': 'Bộc phá ×{n}',
+    'siege': 'Công thành ×{n}'
+  },
   'hints': {
     'selectBlock': { 'touch': 'Chạm vào một khối bên dưới để chọn', 'desktop': 'Nhấp vào một khối bên dưới để chọn' },
     'placeBlock': { 'touch': 'Giờ hãy chạm vào ô phát sáng để xây', 'desktop': 'Giờ hãy nhấp vào ô phát sáng để xây' },
@@ -25,8 +32,20 @@ export default {
     'inspect': { 'touch': 'Giữ một khối để xem chi tiết', 'desktop': 'Nhấp một khối để xem chi tiết' }
   },
 
+  'tips': {
+    'eco': 'Lều gỗ và hố đá trả công mỗi đợt. Hai ba cái là đủ đổi những gì bạn mua nổi.',
+    'buff': 'Cờ hiệu tăng sức mọi khối nó chạm, và nhân lên. Hãy vây quanh một khẩu súng thay vì rải ra.',
+    'mergeLocked': 'Mua Hợp nhất trong cây kỹ thuật: khi đó hai vũ khí giống nhau gộp thành một, mạnh gấp ba.',
+    'merge': 'Hai vũ khí giống nhau cạnh nhau sẽ gộp lại. Xếp hai cặp như vậy thành 2×2.',
+    'spend': 'Bạn còn xu chưa tiêu. Cấp trong cây là vĩnh viễn, theo bạn sang mọi ván sau.',
+    'branches': 'Ba cây riêng biệt: tòa tháp, bến cảng và xưởng. Không cây nào cần cây nào.',
+    'shape': 'Tường phía trước, súng phía sau. Khối không bị đánh là khối không phải xây lại.',
+    'gold': 'Vàng mua nâng cấp khối — chạm vào một khối. Rương vàng đúc thêm mỗi đợt.'
+  },
   'blocks': {
+    'fortify': 'Gắn chông',
     'sell': 'Bán',
+    'mergeTier': 'Hợp nhất {n}×',
     'upgrade': 'Nâng cấp',
     'upgradeMax': 'Đã nâng cấp tối đa',
     'rank': 'Cấp {n}/{max}',
@@ -36,8 +55,11 @@ export default {
     'enhancedNote': 'Gia cố — +{hp}% HP, +{dmg}% sát thương.',
     'enhancedHand': 'Bộ khối gia cố',
     'reroll': 'Đổi mảnh này',
-    'kinds': { 'core': 'Lõi', 'structure': 'Kết cấu', 'weapon': 'Vũ khí', 'economy': 'Kinh tế', 'utility': 'Tiện ích', 'ship': 'Tàu' },
+    'kinds': {
+      'buff': 'Tăng cường', 'core': 'Lõi', 'structure': 'Kết cấu', 'weapon': 'Vũ khí', 'economy': 'Kinh tế', 'utility': 'Tiện ích', 'ship': 'Tàu' },
     'stats': {
+      'yieldGold': 'Vàng / đợt',
+      'buff': 'Tăng cho khối kề',
       'topDefense': 'Phòng thủ trên',
       'hp': 'HP', 'armor': 'Giáp', 'dmg': 'Sát thương', 'cooldown': 'Hồi chiêu', 'range': 'Tầm bắn',
       'splash': 'Diện rộng', 'yieldWood': 'Gỗ / đợt', 'yieldStone': 'Đá / đợt', 'yieldCoins': 'Xu / đợt',
@@ -45,6 +67,11 @@ export default {
       'thorns': 'Gai'
     },
     'names': {
+      'banner': 'Cờ hiệu',
+      'obelisk': 'Cột đá',
+      'lumberHut': 'Lều gỗ',
+      'stonepit': 'Hố đá',
+      'coffer': 'Rương vàng',
       'skiff': 'Thuyền tuần', 'longship': 'Thuyền dài', 'galley': 'Chiến thuyền',
       'gate': 'Cổng', 'wood': 'Thùng gỗ', 'brace': 'Thùng gia cố', 'stone': 'Khối đá',
       'archer': 'Tháp cung thủ', 'cannon': 'Đại bác', 'mortar': 'Súng cối', 'tesla': 'Cuộn sét',
@@ -54,6 +81,11 @@ export default {
       'bombard': 'Pháo cối'
     },
     'descriptions': {
+      'banner': 'Tăng sức mọi khối liền kề. Hai cờ hiệu cạnh một khối sẽ cộng dồn.',
+      'obelisk': 'Cờ hiệu mạnh hơn. Hào quang nhân lên — hai cái đáng giá hơn gấp đôi rất nhiều.',
+      'lumberHut': 'Sản xuất gỗ vào cuối mỗi đợt đã dọn sạch.',
+      'stonepit': 'Sản xuất đá vào cuối mỗi đợt đã dọn sạch.',
+      'coffer': 'Đúc vàng mỗi đợt — loại tiền dùng để nâng cấp khối.',
       'skiff': 'Neo trên mặt nước. Bắn trúng kẻ địch dưới mặt nước.',
       'longship': 'Lao nặng. Có khiên và tầm xa hơn bờ.',
       'galley': 'Mũi húc đồng và pháo boong. Hồ này là của bạn.',
@@ -133,6 +165,12 @@ export default {
   },
 
   'tech': {
+    'intro1': 'Mọi thứ bạn mua ở đây là vĩnh viễn và theo bạn sang mọi lượt chơi sau.',
+    'intro2': 'Xu đến từ mỗi trận vây hãm, dù thắng hay thua. Đây là nơi tiêu chúng.',
+    'intro3': 'Nút vàng bạn mua được ngay. Nút xanh cần thêm xu, nút mờ cần nút phía trước.',
+    'introDone': 'Đã hiểu',
+    'sell': 'Bán cấp',
+    'sellBlocked': 'Bán {n} trước — nó cần cái này.',
     'title': 'Cây công nghệ',
     'rank': 'Bậc {current}/{total}',
     'maxed': 'Tối đa',
@@ -142,6 +180,13 @@ export default {
     'requires': 'Cần {n}',
     'spotlight': 'Hãy tiêu!',
     'names': {
+      'logistics': 'Hậu cần',
+      'unlockCoffer': 'Rương vàng',
+      'yields': 'Sản lượng',
+      'unlockObelisk': 'Cột đá dựng',
+      'rallyCry': 'Tiếng hô xung trận',
+      'stockpiles': 'Kho dự trữ',
+      'unlockMerge': 'Hợp nhất', 'forgeWelds': 'Mối hàn rèn',
       'harbour': 'Bến cảng', 'dockWorks': 'Công trình bến',
       'unlockLongship': 'Thuyền dài', 'seasonedHulls': 'Thân tàu tôi luyện',
       'navalGunnery': 'Pháo hạm', 'unlockGalley': 'Chiến thuyền',
@@ -163,6 +208,14 @@ export default {
       'artilleryDoctrine': 'Học thuyết pháo binh'
     },
     'descriptions': {
+      'logistics': 'Mở khoá Hố đá — nhà sản xuất rẻ, mua được ngay trong ván cần nó.',
+      'unlockCoffer': 'Mở khoá Rương vàng, khối duy nhất đúc ra vàng.',
+      'yields': 'Mỗi khối kinh tế cho thêm +{n}%.',
+      'unlockObelisk': 'Mở khoá Cột đá, một hào quang mạnh hơn nhiều.',
+      'rallyCry': 'Khối tăng cường mạnh thêm +{n}%.',
+      'stockpiles': 'Mỗi khối kinh tế cho thêm +{n}%.',
+      'unlockMerge': 'Hai khối giống nhau cạnh nhau hợp lại, tối đa ba cấp.',
+      'forgeWelds': 'Khối hợp nhất gây +{n}% sát thương.',
       'harbour': 'Neo tàu trên nước. Chỉ chúng bắn được kẻ địch chìm.',
       'dockWorks': 'Bến rộng thêm {n} ô mỗi cấp.',
       'unlockLongship': 'Thân tàu có khiên với lao nặng.',

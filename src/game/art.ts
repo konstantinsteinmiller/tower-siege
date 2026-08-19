@@ -53,6 +53,10 @@ export const PALETTES: Record<string, Palette> = {
   sawmill: { dark: '#59401f', mid: '#8d6a34', light: '#bf9553', accent: '#9fd45a', accent2: '#e2ffb0', debris: [141, 106, 52] },
   quarry: { dark: '#403f47', mid: '#6a6875', light: '#9a97a8', accent: '#d3b06a', accent2: '#ffeab8', debris: [106, 104, 117] },
   mint: { dark: '#4b3a15', mid: '#836424', light: '#b9903c', accent: '#ffd93c', accent2: '#fff3b0', debris: [131, 100, 36] },
+  // Buffs read as heraldry — cloth and gilt, not masonry — so a player can pick
+  // the block that is doing nothing on its own out of a crowded tower.
+  banner: { dark: '#3d1c33', mid: '#6f3059', light: '#a3557f', accent: '#ffd35c', accent2: '#fff0bd', debris: [111, 48, 89] },
+  obelisk: { dark: '#23203a', mid: '#3f3a63', light: '#6a63a0', accent: '#9be8ff', accent2: '#e6fbff', debris: [63, 58, 99] },
 
   // ── Enemies ──────────────────────────────────────────────────────────────
   grunt: { dark: '#4a1f22', mid: '#8d3238', light: '#c04b52', accent: '#2a1012', accent2: '#ffcf6b', debris: [141, 50, 56] },

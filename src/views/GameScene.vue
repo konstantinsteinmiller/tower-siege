@@ -5,7 +5,11 @@ import { useI18n } from 'vue-i18n'
 import useTowerGame, {
   phase, wave, wood, stone, runCoins,
   enemiesLeft, enemiesTotal, gateHpPct, buildTimeLeft, gameSpeed,
-  lastWaveReward, isBossIncoming, towerVersion, getBlocks, offers,
+  lastWaveReward, isBossIncoming, towerVersion, waveVersion, wavePlan, previewNextWave,
+  currentHoardTier,
+  fortifyBlock,
+  blockCount,
+  getBlocks, getTowerBlocks, spanW, spanH, offers,
   offerEnhanced, rerollReadyIn, allyCount,
   startRun, resumeRun, placeShape, sellBlock, upgradeBlock, canPlaceShapeAt,
   canAffordShape, callWave, toggleSpeed, step, runSummary, saveRunSnapshot,
@@ -22,7 +26,7 @@ import { drawScene, resetDrawnFx, setBuildOverlay } from '@/use/useTowerArt'
 import { resetVfx } from '@/use/useTowerVfx'
 import { warmAudio } from '@/use/useTowerAudio'
 import { warmSpriteProbes } from '@/game/art'
-import useTowerProgress, { bestWave } from '@/use/useTowerProgress'
+import useTowerProgress, { bestWave, mergeUnlocked } from '@/use/useTowerProgress'
 import {
   reportRun, rankFor, boardSize, playerTotal, leaderboardEnabled,
   leaderboardPending, OUTSIDE_BOARD
@@ -31,15 +35,17 @@ import useTowerEconomy from '@/use/useTowerEconomy'
 import useMissions, { beginMissionRun } from '@/use/useMissions'
 import useAchievements from '@/use/useAchievements'
 import useBattlePass from '@/use/useBattlePass'
-import { BUILDABLE_BLOCKS, GATE_ID, isShip } from '@/game/blocks'
+import { BUILDABLE_BLOCKS, GATE_ID, isShip, blockDef } from '@/game/blocks'
 import { OFFER_SLOTS, SHAPE_BY_ID } from '@/game/shapes'
 import { ENEMY_DEFS } from '@/game/enemies'
-import { earlyCallBonus, planWave, countSiege } from '@/game/waves'
+import { earlyCallBonus, countSiege, countAir, countSea, countBlast } from '@/game/waves'
 import { SEA_LEVEL } from '@/game/world'
 import type { Block } from '@/game/types'
 
 import { getState, setState } from '@/use/useTowerState'
-import { DAILY_BONUS_DAY_KEY, ONBOARDED_KEY, TECH_SPOTLIGHT_KEY, TUTORIAL_KEY } from '@/keys'
+import {
+  DAILY_BONUS_DAY_KEY, ONBOARDED_KEY, TECH_SPOTLIGHT_KEY, TIP_CURSOR_KEY, TUTORIAL_KEY
+} from '@/keys'
 import useSounds, { useMusic } from '@/use/useSound'
 import { useScreenshake } from '@/use/useScreenshake'
 import { isGamePaused, isAdShowing } from '@/use/useGamePause'
@@ -82,6 +88,7 @@ import MissionsModal from '@/components/organisms/MissionsModal.vue'
 import OptionsModal from '@/components/organisms/OptionsModal.vue'
 import TechTreeModal from '@/components/organisms/TechTreeModal.vue'
 import IconCoin from '@/components/icons/IconCoin.vue'
+import IconGold from '@/components/icons/IconGold.vue'
 import IconMovie from '@/components/icons/IconMovie.vue'
 
 const { t } = useI18n()
@@ -213,7 +220,6 @@ const loop = (t: number): void => {
   // loop keeps running (so the frame under an ad isn't a frozen artefact) but
   // the simulation clock does not advance.
   if (!isGamePaused.value && !showResult.value) step(dt)
-
   if (ctx) drawScene(ctx, cssW, cssH, dt, dpr)
 
   const sea = worldToScreenY(SEA_LEVEL)
@@ -265,9 +271,9 @@ const legalSlots = computed<Array<[number, number]>>(() => {
   // on a small tower instead of always sweeping 45 columns.
   let maxR = 0
   let reach = 0
-  for (const b of getBlocks().values()) {
-    if (b.r > maxR) maxR = b.r
-    const w = Math.abs(b.c)
+  for (const b of getTowerBlocks().values()) {
+    if (b.r + spanH(b) - 1 > maxR) maxR = b.r + spanH(b) - 1
+    const w = Math.max(Math.abs(b.c), Math.abs(b.c + spanW(b) - 1))
     if (w > reach) reach = w
   }
   // A naval piece is moored, not built: its only legal row is the water, and
@@ -490,6 +496,12 @@ const activeHint = computed<HintId | null>(() => {
   if (!hintsDone.value.has('placeBlock') && selectedSlot.value != null) return 'placeBlock'
   if (!hintsDone.value.has('callWave') && phase.value === 'build' && wave.value === 0) return 'callWave'
   if (!hintsDone.value.has('camera') && wave.value >= 1) return 'camera'
+  // The inspector is where run gold is spent — block upgrades, ranks, the
+  // effective stats of a reinforced or roofed block. It opens on a long-press,
+  // which nothing ever taught: this hint has been written and translated into
+  // every locale since the inspector shipped and was never once emitted, so
+  // in practice no player was told the upgrade button exists.
+  if (!hintsDone.value.has('inspect') && wave.value >= 1 && blockCount.value > 1) return 'inspect'
   return null
 })
 
@@ -507,6 +519,8 @@ watch(wave, (w) => {
 const showResult = ref(false)
 const showOptions = ref(false)
 const showTech = ref(false)
+/** Ask the tech tree to run its first-death explainer. Set only by "Upgrade!". */
+const techIntro = ref(false)
 const isAdInFlight = ref(false)
 const twoXUsed = ref(false)
 const firstRunBonusActive = ref(false)
@@ -587,9 +601,48 @@ const maybeShowInterstitial = async (): Promise<void> => {
  * FX event and the audio bus plays the sting the moment the Gate breaks;
  * playing it again here stacked two copies of the same sample.
  */
+/**
+ * The one thing this run would most have benefited from knowing.
+ *
+ * CONTEXTUAL, not random. A tip about merging is noise to a player who merged
+ * all run and the whole point to one who has never seen it, and the death
+ * screen only has room for a single line — so it goes to whichever mechanic
+ * this particular tower did without.
+ *
+ * Candidates are gathered in priority order (income first: the wave-12 wall is
+ * an attrition wall long before it is a damage one), then a stored cursor
+ * rotates through whichever of them are eligible, so a player who keeps dying
+ * the same way still learns something new each time.
+ */
+const tipCursor = ref(getState<number>(TIP_CURSOR_KEY, 0) ?? 0)
+const deathTip = ref<string | null>(null)
+
+const pickDeathTip = (): string | null => {
+  const blocks = [...getTowerBlocks().values()]
+  const kinds = new Set(blocks.map((b) => blockDef(b.typeId).kind))
+  const merged = blocks.some((b) => (b.tier ?? 1) > 1)
+
+  const eligible: string[] = []
+  if (!kinds.has('economy')) eligible.push('eco')
+  if (!kinds.has('buff')) eligible.push('buff')
+  if (!mergeUnlocked.value) eligible.push('mergeLocked')
+  else if (!merged) eligible.push('merge')
+  if (progress.affordableCount.value > 0) eligible.push('spend')
+  eligible.push('branches', 'shape', 'gold')
+
+  if (eligible.length === 0) return null
+  const id = eligible[tipCursor.value % eligible.length]!
+  tipCursor.value = (tipCursor.value + 1) % 1000
+  setState(TIP_CURSOR_KEY, tipCursor.value)
+  return id
+}
+
 const presentDefeat = async (): Promise<void> => {
   const s = runSummary()
   summary.value = s
+  // Read the tower BEFORE anything clears it, and freeze the choice so it
+  // cannot change under the player while they are reading it.
+  deathTip.value = pickDeathTip()
   twoXUsed.value = false
   stopBattleMusic()
 
@@ -704,20 +757,36 @@ const onRebuild = (): void => {
   startFreshRun()
 }
 
-/** "Upgrade!" — jump straight into the tech tree with the run's coins banked. */
+/**
+ * "Upgrade!" — jump straight into the tech tree with the run's coins banked.
+ *
+ * `techIntro` asks the tree to run its three-beat explainer. It is set only on
+ * this path: arriving here means the player has just LOST, which is the one
+ * moment they have coins, a reason to spend them, and no idea that the screen
+ * they are being shown is permanent progression rather than another tower
+ * upgrade. The tree itself only shows the intro once per save.
+ */
 const onUpgrade = (): void => {
   if (adInFlight.value) return
   consumeFirstRunBonus()
   showResult.value = false
+  techIntro.value = true
   showTech.value = true
 }
 
-// Closing the tech tree after a defeat should drop the player into a new siege
-// rather than back onto an empty battlefield. This path is deliberately NOT
-// gated: the player left the result screen through "Upgrade!", so charging an
-// ad for the restart they never asked for would be a trap.
+// Closing the tech tree after a defeat returns the player to the RESULT screen,
+// not into a fresh siege.
+//
+// It used to start the run immediately, on the reasoning that they had left the
+// result screen through "Upgrade!" and wanted to play. In practice it punished
+// the exact player the tree exists for: a first-timer taps "Upgrade!", does not
+// understand the graph, closes it to think — and the game restarts, spending
+// nothing and dropping them back on wave 0 with the tower they just lost with.
+// Handing back the screen they came from costs one tap and loses nothing.
 watch(showTech, (open, wasOpen) => {
-  if (!open && wasOpen && phase.value === 'defeat') startFreshRun()
+  if (open) return
+  techIntro.value = false
+  if (wasOpen && phase.value === 'defeat') showResult.value = true
 })
 
 watch(phase, (p, prev) => {
@@ -1007,6 +1076,17 @@ const onUpgradeInspected = (): void => {
   playSound('level-up', 0.05)
 }
 
+/** Convert a standing wall into a spiked one. */
+const onFortifyInspected = (): void => {
+  const b = inspected.value
+  if (!b) return
+  if (!fortifyBlock(b.c, b.r)) {
+    playSound('obstacle-hit', 0.03)
+    return
+  }
+  playSound('barricade', 0.05)
+}
+
 /**
  * "3× coins" — triple the wave payout for a rewarded video.
  *
@@ -1105,18 +1185,65 @@ const onCavalry = (): void => {
 }
 
 /**
- * Siege engines in the current wave.
+ * How much siege is actually on the field — the cavalry button's whole reason
+ * to exist.
  *
- * Standoff engines out-range most of the tower, so the cavalry button only
- * earns its screen space once there is something worth riding out to; the
- * counter is meant to read as an answer to a threat, not as a shop item.
+ * Read from the director's own plan (`wavePlan`), NOT re-planned here. The old
+ * code called `planWave(wave.value)` with the default difficulty scalar, so on
+ * most waves past 14 the HUD and the battlefield disagreed — the cavalry button
+ * stayed hidden while a ram was already chewing the wall.
+ *
+ * Counts only siege. This used to be one `threats` object counting air, sea and
+ * bombers alongside it, of which nothing ever read anything but `.siege` — and
+ * its bomber count called a `countBombers` that was never imported, so the
+ * whole computed threw on every evaluation. That took `cavalryOffered` down
+ * with it and left the button dead for the entire battle phase. The warning
+ * chips below do the air/sea/blast counting, and they do it for the NEXT wave,
+ * which is the only point at which a warning is worth anything.
  */
 const siegeIncoming = computed(() => {
-  void towerVersion.value
-  return countSiege(planWave(wave.value))
+  void waveVersion.value
+  return countSiege(wavePlan())
 })
 
 const cavalryOffered = computed(() => phase.value === 'battle' && siegeIncoming.value > 0)
+
+/**
+ * The "this wave brings something you may not have an answer to" banner.
+ *
+ * `countAir` / `countSea` / `countBombers` have existed in `waves.ts` since the
+ * wave director was written, documented as feeding exactly this warning — and
+ * were never called. Air arrives at wave 9, bombers at 8, the sea lane at 12,
+ * and until now each simply appeared. A player who cannot yet counter a lane
+ * at least deserves to know it is coming.
+ *
+ * Only while the wave is being ASSEMBLED (build phase) — once the shooting has
+ * started the enemies themselves are the warning.
+ */
+const waveWarnings = computed<{ id: string; n: number }[]>(() => {
+  if (phase.value !== 'build') return []
+  // The NEXT wave, not the one just fought — `wavePlan()` still holds the
+  // finished one during a build phase, and a warning about a wave the player
+  // has already survived is worse than no warning.
+  void towerVersion.value
+  void waveVersion.value
+  void wood.value
+  void stone.value
+  void runCoins.value
+  const plan = previewNextWave()
+  // The hoard surcharge leads, because unlike the lane warnings it is the one
+  // the player can act on right now — every other chip says "brace", this one
+  // says "spend". Shown as the percentage added, which is the number the wave
+  // is actually multiplied by.
+  const hoard = currentHoardTier()
+  return ([
+    { id: 'hoard', n: hoard === 3 ? 100 : hoard === 2 ? 50 : hoard === 1 ? 25 : 0 },
+    { id: 'air', n: countAir(plan) },
+    { id: 'sea', n: countSea(plan) },
+    { id: 'bombers', n: countBlast(plan) },
+    { id: 'siege', n: countSiege(plan) }
+  ] as const).filter((w) => w.n > 0)
+})
 
 // ─── Manual reroll ──────────────────────────────────────────────────────────
 
@@ -1373,6 +1500,7 @@ onUnmounted(() => {
           :block="inspected"
           @sell="onSellInspected"
           @upgrade="onUpgradeInspected"
+          @fortify="onFortifyInspected"
           @close="inspected = null"
         )
 
@@ -1458,6 +1586,16 @@ onUnmounted(() => {
                 template(#badge)
                   FHudBadge(v-if="progress.affordableCount.value > 0" tone="red") {{ progress.affordableCount.value }}
 
+          //- What the next wave brings that the player may have no answer to.
+          //- Sits directly above Call Wave because that is the button the
+          //- warning is asking them to think twice about pressing.
+          div.scene__warnings(v-if="waveWarnings.length > 0")
+            span.scene__warning(
+              v-for="w in waveWarnings"
+              :key="w.id"
+              :class="`is-${w.id}`"
+            ) {{ t(`warnings.${w.id}`, { n: w.n }) }}
+
           CallWaveButton(
             :phase="phase"
             :time-left="buildTimeLeft"
@@ -1479,73 +1617,99 @@ onUnmounted(() => {
         span.scene__ribbon {{ t('result.towerFell') }}
 
       div.result
-        div.result__headline
-          span.result__wave {{ t('result.reachedWave', { n: summary.wave }) }}
+        //- Two halves — the numbers and the buttons.
+        //-
+        //- In portrait these wrappers are `display: contents`, so the children
+        //- lay out in one column exactly as they always have. In landscape they
+        //- become real columns side by side, because a phone on its side has
+        //- 360 px of height for a ribbon, five stat lines and four CTAs — and
+        //- stacking them there pushed the two most important buttons off the
+        //- bottom. The long axis is the one with room; this spends it.
+        div.result__info
+          div.result__headline
+            span.result__wave {{ t('result.reachedWave', { n: summary.wave }) }}
 
-        //- The record sits BESIDE the payout rather than on a line of its own.
-        //- `rewardCoinRef` stays wrapped tightly around the coin so the payout
-        //- explosion still originates on the coin and not on the whole row.
-        div.result__payout
-          span.result__record(v-if="summary.wave >= bestWave && summary.wave > 0") {{ t('result.newRecord') }}
-          div.result__coins(ref="rewardCoinRef")
-            IconCoin(class="result__coin-icon")
-            span.result__coin-value +{{ summary.coins }}
+          //- The record sits BESIDE the payout rather than on a line of its
+          //- own. `rewardCoinRef` stays wrapped tightly around the coin so the
+          //- payout explosion still originates on the coin, not the whole row.
+          div.result__payout
+            span.result__record(v-if="summary.wave >= bestWave && summary.wave > 0") {{ t('result.newRecord') }}
+            //- Run gold, not wallet coins — `summary.coins` is `runCoins`. The
+            //- ingot is the glyph the resource bar and the wave toast use for
+            //- it; printing the wallet's round coin here taught the player that
+            //- the two balances were one, on the screen where they meet.
+            div.result__coins(ref="rewardCoinRef")
+              IconGold(class="result__coin-icon")
+              span.result__coin-value +{{ summary.coins }}
 
-        //- Score, and where it stands. One strip, two cells: they stay side by
-        //- side at every width because both are short, and the rank cell simply
-        //- drops out when there is no board to rank against.
-        div.result__stats
-          div.result__stat
-            span.result__stat-label {{ t('result.bestLabel') }}
-            span.result__stat-value {{ bestScoreValue.toLocaleString() }}
-            //- This run, beside the record it did or did not beat. Hidden on a
-            //- record run, where the two numbers are the same one.
-            span.result__stat-note(v-if="!isRecordRun") {{ t('result.scoreCurrent', { n: summary.score.toLocaleString() }) }}
-          div.result__stat(v-if="showRank")
-            span.result__stat-label {{ t('result.rankLabel') }}
-            span.result__stat-value {{ rankDisplay }}
-            span.result__stat-note(v-if="playerTotal > 0") {{ t('result.rankOf', { n: playerTotal.toLocaleString() }) }}
+          //- Score, and where it stands. One strip, two cells: they stay side
+          //- by side at every width because both are short, and the rank cell
+          //- simply drops out when there is no board to rank against.
+          div.result__stats
+            div.result__stat
+              span.result__stat-label {{ t('result.bestLabel') }}
+              span.result__stat-value {{ bestScoreValue.toLocaleString() }}
+              //- This run, beside the record it did or did not beat. Hidden on
+              //- a record run, where the two numbers are the same one.
+              span.result__stat-note(v-if="!isRecordRun") {{ t('result.scoreCurrent', { n: summary.score.toLocaleString() }) }}
+            div.result__stat(v-if="showRank")
+              span.result__stat-label {{ t('result.rankLabel') }}
+              span.result__stat-value {{ rankDisplay }}
+              span.result__stat-note(v-if="playerTotal > 0") {{ t('result.rankOf', { n: playerTotal.toLocaleString() }) }}
 
-        //- 2× rewarded video.
-        //- The offer reads as "3× 🪙" rather than as a sentence: it is the
-        //- loudest button on the screen and the number is the whole message.
-        //- The accessible name still spells it out.
-        FRewardButton(
-          v-if="twoXAvailable"
-          tone="gold"
-          label=""
-          :aria-label="firstRunBonusActive ? t('result.firstRunBonus') : t('result.tripleCoins')"
-          @click="onTwoX"
-        )
-          span.result__twox
-            span(v-if="firstRunBonusActive") {{ t('result.firstRunBonus') }}
-            template(v-else)
-              span {{ RESULT_COIN_MULTIPLIER }}×
-              IconCoin(class="result__twox-icon")
+          //- One line about whatever this run did without. It closes the
+          //- numbers column because that is the order the player reads in —
+          //- what happened, then why, then what to do about it.
+          div.result__tip(v-if="deathTip")
+            svg.result__tip-icon(viewBox="0 0 24 24" fill="currentColor" aria-hidden="true")
+              path(d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z")
+              rect(x="9" y="18.5" width="6" height="1.8" rx="0.9")
+              rect(x="10" y="21" width="4" height="1.6" rx="0.8")
+            span.result__tip-text {{ t(`tips.${deathTip}`) }}
 
-        //- One grace continue per run. Offered ABOVE the restart CTAs so it
-        //- reads as the alternative to ending the run rather than a variant of
-        //- restarting it.
-        FRewardButton(
-          v-if="graceAvailable"
-          tone="green"
-          :label="t('result.continueRun')"
-          @click="onContinueRun"
-        )
-
-        //- The two CTAs from reference image 2.
-        div.result__actions
-          FButton(size="md" :is-disabled="adInFlight" @click="onUpgrade") {{ t('result.upgrade') }}
-          //- No movie badge: restarting is the way OUT of a finished run, and a
-          //- player who cannot get past it because an ad will not fill is stuck
-          //- on the defeat screen. `free` keeps the reward-button styling and
-          //- disabled handling while dropping the video affordance.
+        div.result__cta
+          //- 2× rewarded video.
+          //- The offer reads as "3× 🪙" rather than as a sentence: it is the
+          //- loudest button on the screen and the number is the whole message.
+          //- The accessible name still spells it out.
           FRewardButton(
-            tone="blue"
-            free
-            :label="t('result.defendAgain')"
-            @click="onRebuild"
+            v-if="twoXAvailable"
+            tone="gold"
+            label=""
+            :aria-label="firstRunBonusActive ? t('result.firstRunBonus') : t('result.tripleCoins')"
+            @click="onTwoX"
           )
+            span.result__twox
+              span(v-if="firstRunBonusActive") {{ t('result.firstRunBonus') }}
+              template(v-else)
+                span {{ RESULT_COIN_MULTIPLIER }}×
+                IconCoin(class="result__twox-icon")
+
+          //- One grace continue per run. Offered ABOVE the restart CTAs so it
+          //- reads as the alternative to ending the run rather than a variant
+          //- of restarting it.
+          FRewardButton(
+            v-if="graceAvailable"
+            tone="green"
+            :label="t('result.continueRun')"
+            @click="onContinueRun"
+          )
+
+          //- The two CTAs from reference image 2.
+          div.result__actions
+            FButton(size="md" :is-disabled="adInFlight" @click="onUpgrade") {{ t('result.upgrade') }}
+            //- No movie badge: restarting is the way OUT of a finished run, and
+            //- a player who cannot get past it because an ad will not fill is
+            //- stuck on the defeat screen. `free` keeps the reward-button
+            //- styling and disabled handling while dropping the video
+            //- affordance.
+            FRewardButton(
+              tone="blue"
+              free
+              :label="t('result.defendAgain')"
+              @click="onRebuild"
+            )
+
 
     //- The opt-in offer, beside the tower. Never auto-starts.
     TutorialPrompt(
@@ -1568,7 +1732,7 @@ onUnmounted(() => {
     )
 
     OptionsModal(:is-open="showOptions" @close="showOptions = false")
-    TechTreeModal(v-model="showTech")
+    TechTreeModal(v-model="showTech" :intro="techIntro")
 </template>
 
 <style scoped lang="sass">
@@ -1831,6 +1995,57 @@ onUnmounted(() => {
   align-items: flex-end
   gap: clamp(0.15rem, 1vw, 0.35rem)
 
+// ─── Incoming-threat warnings ───────────────────────────────────────────────
+//
+// Deliberately terse chips rather than a sentence: they are read in the last
+// seconds of a build phase, next to a countdown, and a paragraph there is a
+// paragraph nobody reads.
+
+.scene__warnings
+  display: flex
+  flex-direction: column
+  align-items: flex-end
+  gap: 0.15rem
+  margin-bottom: 0.25rem
+  pointer-events: none
+
+.scene__warning
+  padding: 0.1em 0.5em
+  border: 2px solid #0f1a30
+  border-radius: 999px
+  background-color: rgba(10, 16, 30, 0.82)
+  font-weight: 900
+  text-transform: uppercase
+  font-size: clamp(0.5rem, 2.2vw, 0.66rem)
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6)
+  white-space: nowrap
+  animation: scene-warn 1.8s ease-in-out infinite
+
+  &.is-air
+    color: #9ad8ff
+    border-color: #2b5a80
+  &.is-sea
+    color: #7fe0d0
+    border-color: #226055
+  &.is-bombers
+    color: #ffb46a
+    border-color: #7a4418
+  &.is-siege
+    color: #ff9a92
+    border-color: #7d2b24
+  //- Gold, and it does not pulse: the lane chips warn about something arriving,
+  //- this one reports a standing state the player chose and can undo.
+  &.is-hoard
+    color: #ffd93c
+    border-color: #7a5c10
+    animation: none
+
+@keyframes scene-warn
+  0%, 100%
+    opacity: 0.72
+  50%
+    opacity: 1
+
 .scene__tech-wrap
   position: relative
   display: flex
@@ -1935,6 +2150,13 @@ onUnmounted(() => {
   gap: clamp(0.4rem, 2vw, 0.9rem)
   width: 100%
   max-width: 26rem
+
+// The two halves are LAYOUT-NEUTRAL in portrait: `display: contents` drops
+// them out of the box tree entirely, so their children remain direct flex items
+// of `.result` and the single-column layout is byte-identical to before.
+.result__info,
+.result__cta
+  display: contents
 
 .result__headline
   display: flex
@@ -2045,6 +2267,43 @@ onUnmounted(() => {
   text-overflow: ellipsis
   max-width: 100%
 
+// ─── Death-screen tip ───────────────────────────────────────────────────────
+//
+// One line, and it must never be the reason a CTA moves. It is capped in height
+// and scrolls internally past that cap, so a long translation cannot grow the
+// dialog: German and Vietnamese run ~40 % longer than English here, which is
+// exactly the width at which a "one line" tip quietly becomes three.
+
+.result__tip
+  display: flex
+  align-items: center
+  gap: clamp(0.35rem, 2vw, 0.6rem)
+  width: 100%
+  padding: clamp(0.28rem, 1.5vw, 0.5rem) clamp(0.45rem, 2.6vw, 0.8rem)
+  border-radius: 0.7rem
+  background: rgba(8, 14, 28, 0.5)
+  box-shadow: inset 0 0 0 2px rgba(255, 214, 92, 0.22)
+
+.result__tip-icon
+  flex: 0 0 auto
+  width: clamp(0.9rem, 4vw, 1.25rem)
+  height: clamp(0.9rem, 4vw, 1.25rem)
+  color: #ffd35c
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.6))
+
+.result__tip-text
+  min-width: 0
+  color: rgba(226, 236, 255, 0.94)
+  font-weight: 700
+  line-height: 1.28
+  font-size: clamp(0.56rem, 2.6vw, 0.8rem)
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.55)
+  // Three lines is the ceiling. Past that the tip scrolls rather than pushing
+  // the buttons below it down the screen.
+  max-height: 3.9em
+  overflow-y: auto
+  overscroll-behavior: contain
+
 .result__twox
   display: inline-flex
   align-items: center
@@ -2073,15 +2332,25 @@ onUnmounted(() => {
 // four CTAs. Every size above is driven by `vw` — the LONG axis here — so the
 // defaults open up widest exactly where there is least room, and the bottom
 // row of buttons falls past the edge. Drive the same values off the short axis.
-@media (orientation: landscape) and (max-height: 500px)
+// ─── Short viewports ────────────────────────────────────────────────────────
+//
+// Keyed on HEIGHT, not orientation. The old rules were
+// `(orientation: landscape) and (max-height: 500px)` plus a portrait twin, which
+// left a hole: a 1365x533 desktop embed is landscape but taller than 500, so it
+// matched neither and overflowed with three CTAs below the fold. Height is the
+// scarce axis on this screen whichever way the device is held, so height is
+// what the query should ask about.
+@media (max-height: 640px)
   .result
     // 0.3rem left the dialog ~9px taller than a 764x385 Chromebook embed, which
     // is not a cut-off button but IS a scrollbar over the defeat screen. The
     // gap is the cheapest place to find it: the alternative was dropping the
     // "(137 this run)" note, which is the half of the strip that tells the
     // player why to press Defend Again.
-    gap: 0.08rem
+    gap: 0.12rem
 
+  // Every size here is driven off the SHORT axis. Driven off `vw` — as the
+  // defaults are — they open up widest exactly where there is least room.
   .result__wave
     font-size: clamp(0.95rem, 4vh, 1.3rem)
 
@@ -2092,8 +2361,6 @@ onUnmounted(() => {
   .result__coin-value
     font-size: 1.5rem
 
-  // Same reasoning as everything above it: drive the strip off the SHORT axis
-  // in landscape, or it opens up widest exactly where there is least room.
   .result__stats
     padding: 0.14rem 0.6rem
     border-radius: 0.55rem
@@ -2107,8 +2374,69 @@ onUnmounted(() => {
   .result__stat-note
     font-size: 0.55rem
 
-// Tablets and anything wider: the dialog stops being width-constrained, so the
-// strip can breathe instead of staying phone-tight inside a 26rem column.
+  // The tip has the least claim on the scarce axis, so it takes the tightest
+  // treatment and a two-line ceiling instead of three.
+  .result__tip
+    padding: 0.12rem 0.5rem
+    border-radius: 0.5rem
+    gap: 0.35rem
+
+  .result__tip-icon
+    width: 0.85rem
+    height: 0.85rem
+
+  .result__tip-text
+    font-size: clamp(0.5rem, 2.2vh, 0.66rem)
+    max-height: 2.6em
+
+// ── Two columns ──
+//
+// Short AND wide enough to split. Stacked, this screen needs ~290px of height
+// for the ribbon, the numbers and four CTAs — more than a phone on its side
+// has once the ribbon is drawn — and the two most important buttons ended up
+// below the fold, reachable only by scrolling, which is the one thing a defeat
+// screen must never ask for.
+//
+// Side by side each column carries half the height, and the long axis — the
+// one a short viewport actually has — does the work. Gated on width so a tall
+// narrow phone never gets two 140px columns.
+//
+// 28rem, not 34: a 480x320 landscape phone is 30rem wide, and at the higher
+// threshold it fell back to one column and pushed both restart buttons off the
+// bottom — the exact device the two-column layout exists for.
+@media (max-height: 640px) and (min-width: 28rem)
+  .result
+    flex-direction: row
+    align-items: center
+    justify-content: center
+    // In a row this is the gap BETWEEN the two columns; each column sets its
+    // own tighter vertical rhythm below.
+    gap: clamp(0.5rem, 3vw, 1.1rem)
+    max-width: 46rem
+
+  .result__info,
+  .result__cta
+    display: flex
+    flex-direction: column
+    align-items: center
+    justify-content: center
+    min-width: 0
+    gap: 0.18rem
+
+  // The CTA column takes the width it needs and the numbers take the rest.
+  // Equal halves clipped "Defend again" off the right edge at 568px: two
+  // buttons plus their gap do not fit in half of that.
+  .result__info
+    flex: 1 1 0
+
+  .result__cta
+    flex: 0 1 auto
+    // Enough for the widest CTA at the compact font, capped as a share of the
+    // dialog so the numbers column is never squeezed to nothing.
+    min-width: min(15rem, 48vw)
+
+
+
 @media (min-width: 48rem) and (orientation: portrait)
   .result
     max-width: 30rem

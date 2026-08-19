@@ -17,6 +17,13 @@ export default {
     'speedFor': '{n} min', 'recenter': 'Wyśrodkuj widok'
   },
 
+  'warnings': {
+    'hoard': 'Zapasy +{n}%',
+    'air': 'Powietrze ×{n}',
+    'sea': 'Morze ×{n}',
+    'bombers': 'Ładunki ×{n}',
+    'siege': 'Oblężenie ×{n}'
+  },
   'hints': {
     'selectBlock': { 'touch': 'Dotknij bloku na dole, aby go wybrać', 'desktop': 'Kliknij blok na dole, aby go wybrać' },
     'placeBlock': { 'touch': 'Teraz dotknij świecącego pola, aby zbudować', 'desktop': 'Teraz kliknij świecące pole, aby zbudować' },
@@ -25,8 +32,20 @@ export default {
     'inspect': { 'touch': 'Przytrzymaj blok, aby go sprawdzić', 'desktop': 'Kliknij blok, aby go sprawdzić' }
   },
 
+  'tips': {
+    'eco': 'Chaty drwala i kamieniołomy płacą co falę. Dwa lub trzy zmieniają to, na co cię stać.',
+    'buff': 'Sztandary wzmacniają wszystko, czego dotykają, i mnożą się. Otocz jedno działo zamiast je rozpraszać.',
+    'mergeLocked': 'Kup Fuzję w drzewku: dwie takie same bronie łączą się wtedy w jedną o potrójnej sile.',
+    'merge': 'Dwie takie same bronie obok siebie łączą się. Ułóż dwie takie pary w 2×2.',
+    'spend': 'Zostały ci monety. Rangi w drzewku są trwałe — działają w każdej kolejnej rozgrywce.',
+    'branches': 'Trzy osobne drzewka: wieża, port i warsztat. Żadne nie wymaga pozostałych.',
+    'shape': 'Mury z przodu, działa z tyłu. Blok, którego nic nie trafia, to blok, którego nie odbudowujesz.',
+    'gold': 'Złoto kupuje ulepszenia bloków — dotknij bloku. Skrzynie biją go co falę.'
+  },
   'blocks': {
+    'fortify': 'Dodaj kolce',
     'sell': 'Sprzedaj',
+    'mergeTier': 'Scalony {n}×',
     'upgrade': 'Ulepsz',
     'upgradeMax': 'W pełni ulepszony',
     'rank': 'Poz. {n}/{max}',
@@ -36,8 +55,11 @@ export default {
     'enhancedNote': 'Wzmocniony — +{hp}% PZ, +{dmg}% obrażeń.',
     'enhancedHand': 'Wzmocniona ręka',
     'reroll': 'Wymień ten element',
-    'kinds': { 'core': 'Rdzeń', 'structure': 'Konstrukcja', 'weapon': 'Broń', 'economy': 'Ekonomia', 'utility': 'Wsparcie', 'ship': 'Statek' },
+    'kinds': {
+      'buff': 'Wzmocnienie', 'core': 'Rdzeń', 'structure': 'Konstrukcja', 'weapon': 'Broń', 'economy': 'Ekonomia', 'utility': 'Wsparcie', 'ship': 'Statek' },
     'stats': {
+      'yieldGold': 'Złoto / fala',
+      'buff': 'Premia sąsiedztwa',
       'topDefense': 'Obrona z góry',
       'hp': 'PŻ', 'armor': 'Pancerz', 'dmg': 'Obrażenia', 'cooldown': 'Przeładowanie', 'range': 'Zasięg',
       'splash': 'Obszar', 'yieldWood': 'Drewno / falę', 'yieldStone': 'Kamień / falę', 'yieldCoins': 'Monety / falę',
@@ -45,6 +67,11 @@ export default {
       'thorns': 'Kolce'
     },
     'names': {
+      'banner': 'Sztandar',
+      'obelisk': 'Obelisk',
+      'lumberHut': 'Chata drwala',
+      'stonepit': 'Kamieniołom',
+      'coffer': 'Skrzynia',
       'skiff': 'Łódź patrolowa', 'longship': 'Długi okręt', 'galley': 'Galera bojowa',
       'gate': 'Brama', 'wood': 'Drewniana skrzynia', 'brace': 'Wzmocniona skrzynia', 'stone': 'Kamienny blok',
       'archer': 'Wieża łuczników', 'cannon': 'Armata', 'mortar': 'Moździerz', 'tesla': 'Cewka błyskawic',
@@ -54,6 +81,11 @@ export default {
       'bombard': 'Bombarda'
     },
     'descriptions': {
+      'banner': 'Wzmacnia każdy sąsiedni blok. Dwa sztandary przy jednym bloku kumulują się.',
+      'obelisk': 'Silniejszy sztandar. Aury się mnożą — dwie są warte znacznie więcej niż podwójnie.',
+      'lumberHut': 'Produkuje drewno po każdej odpartej fali.',
+      'stonepit': 'Produkuje kamień po każdej odpartej fali.',
+      'coffer': 'Bije złoto co falę — walutę ulepszeń bloków.',
       'skiff': 'Zacumowana na wodzie. Trafia wrogów pod powierzchnią.',
       'longship': 'Ciężki harpun. Osłonięty i o większym zasięgu niż brzeg.',
       'galley': 'Brązowy taran i bombarda na pokładzie. Jezioro jest twoje.',
@@ -133,6 +165,12 @@ export default {
   },
 
   'tech': {
+    'intro1': 'Wszystko, co tu kupisz, jest trwałe i zostaje na każdą kolejną rozgrywkę.',
+    'intro2': 'Monety dostajesz po każdym oblężeniu, wygranym czy przegranym. Tutaj je wydajesz.',
+    'intro3': 'Złote węzły już cię stać. Niebieskie wymagają więcej monet, przygaszone — węzła przed nimi.',
+    'introDone': 'Jasne',
+    'sell': 'Sprzedaj rangę',
+    'sellBlocked': 'Najpierw sprzedaj {n} — tego wymaga.',
     'title': 'Drzewko technologii',
     'rank': 'Ranga {current}/{total}',
     'maxed': 'Maksimum',
@@ -142,6 +180,13 @@ export default {
     'requires': 'Wymaga: {n}',
     'spotlight': 'Wydaj!',
     'names': {
+      'logistics': 'Logistyka',
+      'unlockCoffer': 'Skrzynie',
+      'yields': 'Wydajność',
+      'unlockObelisk': 'Kamienne słupy',
+      'rallyCry': 'Okrzyk bojowy',
+      'stockpiles': 'Zapasy',
+      'unlockMerge': 'Fuzja', 'forgeWelds': 'Spoiny kuźnicze',
       'harbour': 'Port', 'dockWorks': 'Nabrzeże',
       'unlockLongship': 'Długi okręt', 'seasonedHulls': 'Sezonowane kadłuby',
       'navalGunnery': 'Artyleria morska', 'unlockGalley': 'Galera bojowa',
@@ -163,6 +208,14 @@ export default {
       'artilleryDoctrine': 'Doktryna artyleryjska'
     },
     'descriptions': {
+      'logistics': 'Odblokowuje kamieniołom — tani producent, na którego stać cię w trakcie rozgrywki.',
+      'unlockCoffer': 'Odblokowuje skrzynię, jedyny blok bijący złoto.',
+      'yields': 'Każdy blok ekonomiczny daje +{n}% więcej.',
+      'unlockObelisk': 'Odblokowuje obelisk, znacznie silniejszą premię sąsiedztwa.',
+      'rallyCry': 'Bloki wzmacniające są +{n}% silniejsze.',
+      'stockpiles': 'Każdy blok ekonomiczny daje +{n}% więcej.',
+      'unlockMerge': 'Dwa takie same bloki obok siebie łączą się, do trzech poziomów.',
+      'forgeWelds': 'Scalone bloki zadają +{n}% obrażeń.',
       'harbour': 'Cumuj statki na wodzie. Tylko one trafiają zanurzonych.',
       'dockWorks': 'Cumuj {n} pole dalej na rangę.',
       'unlockLongship': 'Osłonięty kadłub z ciężkim harpunem.',

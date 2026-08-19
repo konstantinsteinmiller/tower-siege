@@ -28,6 +28,13 @@ export default {
 
   // ─── Control hints ────────────────────────────────────────────────────────
   // Each has a touch and a pointer phrasing — a wrong verb reads as a bug.
+  'warnings': {
+    'hoard': 'Hoard +{n}%',
+    'air': 'Air ×{n}',
+    'sea': 'Sea ×{n}',
+    'bombers': 'Blast ×{n}',
+    'siege': 'Siege ×{n}'
+  },
   'hints': {
     'selectBlock': {
       'touch': 'Tap a block below to pick it',
@@ -52,7 +59,19 @@ export default {
   },
 
   // ─── Blocks ───────────────────────────────────────────────────────────────
+  'tips': {
+    'eco': 'Lumber huts and stone pits pay you every wave. Two or three change what you can afford.',
+    'buff': 'Banners boost every block they touch — and they multiply. Surround one gun instead of spreading them out.',
+    'mergeLocked': 'Buy Fusion in the tech tree: two identical weapons then fuse into one that hits three times as hard.',
+    'merge': 'Two identical weapons side by side fuse into one. Stack two of those to make a 2×2.',
+    'spend': 'You have coins to spend. Tech-tree ranks are permanent — they carry into every future run.',
+    'branches': 'Three separate trees: the tower, the harbour, and the works. None of them needs the others.',
+    'shape': 'Walls in front, guns behind. A block that never gets hit is a block you never rebuild.',
+    'gold': 'Gold buys block upgrades — tap any block to spend it. Coffers mint more every wave.'
+  },
   'blocks': {
+    'fortify': 'Add spikes',
+    'mergeTier': 'Merged {n}×',
     'sell': 'Sell',
     'upgrade': 'Upgrade',
     'upgradeMax': 'Fully upgraded',
@@ -64,6 +83,7 @@ export default {
     'enhancedHand': 'Reinforced hand',
     'reroll': 'Swap this piece',
     'kinds': {
+      'buff': 'Buff',
       'core': 'Core',
       'structure': 'Structure',
       'weapon': 'Weapon',
@@ -72,6 +92,8 @@ export default {
       'ship': 'Ship'
     },
     'stats': {
+      'yieldGold': 'Gold / wave',
+      'buff': 'Neighbour buff',
       'hp': 'HP',
       'armor': 'Armour',
       'topDefense': 'Top defence',
@@ -87,6 +109,11 @@ export default {
       'thorns': 'Thorns'
     },
     'names': {
+      'banner': 'Banner',
+      'obelisk': 'Obelisk',
+      'lumberHut': 'Lumber Hut',
+      'stonepit': 'Stone Pit',
+      'coffer': 'Coffer',
       'skiff': 'Picket Skiff', 'longship': 'Longship', 'galley': 'War Galley',
       'gate': 'Gate',
       'wood': 'Wood Crate',
@@ -105,6 +132,11 @@ export default {
       'bombard': 'Bombard'
     },
     'descriptions': {
+      'banner': 'Boosts every neighbouring block. Two banners on one block stack.',
+      'obelisk': 'A stronger banner. Auras multiply, so pairs are worth far more than double.',
+      'lumberHut': 'Produces wood at the end of every cleared wave.',
+      'stonepit': 'Produces stone at the end of every cleared wave.',
+      'coffer': 'Mints run gold every wave — the currency block upgrades cost.',
       'skiff': 'Moored on the water. Hits things under the surface.',
       'longship': 'Heavy harpoon. Shielded, and it out-ranges the shore.',
       'galley': 'Bronze ram and a deck bombard. The lake is yours.',
@@ -196,6 +228,12 @@ export default {
 
   // ─── Tech tree ────────────────────────────────────────────────────────────
   'tech': {
+    'sell': 'Sell rank',
+    'sellBlocked': 'Sell {n} first — it needs this.',
+    'intro1': 'Everything you buy here is permanent. It carries into every future run.',
+    'intro2': 'Coins come from every siege, win or lose. This is where you spend them.',
+    'intro3': 'Gold nodes you can afford now. Blue need more coins. Dim need the node before them.',
+    'introDone': 'Got it',
     'title': 'Tech Tree',
     'rank': 'Rank {current}/{total}',
     'maxed': 'Maxed',
@@ -205,6 +243,13 @@ export default {
     'requires': 'Requires {n}',
     'spotlight': 'Spend!',
     'names': {
+      'unlockMerge': 'Fusion', 'forgeWelds': 'Forge Welds',
+      'logistics': 'Logistics',
+      'unlockCoffer': 'Coffers',
+      'yields': 'Yields',
+      'unlockObelisk': 'Standing Stones',
+      'rallyCry': 'Rally Cry',
+      'stockpiles': 'Stockpiles',
       'harbour': 'Harbour', 'dockWorks': 'Dock Works',
       'unlockLongship': 'Longship', 'seasonedHulls': 'Seasoned Hulls',
       'navalGunnery': 'Naval Gunnery', 'unlockGalley': 'War Galley',
@@ -244,6 +289,14 @@ export default {
       'artilleryDoctrine': 'Artillery Doctrine'
     },
     'descriptions': {
+      'unlockMerge': 'Two matching blocks side by side fuse into one, up to three deep.',
+      'forgeWelds': 'Merged blocks deal +{n}% damage',
+      'logistics': 'Unlocks the Stone Pit — a cheap producer you can afford in the run it matters.',
+      'unlockCoffer': 'Unlocks the Coffer, the only block that mints run gold.',
+      'yields': 'Every economy block yields +{n}% more.',
+      'unlockObelisk': 'Unlocks the Obelisk, a far stronger neighbour buff.',
+      'rallyCry': 'Buff blocks are +{n}% stronger.',
+      'stockpiles': 'Every economy block yields +{n}% more.',
       'harbour': 'Moor ships on the water. They alone can hit submerged foes.',
       'dockWorks': 'Berth ships {n} cell wider per rank.',
       'unlockLongship': 'A shielded hull with a heavy harpoon.',

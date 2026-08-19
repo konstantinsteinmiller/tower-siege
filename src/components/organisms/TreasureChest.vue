@@ -8,7 +8,7 @@ import IconCoin from '@/components/icons/IconCoin.vue'
 // the chest's collected-at key into the single in-memory record that the
 // SaveManager mirrors to localStorage AND the active platform SDK's cloud save.
 import { getState, setState } from '@/use/useTowerState'
-import { CHEST_KEY } from '@/keys'
+import { CHEST_KEY, CHEST_DAY_KEY } from '@/keys'
 
 interface Props {
   /** Element where the coin explosion VFX flies to (the coin badge). */
@@ -27,7 +27,34 @@ const BIG_READY_AT_MS = 10 * 60 * 1000
 const SMALL_REWARD = 25
 const BIG_REWARD = 100
 
+/**
+ * Ceiling on what the chest may pay in one calendar day.
+ *
+ * Uncapped it paid 100 coins per ten idle minutes — 600 an hour, unattended and
+ * without an ad — while a run that reaches wave 8 takes several minutes of real
+ * play and pays around 250. The faucet out-earned the game. 300 keeps the chest
+ * worth opening on a short session (three big claims, or a mix) without it
+ * being the reason to leave the tab open.
+ */
+const DAILY_CAP = 300
+
 const STORAGE_KEY = CHEST_KEY
+
+const todayKey = (): string => new Date().toISOString().slice(0, 10)
+
+interface DayLedger { day: string; coins: number }
+
+const readLedger = (): DayLedger => {
+  const v = getState<Partial<DayLedger>>(CHEST_DAY_KEY, {} as DayLedger)
+  return v && v.day === todayKey()
+    ? { day: v.day, coins: Math.max(0, Number(v.coins) || 0) }
+    : { day: todayKey(), coins: 0 }
+}
+
+const ledger = ref<DayLedger>(readLedger())
+
+/** What today has left in it. */
+const dailyLeft = computed(() => Math.max(0, DAILY_CAP - ledger.value.coins))
 
 const readStoredAt = () => {
   const v = getState<unknown>(STORAGE_KEY)
@@ -49,8 +76,13 @@ const phase = computed<Phase>(() => {
   return 'big'
 })
 
-const isReady = computed(() => phase.value !== 'cooldown')
-const currentReward = computed(() => (phase.value === 'big' ? BIG_REWARD : SMALL_REWARD))
+// Capped at whatever the day has left, so the chest visibly winds down rather
+// than silently paying nothing.
+const currentReward = computed(() =>
+  Math.min(dailyLeft.value, phase.value === 'big' ? BIG_REWARD : SMALL_REWARD)
+)
+
+const isReady = computed(() => phase.value !== 'cooldown' && currentReward.value > 0)
 
 const remainingMs = computed(() => {
   if (phase.value === 'cooldown') return SMALL_READY_AT_MS - elapsedMs.value
@@ -82,6 +114,9 @@ const onClick = () => {
   }
   lastCollectedAt.value = Date.now()
   setState(STORAGE_KEY, lastCollectedAt.value)
+  const next: DayLedger = { day: todayKey(), coins: readLedger().coins + reward }
+  ledger.value = next
+  setState(CHEST_DAY_KEY, next)
 }
 
 onMounted(() => {
@@ -89,6 +124,8 @@ onMounted(() => {
     tickNow.value = Date.now()
     const stored = readStoredAt()
     if (stored !== lastCollectedAt.value) lastCollectedAt.value = stored
+    // Roll the ledger over at midnight without needing a reload.
+    if (ledger.value.day !== todayKey()) ledger.value = readLedger()
   }, 1000)
 })
 onUnmounted(() => {
